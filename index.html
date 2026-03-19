@@ -404,7 +404,7 @@ async function fetchBenchmark(symbol){
   const candidates=[
     YAHOO_BASE +sym+"?interval=1mo&range=5y",
     YAHOO_BASE1+sym+"?interval=1mo&range=5y",
-    YAHOO_BASE +sym+"?interval=1mo&range=3y",  // shorter range as last resort
+    YAHOO_BASE +sym+"?interval=1mo&range=3y",
   ];
   let lastErr="No data";
   for(const url of candidates){
@@ -424,6 +424,50 @@ async function fetchBenchmark(symbol){
     }catch(e){ lastErr=e.message; }
   }
   throw new Error(lastErr);
+}
+
+// ─── Indonesian Mutual Fund NAV history ──────────────────────────────────────
+// Returns same shape as fetchBenchmark: {labels, pct, raw}
+async function fetchMFBenchmark(fundCode){
+  const code=encodeURIComponent(fundCode);
+  const endpoints=[
+    // Bareksa NAV history (most reliable for Indonesian MF)
+    `https://api.bareksa.com/v2/reksa-dana/nav-history?symbol=${code}&period=5y`,
+    `https://api.bareksa.com/v2/fixed-income/nav-history?symbol=${code}&period=5y`,
+    // OJK APERD public API
+    `https://aperd.ojk.go.id/aperdnetwork/aperd/shownavhistory?produk=${code}`,
+    // Bibit public API
+    `https://api.bibit.id/v1/reksa-dana/${code}/nav-history?period=5y`,
+    // Infovesta data
+    `https://www.infovesta.com/index/fundperformance/getnavhistory?code=${code}`,
+  ];
+  for(const url of endpoints){
+    try{
+      const d=await fetchWithProxy(url,8000);
+      if(!d)continue;
+      // Bareksa pattern: {data:{navHistory:[{date,nav}]}}
+      const hist=d?.data?.navHistory||d?.data?.nav_history||d?.navHistory||
+                 d?.data||d?.result||d?.history||[];
+      const arr=Array.isArray(hist)?hist:[];
+      if(arr.length<3)continue;
+      // Sort by date ascending
+      const sorted=arr.filter(x=>x.date||x.nav_date||x.tanggal)
+        .map(x=>({
+          date:x.date||x.nav_date||x.tanggal,
+          nav:parseFloat(x.nav||x.nilai_nav||x.navPerUnit||x.value||0)
+        }))
+        .filter(x=>x.nav>0)
+        .sort((a,b)=>a.date.localeCompare(b.date));
+      if(sorted.length<3)continue;
+      const base=sorted[0].nav;
+      return{
+        labels:sorted.map(x=>x.date),
+        pct:sorted.map(x=>((x.nav-base)/base)*100),
+        raw:sorted.map(x=>x.nav),
+      };
+    }catch(e){/* try next */}
+  }
+  throw new Error("MF NAV unavailable: "+fundCode);
 }
 
 async function fetchExchangeRates(){
@@ -1025,7 +1069,8 @@ function App(){
   const[tmShowVal,setTmShowVal]=useState(true);
   const[tmSize,setTmSize]      =useState({w:600,h:420});
   const[chartPeriod,setChartPeriod]=useState("1Y");
-  const[benchmarks,setBenchmarks]=useState({labels:[],sp500:[],brk:[]});
+  const[benchmarks,setBenchmarks]=useState({labels:[],series:{}});
+  const[bmVisible,setBmVisible]  =useState({sp500:true,brk:false,jkse:true,eido:true,vas:false,schpplu:false,sucorin:false,bnpkehati:false});
   // Fetch status
   const[fetchSt,setFetchSt]    =useState({loading:false,lastUpdate:null,errors:{},successes:0,total:0,fetched:0,rateOk:null,bmStatus:null});
 
@@ -1144,26 +1189,34 @@ function App(){
       setRates(newRates);rateOk=true;
     }catch(e){console.warn("Rate fetch failed:",e.message);}
 
-    // Fetch benchmarks (S&P500 = ^GSPC, Berkshire = BRK-B) — 5y monthly
+    // ── Fetch all benchmarks in parallel ──────────────────────────────────────
     let bmStatus="loading";
     try{
-      const [spRes,brkRes]=await Promise.allSettled([
-        fetchBenchmark("^GSPC"),
-        fetchBenchmark("BRK-B"),
-      ]);
-      const spOk=spRes.status==="fulfilled";
-      const brkOk=brkRes.status==="fulfilled";
-      if(spOk||brkOk){
-        const ref=spOk?spRes.value:brkRes.value;
-        const brkData=brkOk?brkRes.value:null;
-        setBenchmarks({
-          labels:ref.labels,
-          sp500:spOk?spRes.value.pct:ref.labels.map(()=>null),
-          brk:brkData?brkData.pct:ref.labels.map(()=>null),
+      const BM_DEFS=[
+        {key:"sp500",  label:"S&P 500",          fetch:()=>fetchBenchmark("^GSPC")},
+        {key:"brk",    label:"BRK-B",             fetch:()=>fetchBenchmark("BRK-B")},
+        {key:"jkse",   label:"IDX Composite",     fetch:()=>fetchBenchmark("^JKSE")},
+        {key:"eido",   label:"EIDO",              fetch:()=>fetchBenchmark("EIDO")},
+        {key:"vas",    label:"VAS",               fetch:()=>fetchBenchmark("VAS.AX")},
+        {key:"schpplu",label:"Schroder Prestasi", fetch:()=>fetchMFBenchmark("SCHPPLU")},
+        {key:"sucorin",label:"Sucorinvest Equity",fetch:()=>fetchMFBenchmark("GAMA2EQC01EQUI01")},
+        {key:"bnpkehati",label:"BNP KEHATI",      fetch:()=>fetchMFBenchmark("OP0001J4UE")},
+      ];
+      const results=await Promise.allSettled(BM_DEFS.map(b=>b.fetch()));
+      // Find longest label array as reference timeline
+      const successes=results.map((r,i)=>r.status==="fulfilled"?{...BM_DEFS[i],data:r.value}:null).filter(Boolean);
+      if(successes.length>0){
+        const ref=successes.reduce((a,b)=>b.data.labels.length>a.data.labels.length?b:a);
+        const series={};
+        results.forEach((r,i)=>{
+          series[BM_DEFS[i].key]=r.status==="fulfilled"?r.value.pct:null;
         });
-        bmStatus=`S&P ${spOk?"✓":"✗"}  BRK ${brkOk?"✓":"✗"}`;
+        setBenchmarks({labels:ref.data.labels,series});
+        const ok=BM_DEFS.map((b,i)=>results[i].status==="fulfilled"?b.label+"✓":null).filter(Boolean);
+        const fail=BM_DEFS.map((b,i)=>results[i].status==="rejected"?b.label:null).filter(Boolean);
+        bmStatus=`${ok.length}/${BM_DEFS.length} loaded${fail.length?` · failed: ${fail.join(", ")}`:""}`; 
       }else{
-        bmStatus="failed — "+([spRes,brkRes].map(r=>r.reason?.message||"?").join(", "));
+        bmStatus="failed — all benchmarks unavailable";
       }
     }catch(e){bmStatus="error: "+e.message;}
 
@@ -1302,22 +1355,50 @@ function App(){
     ].filter(Boolean);
 
     // ── Benchmark comparison (period-filtered) ───────────────────────────────
-    let bmLabels=[],bmSP=[],bmBRK=[],bmPortfolio=[];
+    const BM_KEYS=["sp500","brk","jkse","eido","vas","schpplu","sucorin","bnpkehati"];
+    let bmLabels=[],bmPortfolio=[];
+    const bmSeries={};
+    BM_KEYS.forEach(k=>bmSeries[k]=[]);
+
     if(benchmarks.labels.length>0){
       const bCutoff=periodCutoff(chartPeriod);
       const filtIdx=benchmarks.labels.map((l,i)=>new Date(l)>=bCutoff?i:-1).filter(i=>i>=0);
       if(filtIdx.length>1){
-        // Re-normalise from first visible point
-        const i0=filtIdx[0];
-        const spBase=benchmarks.sp500[i0]??0,brkBase=benchmarks.brk[i0]??0;
-        // Portfolio % return from same start
-        const portBase=baseSnap?baseSnap.totalValueAUD:allSorted[0]?.totalValueAUD||totVal;
         bmLabels=filtIdx.map(i=>fmtMonShort(benchmarks.labels[i]));
-        bmSP=filtIdx.map(i=>benchmarks.sp500[i]!=null?benchmarks.sp500[i]-spBase:null);
-        bmBRK=filtIdx.map(i=>benchmarks.brk[i]!=null?benchmarks.brk[i]-brkBase:null);
+
+        // ── Find first benchmark label that has a matching portfolio snapshot ──
+        // This ensures portfolio % and benchmark % start from the SAME date.
+        // Without this, if portfolio history only goes back 90 days but the
+        // period is 1Y/5Y, the denominator becomes tiny → inflated %.
+        let portBaseVal=null, portBaseSeriesIdx=-1;
+        for(let j=0;j<filtIdx.length;j++){
+          const bmDate=benchmarks.labels[filtIdx[j]];
+          const snap=allSorted.filter(s=>s.date<=bmDate).slice(-1)[0];
+          if(snap&&snap.totalValueAUD>0){
+            portBaseVal=snap.totalValueAUD;
+            portBaseSeriesIdx=j;
+            break;
+          }
+        }
+        // If no history at all, use current value (% return will be ~0 but won't be 500%)
+        if(!portBaseVal)portBaseVal=totVal;
+
+        // Re-normalise all benchmark series from the same point as portfolio
+        const refFiltI=portBaseSeriesIdx>=0?filtIdx[portBaseSeriesIdx]:filtIdx[0];
+        BM_KEYS.forEach(k=>{
+          const s=benchmarks.series[k];
+          if(!s){bmSeries[k]=filtIdx.map(()=>null);return;}
+          const base=s[refFiltI]??null;
+          bmSeries[k]=filtIdx.map(i=>s[i]!=null&&base!=null?s[i]-base:null);
+        });
+
+        // Portfolio % return — only plot from portBaseSeriesIdx onwards
         bmPortfolio=filtIdx.map((i,j)=>{
-          const snap=allSorted.filter(s=>s.date<=benchmarks.labels[i]).slice(-1)[0];
-          return snap?((snap.totalValueAUD-portBase)/portBase)*100:null;
+          if(j<portBaseSeriesIdx)return null; // no data yet for this period
+          const bmDate=benchmarks.labels[i];
+          const snap=allSorted.filter(s=>s.date<=bmDate).slice(-1)[0];
+          if(!snap||!portBaseVal)return null;
+          return((snap.totalValueAUD-portBaseVal)/portBaseVal)*100;
         });
       }
     }
@@ -1327,7 +1408,7 @@ function App(){
       tLabels:Object.keys(byType),tVals:Object.values(byType),palette,
       byCurLabels:Object.keys(byCur),byCurVals:Object.values(byCur),byCurColors:["#22c55e","#06b6d4","#f59e0b","#8b5cf6"],
       waterfallData,startVal,endVal,
-      bmLabels,bmSP,bmBRK,bmPortfolio,
+      bmLabels,bmSeries,bmPortfolio,
     };
   },[history,holdings,displayCur,rates,portfolio,chartPeriod,periodCutoff,benchmarks,totVal]);
 
@@ -1874,51 +1955,95 @@ function App(){
 
           {/* ── Row 4: Benchmark Comparison ── */}
           <div style={{...card({padding:16})}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12,flexWrap:"wrap",gap:8}}>
-              <div>
-                <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>📐 Benchmark Comparison — {chartPeriod}</div>
-                <div style={{fontSize:11,color:T.text3}}>Your portfolio vs S&amp;P 500 and Berkshire Hathaway (BRK-B) · % return</div>
-              </div>
-              {!fetchSt.lastUpdate&&<div style={{display:"flex",alignItems:"center",gap:6,background:T.bg4,border:`1px solid ${T.amber}44`,borderRadius:8,padding:"6px 12px"}}>
-                <span style={{fontSize:12}}>⚠️</span>
-                <span style={{fontSize:11,color:T.amber}}>Click <b>🔄 Live Prices</b> to load benchmark data</span>
+            <div style={{marginBottom:12}}>
+              <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>📐 Benchmark Comparison — {chartPeriod}</div>
+              <div style={{fontSize:11,color:T.text3,marginBottom:10}}>Your portfolio vs selected benchmarks · % return from period start</div>
+              {/* ── Benchmark toggles ── */}
+              {(()=>{
+                const BM_DEF=[
+                  {key:"sp500",   label:"S&P 500",           color:"#6366f1"},
+                  {key:"brk",     label:"BRK-B",             color:"#f59e0b"},
+                  {key:"jkse",    label:"IDX Composite",     color:"#ef4444"},
+                  {key:"eido",    label:"EIDO",              color:"#8b5cf6"},
+                  {key:"vas",     label:"VAS",               color:"#06b6d4"},
+                  {key:"schpplu", label:"Schroder Prestasi", color:"#f97316"},
+                  {key:"sucorin", label:"Sucorinvest Eq.",   color:"#ec4899"},
+                  {key:"bnpkehati",label:"BNP KEHATI",       color:"#14b8a6"},
+                ];
+                return(
+                  <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10}}>
+                    {BM_DEF.map(({key,label,color})=>{
+                      const on=bmVisible[key];
+                      const hasData=benchmarks.series[key]?.some(v=>v!=null);
+                      return(
+                        <button key={key} onClick={()=>setBmVisible(v=>({...v,[key]:!v[key]}))}
+                          style={{padding:"4px 10px",borderRadius:20,border:`1.5px solid ${color}`,
+                            background:on?color:"transparent",color:on?"#fff":color,
+                            fontSize:10,fontWeight:600,cursor:"pointer",opacity:hasData?1:0.4,
+                            transition:"all .15s"}}>
+                          {label}{!hasData?" ✗":""}
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+              {!fetchSt.lastUpdate&&<div style={{display:"flex",alignItems:"center",gap:6,background:T.bg4,border:`1px solid ${T.amber}44`,borderRadius:8,padding:"6px 12px",marginBottom:8}}>
+                <span style={{fontSize:11,color:T.amber}}>⚠️ Click <b>🔄 Live Prices</b> to load benchmark data</span>
               </div>}
             </div>
-            {chartData.bmLabels.length>1?(
-              <ChartLine labels={chartData.bmLabels} datasets={[
-                {label:"Your Portfolio",data:chartData.bmPortfolio,borderColor:dark?"#22c55e":"#16a34a",backgroundColor:dark?"rgba(34,197,94,.07)":"rgba(22,163,74,.06)",fill:true,borderWidth:2.5},
-                {label:"S&P 500",data:chartData.bmSP,borderColor:"#6366f1",backgroundColor:"transparent",borderWidth:2,borderDash:[0]},
-                {label:"Berkshire Hathaway (BRK-B)",data:chartData.bmBRK,borderColor:"#f59e0b",backgroundColor:"transparent",borderWidth:2,borderDash:[4,3]},
-              ]} T={T} yFmt={v=>`${v>=0?"+":""}${v.toFixed(1)}%`} height={isMob?200:260}/>
-            ):(
+            {chartData.bmLabels.length>1?(()=>{
+              const BM_DEF=[
+                {key:"sp500",   label:"S&P 500",           color:"#6366f1", dash:[]},
+                {key:"brk",     label:"BRK-B",             color:"#f59e0b", dash:[4,3]},
+                {key:"jkse",    label:"IDX Composite",     color:"#ef4444", dash:[2,2]},
+                {key:"eido",    label:"EIDO",              color:"#8b5cf6", dash:[6,2]},
+                {key:"vas",     label:"VAS (ASX)",         color:"#06b6d4", dash:[4,2]},
+                {key:"schpplu", label:"Schroder Prestasi", color:"#f97316", dash:[3,3]},
+                {key:"sucorin", label:"Sucorinvest Eq.",   color:"#ec4899", dash:[5,2]},
+                {key:"bnpkehati",label:"BNP KEHATI",       color:"#14b8a6", dash:[2,4]},
+              ];
+              const datasets=[
+                {label:"Your Portfolio",data:chartData.bmPortfolio,borderColor:dark?"#22c55e":"#16a34a",backgroundColor:dark?"rgba(34,197,94,.07)":"rgba(22,163,74,.06)",fill:true,borderWidth:2.5,borderDash:[]},
+                ...BM_DEF.filter(b=>bmVisible[b.key]).map(b=>({
+                  label:b.label,
+                  data:chartData.bmSeries[b.key]||[],
+                  borderColor:b.color,
+                  backgroundColor:"transparent",
+                  borderWidth:2,
+                  borderDash:b.dash,
+                }))
+              ];
+              // Performance pills for visible benchmarks only
+              const lastPort=chartData.bmPortfolio.filter(v=>v!=null).slice(-1)[0]??0;
+              return(<>
+                <ChartLine labels={chartData.bmLabels} datasets={datasets}
+                  T={T} yFmt={v=>`${v>=0?"+":""}${v.toFixed(1)}%`} height={isMob?220:280}/>
+                <div style={{display:"flex",gap:6,marginTop:12,flexWrap:"wrap"}}>
+                  <div style={{background:T.bg4,border:"1.5px solid "+(dark?"#22c55e":"#16a34a"),borderRadius:8,padding:"8px 12px",flex:"1 1 80px"}}>
+                    <div style={{fontSize:9,color:T.text3,marginBottom:2}}>Your Portfolio</div>
+                    <div style={{fontFamily:"'Space Mono',monospace",fontSize:12,fontWeight:700,color:dark?"#22c55e":"#16a34a"}}>{lastPort>=0?"+":""}{lastPort.toFixed(2)}%</div>
+                  </div>
+                  {BM_DEF.filter(b=>bmVisible[b.key]&&(chartData.bmSeries[b.key]||[]).some(v=>v!=null)).map(b=>{
+                    const last=(chartData.bmSeries[b.key]||[]).filter(v=>v!=null).slice(-1)[0]??0;
+                    const diff=lastPort-last;
+                    return(
+                      <div key={b.key} style={{background:T.bg4,border:`1.5px solid ${b.color}`,borderRadius:8,padding:"8px 12px",flex:"1 1 80px"}}>
+                        <div style={{fontSize:9,color:T.text3,marginBottom:2}}>{b.label}</div>
+                        <div style={{fontFamily:"'Space Mono',monospace",fontSize:12,fontWeight:700,color:b.color}}>{last>=0?"+":""}{last.toFixed(2)}%</div>
+                        <div style={{fontSize:9,color:diff>=0?T.green:T.red,marginTop:2}}>{diff>=0?"▲ ":"▼ "}{Math.abs(diff).toFixed(1)}% vs you</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>);
+            })():(
               <div style={{height:200,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:10,color:T.text3}}>
                 <div style={{fontSize:32,opacity:.3}}>📐</div>
                 <div style={{fontSize:13,fontWeight:500}}>Benchmark data not loaded yet</div>
-                <div style={{fontSize:11}}>Hit <b style={{color:T.text2}}>🔄 Live Prices</b> in the header to fetch S&amp;P 500 &amp; BRK-B data</div>
+                <div style={{fontSize:11}}>Hit <b style={{color:T.text2}}>🔄 Live Prices</b> to fetch benchmark data</div>
               </div>
             )}
-            {/* Performance comparison pills — show once data is loaded */}
-            {chartData.bmLabels.length>1&&(()=>{
-              const lastPort=chartData.bmPortfolio.filter(v=>v!=null).slice(-1)[0]??0;
-              const lastSP=chartData.bmSP.filter(v=>v!=null).slice(-1)[0]??0;
-              const lastBRK=chartData.bmBRK.filter(v=>v!=null).slice(-1)[0]??0;
-              const diff1=lastPort-lastSP,diff2=lastPort-lastBRK;
-              return(
-                <div style={{display:"flex",gap:8,marginTop:12,flexWrap:"wrap"}}>
-                  {[
-                    ["Your Portfolio",lastPort,"#22c55e",""],
-                    ["S&P 500",lastSP,"#6366f1",diff1>=0?`▲ +${diff1.toFixed(1)}% vs S&P`:`▼ ${diff1.toFixed(1)}% vs S&P`],
-                    ["BRK-B",lastBRK,"#f59e0b",diff2>=0?`▲ +${diff2.toFixed(1)}% vs BRK`:`▼ ${diff2.toFixed(1)}% vs BRK`],
-                  ].map(([l,v,c,note])=>(
-                    <div key={l} style={{background:T.bg4,border:`1px solid ${T.border}`,borderRadius:8,padding:"8px 12px",flex:"1 1 100px"}}>
-                      <div style={{fontSize:10,color:T.text3,marginBottom:3}}>{l}</div>
-                      <div style={{fontFamily:"'Space Mono',monospace",fontSize:13,fontWeight:700,color:c}}>{v>=0?"+":""}{v.toFixed(2)}%</div>
-                      {note&&<div style={{fontSize:10,color:diff1>=0&&l==="S&P 500"?T.green:diff2>=0&&l==="BRK-B"?T.green:T.red,marginTop:2}}>{note}</div>}
-                    </div>
-                  ))}
-                </div>
-              );
-            })()}
           </div>
 
         </div>
