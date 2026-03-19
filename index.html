@@ -1147,6 +1147,28 @@ function App(){
     return()=>clearTimeout(t);
   },[portfolio,prices,history]);
 
+  // ── One-time history sanitization on mount ──────────────────────────────────
+  // The seed history generates fake low values (~A$85K-100K) that are saved on
+  // first load. Real snapshots reflect actual portfolio value. We purge any
+  // snapshot below 30% of the most recent snapshot value (most reliable).
+  useEffect(()=>{
+    setHistory(prev=>{
+      if(prev.length<2)return prev;
+      const sorted=[...prev].sort((a,b)=>new Date(a.date)-new Date(b.date));
+      // Use max of last 3 snapshots as reference (most reliable real values)
+      const recent=sorted.slice(-3).map(s=>s.totalValueAUD).filter(v=>v>0);
+      if(!recent.length)return prev;
+      const refVal=Math.max(...recent);
+      const threshold=refVal*0.30; // anything below 30% of recent max is seed/corrupt
+      const cleaned=sorted.filter(s=>s.totalValueAUD>=threshold);
+      if(cleaned.length<prev.length){
+        console.log(`FOLIO: purged ${prev.length-cleaned.length} seed/corrupt history snapshots`);
+        return cleaned;
+      }
+      return prev;
+    });
+  },[]);
+
   // Auto-refresh prices on page load — short delay lets React finish first render
   useEffect(()=>{const t=setTimeout(()=>autoRefresh(),800);return()=>clearTimeout(t);},[]);
 
@@ -1298,7 +1320,14 @@ function App(){
   // Chart data
   const chartData=useMemo(()=>{
     const cutoff=periodCutoff(chartPeriod);
-    const allSorted=[...history].sort((a,b)=>new Date(a.date)-new Date(b.date));
+    // Sanitise history — remove seed data and corrupt snapshots
+    // Seed history has values ~A$85K-100K; real portfolio is much larger.
+    // Use max of last 3 snapshots as reference; purge anything below 30% of that.
+    const rawSorted=[...history].sort((a,b)=>new Date(a.date)-new Date(b.date));
+    const recentVals=rawSorted.slice(-3).map(s=>s.totalValueAUD).filter(v=>v>0);
+    const refVal=recentVals.length?Math.max(...recentVals):0;
+    const hThreshold=refVal*0.30;
+    const allSorted=refVal>0?rawSorted.filter(s=>s.totalValueAUD>=hThreshold):rawSorted;
     const filtered=allSorted.filter(s=>new Date(s.date)>=cutoff);
     // Use last point before cutoff as the "start" baseline if available
     const baseSnap=allSorted.filter(s=>new Date(s.date)<cutoff).slice(-1)[0];
@@ -1363,16 +1392,8 @@ function App(){
       if(filtIdx.length>1){
         bmLabels=filtIdx.map(i=>fmtMonShort(benchmarks.labels[i]));
 
-        // ── Sanitise history: remove snapshots with unrealistically low values ──
-        // Early snapshots may have been saved before all prices loaded (prices=0 → tiny totalValueAUD)
-        // Use only snapshots within 20%–500% of the median to exclude outliers
-        const validSnaps=[...allSorted].filter(s=>s.totalValueAUD>0);
-        let saneSorted=validSnaps;
-        if(validSnaps.length>=3){
-          const vals=validSnaps.map(s=>s.totalValueAUD).sort((a,b)=>a-b);
-          const median=vals[Math.floor(vals.length/2)];
-          saneSorted=validSnaps.filter(s=>s.totalValueAUD>=median*0.2&&s.totalValueAUD<=median*5);
-        }
+        // allSorted is already sanitised above (30% of recent max threshold)
+        const saneSorted=allSorted.filter(s=>s.totalValueAUD>0);
 
         // Find first benchmark date that has a sane portfolio snapshot
         let portBaseVal=null, portBaseSeriesIdx=-1;
