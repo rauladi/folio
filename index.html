@@ -757,14 +757,27 @@ function useWindowSize(){
 }
 
 // ─── Chart Components ─────────────────────────────────────────────────────────
-function ChartLine({labels,datasets,T,yFmt,height=220,spanGaps=false}){
+function ChartLine({labels,datasets,T,yFmt,y2Fmt,height=220,spanGaps=false}){
   const ref=useRef(null);const inst=useRef(null);
   useEffect(()=>{
     if(!ref.current||typeof Chart==="undefined")return;
     if(inst.current)inst.current.destroy();
-    inst.current=new Chart(ref.current,{type:"line",data:{labels,datasets},options:{spanGaps:spanGaps,responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:T.text2,font:{family:"Roboto",size:11},boxWidth:10,padding:12}},tooltip:{backgroundColor:T.bg3,borderColor:T.border,borderWidth:1,titleColor:T.text,bodyColor:T.text2,padding:10,cornerRadius:8}},scales:{x:{grid:{color:T.chartGrid},ticks:{color:T.chartTick,font:{size:10}},border:{color:T.border}},y:{grid:{color:T.chartGrid},ticks:{color:T.chartTick,font:{size:10},callback:yFmt||(v=>`A$${(v/1000).toFixed(0)}K`)},border:{color:T.border}}},elements:{line:{tension:.4},point:{radius:2,hoverRadius:5}}}});
+    const hasY2=y2Fmt&&datasets.some(d=>d.yAxisID==="y2");
+    const scales={
+      x:{grid:{color:T.chartGrid},ticks:{color:T.chartTick,font:{size:10}},border:{color:T.border}},
+      y:{grid:{color:T.chartGrid},ticks:{color:T.chartTick,font:{size:10},callback:yFmt||(v=>`A$${(v/1000).toFixed(0)}K`)},border:{color:T.border},position:"left"},
+    };
+    if(hasY2){
+      scales.y2={
+        grid:{drawOnChartArea:false},
+        ticks:{color:"#06b6d4",font:{size:10},callback:y2Fmt},
+        border:{color:T.border},
+        position:"right",
+      };
+    }
+    inst.current=new Chart(ref.current,{type:"line",data:{labels,datasets},options:{spanGaps:spanGaps,responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:T.text2,font:{family:"Roboto",size:11},boxWidth:10,padding:12}},tooltip:{backgroundColor:T.bg3,borderColor:T.border,borderWidth:1,titleColor:T.text,bodyColor:T.text2,padding:10,cornerRadius:8,callbacks:{label:(ctx)=>{const fmt=ctx.dataset.yAxisID==="y2"&&y2Fmt?y2Fmt:yFmt||(v=>`${v}`);return` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)}`;},}}},scales,elements:{line:{tension:.4},point:{radius:2,hoverRadius:5}}}});
     return()=>{if(inst.current)inst.current.destroy();};
-  },[labels,datasets,T,yFmt]);
+  },[labels,datasets,T,yFmt,y2Fmt]);
   return <div style={{height,position:"relative"}}><canvas ref={ref}/></div>;
 }
 function ChartBar({labels,datasets,T,yFmt,height=200}){
@@ -2140,9 +2153,9 @@ function App(){
                 </div>}
               </div>
               <ChartLine labels={chartData.labels} datasets={[
-                {label:"Portfolio Value",data:chartData.vals,borderColor:dark?"#22c55e":"#16a34a",backgroundColor:dark?"rgba(34,197,94,.07)":"rgba(22,163,74,.06)",fill:true,borderWidth:2},
-                {label:"Cum. Dividends / Coupons",data:chartData.divCumul,borderColor:dark?"#06b6d4":"#0891b2",backgroundColor:"transparent",borderDash:[5,4],borderWidth:1.5}
-              ]} T={T} yFmt={yFmtD} height={isMob?170:230}/>
+                {label:"Portfolio Value",data:chartData.vals,borderColor:dark?"#22c55e":"#16a34a",backgroundColor:dark?"rgba(34,197,94,.07)":"rgba(22,163,74,.06)",fill:true,borderWidth:2,yAxisID:"y"},
+                {label:"Cum. Dividends / Coupons",data:chartData.divCumul,borderColor:dark?"#06b6d4":"#0891b2",backgroundColor:"transparent",borderDash:[5,4],borderWidth:1.5,yAxisID:"y2"}
+              ]} T={T} yFmt={yFmtD} y2Fmt={yFmtD} height={isMob?170:230}/>
             </div>
             <div style={{flex:"1 1 200px",...card({padding:16})}}>
               <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>Asset Allocation</div>
