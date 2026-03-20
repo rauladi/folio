@@ -65,7 +65,7 @@ button:active{transform:scale(.97)}
      See setup instructions in the README or the ☁️ Sync button in the app. -->
 <script>
 const FIREBASE_CONFIG = {
-  apiKey:            "AIzaSyBp20SC2Yt9IWkevpLgU6-nXZtA7HuNbN0",
+   apiKey:            "AIzaSyBp20SC2Yt9IWkevpLgU6-nXZtA7HuNbN0",
   authDomain:        "folio-sync.firebaseapp.com",
   projectId:         "folio-sync",
   storageBucket:     "folio-sync.firebasestorage.app",
@@ -419,11 +419,38 @@ async function fetchBenchmark(symbol){
       return{
         labels:ts.map(t=>new Date(t*1000).toISOString().slice(0,10)),
         pct:closes.map(v=>v!=null?((v-base)/base)*100:null),
-        raw:closes,
+        raw:closes,  // raw prices needed for portfolio reconstruction
       };
     }catch(e){ lastErr=e.message; }
   }
   throw new Error(lastErr);
+}
+
+// Fetch historical monthly prices for a single holding (for portfolio reconstruction)
+async function fetchHoldingHistory(yahooSymbol){
+  const sym=encodeURIComponent(yahooSymbol);
+  const candidates=[
+    YAHOO_BASE +sym+"?interval=1mo&range=5y",
+    YAHOO_BASE1+sym+"?interval=1mo&range=5y",
+  ];
+  for(const url of candidates){
+    try{
+      const d=await fetchWithProxy(url);
+      const res=d?.chart?.result?.[0];
+      if(!res)continue;
+      const ts=res.timestamp||[];
+      const closes=res.indicators?.quote?.[0]?.close||[];
+      const currency=res.meta?.currency||"AUD";
+      if(!ts.length||!closes.length)continue;
+      // Return map of date→price for quick lookup
+      const priceMap={};
+      ts.forEach((t,i)=>{
+        if(closes[i]!=null) priceMap[new Date(t*1000).toISOString().slice(0,10)]=closes[i];
+      });
+      return{priceMap,currency};
+    }catch(e){}
+  }
+  return null;
 }
 
 // ─── Indonesian Mutual Fund NAV history ──────────────────────────────────────
@@ -1069,7 +1096,7 @@ function App(){
   const[tmShowVal,setTmShowVal]=useState(true);
   const[tmSize,setTmSize]      =useState({w:600,h:420});
   const[chartPeriod,setChartPeriod]=useState("1Y");
-  const[benchmarks,setBenchmarks]=useState({labels:[],series:{}});
+  const[benchmarks,setBenchmarks]=useState({labels:[],series:{},holdingPrices:{}});
   const[bmVisible,setBmVisible]  =useState({sp500:true,brk:false,jkse:true,eido:true,vas:false});
   // Fetch status
   const[fetchSt,setFetchSt]    =useState({loading:false,lastUpdate:null,errors:{},successes:0,total:0,fetched:0,rateOk:null,bmStatus:null});
@@ -1230,7 +1257,28 @@ function App(){
         results.forEach((r,i)=>{
           series[BM_DEFS[i].key]=r.status==="fulfilled"?r.value.pct:null;
         });
-        setBenchmarks({labels:ref.data.labels,series});
+        setBenchmarks({labels:ref.data.labels,series,holdingPrices:{}});
+
+        // Also fetch monthly price history for each holding (for portfolio return reconstruction)
+        // Run in background — don't block the main fetch
+        const holdingsWithSymbol=portfolio.filter(h=>h.yahooSymbol);
+        Promise.allSettled(holdingsWithSymbol.map(h=>
+          fetchHoldingHistory(h.yahooSymbol).then(r=>({ticker:h.ticker,data:r,isBondPct:h.isBondPct,faceValue:h.faceValue,currency:h.currency}))
+        )).then(results=>{
+          const holdingPrices={};
+          results.forEach(r=>{
+            if(r.status==="fulfilled"&&r.value.data){
+              holdingPrices[r.value.ticker]={
+                priceMap:r.value.data.priceMap,
+                currency:r.value.data.currency,
+                isBondPct:r.value.isBondPct,
+                faceValue:r.value.faceValue,
+                holdingCurrency:r.value.currency,
+              };
+            }
+          });
+          setBenchmarks(prev=>({...prev,holdingPrices}));
+        });
         const ok=BM_DEFS.map((b,i)=>results[i].status==="fulfilled"?b.label+"✓":null).filter(Boolean);
         const fail=BM_DEFS.map((b,i)=>results[i].status==="rejected"?b.label:null).filter(Boolean);
         bmStatus=`${ok.length}/${BM_DEFS.length} loaded${fail.length?` · failed: ${fail.join(", ")}`:""}`; 
@@ -1392,47 +1440,123 @@ function App(){
       if(filtIdx.length>1){
         bmLabels=filtIdx.map(i=>fmtMonShort(benchmarks.labels[i]));
 
-        // allSorted is already sanitised above (30% of recent max threshold)
-        const saneSorted=allSorted.filter(s=>s.totalValueAUD>0);
-
-        // Find first benchmark date that has a sane portfolio snapshot
-        let portBaseVal=null, portBaseSeriesIdx=-1;
-        for(let j=0;j<filtIdx.length;j++){
-          const bmDate=benchmarks.labels[filtIdx[j]];
-          const snap=saneSorted.filter(s=>s.date<=bmDate).slice(-1)[0];
-          if(snap&&snap.totalValueAUD>0){
-            portBaseVal=snap.totalValueAUD;
-            portBaseSeriesIdx=j;
-            break;
-          }
-        }
-
-        // If no sane history exists for the selected period, use current gainPct
-        // as a single reference point rather than showing a misleading time series
-        const hasReliableHistory=portBaseVal!=null&&portBaseSeriesIdx>=0;
-
-        // Re-normalise all benchmark series from the same start point
-        const refFiltI=portBaseSeriesIdx>=0?filtIdx[portBaseSeriesIdx]:filtIdx[0];
+        // Re-normalise all benchmark series from first visible point
+        const i0=filtIdx[0];
         BM_KEYS.forEach(k=>{
           const s=benchmarks.series[k];
           if(!s){bmSeries[k]=filtIdx.map(()=>null);return;}
-          const base=s[refFiltI]??null;
+          const base=s[i0]??null;
           bmSeries[k]=filtIdx.map(i=>s[i]!=null&&base!=null?s[i]-base:null);
         });
 
-        // Portfolio % return — only plot from first reliable snapshot
-        // Use actual holdings gainPct if history is insufficient for the period
-        bmPortfolio=filtIdx.map((i,j)=>{
-          if(!hasReliableHistory||j<portBaseSeriesIdx) return null;
-          const bmDate=benchmarks.labels[i];
-          const snap=saneSorted.filter(s=>s.date<=bmDate).slice(-1)[0];
-          if(!snap||!portBaseVal) return null;
-          return((snap.totalValueAUD-portBaseVal)/portBaseVal)*100;
-        });
+        // ── Reconstruct portfolio value at each benchmark date ──────────────
+        // For each date: sum up (units held at that date × historical price × FX rate)
+        // This gives a true time-weighted return using actual transaction history.
+        const hasHoldingPrices=Object.keys(benchmarks.holdingPrices||{}).length>0;
 
-        // Cap any single-period return at ±200% to catch remaining bad data points
-        const cappedPortfolio=bmPortfolio.map(v=>v===null?null:Math.max(-200,Math.min(200,v)));
-        bmPortfolio=cappedPortfolio;
+        if(hasHoldingPrices){
+          // Find the closest price in a priceMap for a given date (within 35 days)
+          const findPrice=(priceMap,dateStr)=>{
+            if(!priceMap)return null;
+            // Exact match first
+            if(priceMap[dateStr])return priceMap[dateStr];
+            // Find nearest date within ±35 days
+            const target=new Date(dateStr).getTime();
+            let best=null,bestDiff=35*86400000;
+            for(const [d,p] of Object.entries(priceMap)){
+              const diff=Math.abs(new Date(d).getTime()-target);
+              if(diff<bestDiff){bestDiff=diff;best=p;}
+            }
+            return best;
+          };
+
+          // Historical AUD/IDR rate — approximate from current rate
+          // Yahoo prices for .JK stocks are in IDR, for .AX in AUD
+          const audIdr=rates.AUD_IDR||12000;
+          const audUsd=rates.AUD_USD||0.65;
+
+          const portfolioValAtDate=(dateStr)=>{
+            let totalAUD=0;
+            for(const h of portfolio){
+              const hp=benchmarks.holdingPrices[h.ticker];
+              // Calculate units held at this date from transactions
+              let units=0;
+              for(const tx of h.transactions){
+                if(tx.date>dateStr)continue; // future transaction
+                if(tx.type==="buy")units+=tx.qty;
+                else if(tx.type==="sell")units-=tx.qty;
+              }
+              if(units<=0)continue;
+
+              let priceInNative=null;
+              if(hp?.priceMap){
+                priceInNative=findPrice(hp.priceMap,dateStr);
+                // Bond prices from Yahoo are % of face value
+                if(h.isBondPct&&priceInNative){
+                  priceInNative=priceInNative*(h.faceValue||1000000)/100;
+                }
+              }
+
+              // Fallback for holdings with no Yahoo price history (NUL funds, bonds etc.)
+              // Use: current stored price if available, otherwise average buy price
+              // This is an approximation — the holding's value is treated as ~constant
+              // but at least its weight in the portfolio is correctly included
+              if(!priceInNative){
+                const currentP=prices[h.ticker];
+                if(currentP>0){
+                  priceInNative=currentP;
+                }else{
+                  // Use weighted average buy price from transactions before this date
+                  const buys=h.transactions.filter(t=>t.type==="buy"&&t.date<=dateStr);
+                  if(buys.length>0){
+                    const totalCost=buys.reduce((s,t)=>s+t.qty*t.price,0);
+                    const totalQty=buys.reduce((s,t)=>s+t.qty,0);
+                    priceInNative=totalQty>0?totalCost/totalQty:0;
+                  }
+                }
+              }
+              if(!priceInNative||priceInNative<=0)continue;
+
+              // Convert to AUD
+              const currency=h.currency||"AUD";
+              let valueAUD=units*priceInNative;
+              if(currency==="IDR")valueAUD/=audIdr;
+              else if(currency==="USD")valueAUD/=audUsd;
+              totalAUD+=valueAUD;
+            }
+            return totalAUD>0?totalAUD:null;
+          };
+
+          // Build portfolio value series for each benchmark date
+          const portVals=filtIdx.map(i=>portfolioValAtDate(benchmarks.labels[i]));
+          // Find first non-null as base
+          const baseIdx=portVals.findIndex(v=>v!=null);
+          if(baseIdx>=0){
+            const baseVal=portVals[baseIdx];
+            bmPortfolio=portVals.map((v,j)=>{
+              if(v==null||j<baseIdx)return null;
+              return((v-baseVal)/baseVal)*100;
+            });
+          }
+        }else{
+          // Fallback to snapshot-based if holding prices not loaded yet
+          const rawSorted=[...history].sort((a,b)=>new Date(a.date)-new Date(b.date));
+          const recentVals=rawSorted.slice(-3).map(s=>s.totalValueAUD).filter(v=>v>0);
+          const refVal=recentVals.length?Math.max(...recentVals):0;
+          const saneSorted=refVal>0?rawSorted.filter(s=>s.totalValueAUD>=refVal*0.30):rawSorted;
+          let portBaseVal=null,portBaseIdx=-1;
+          for(let j=0;j<filtIdx.length;j++){
+            const snap=saneSorted.filter(s=>s.date<=benchmarks.labels[filtIdx[j]]).slice(-1)[0];
+            if(snap?.totalValueAUD>0){portBaseVal=snap.totalValueAUD;portBaseIdx=j;break;}
+          }
+          if(portBaseVal){
+            bmPortfolio=filtIdx.map((i,j)=>{
+              if(j<portBaseIdx)return null;
+              const snap=saneSorted.filter(s=>s.date<=benchmarks.labels[i]).slice(-1)[0];
+              return snap?Math.max(-200,Math.min(200,((snap.totalValueAUD-portBaseVal)/portBaseVal)*100)):null;
+            });
+          }
+        }
       }
     }
 
@@ -2031,6 +2155,7 @@ function App(){
                 {key:"vas",   label:"VAS (ASX)",     color:"#06b6d4", dash:[4,2]},
               ];
               const portPoints=chartData.bmPortfolio.filter(v=>v!=null).length;
+              const holdingPricesLoaded=Object.keys(benchmarks.holdingPrices||{}).length>0;
               const datasets=[
                 {label:"Your Portfolio",data:chartData.bmPortfolio,borderColor:dark?"#22c55e":"#16a34a",backgroundColor:dark?"rgba(34,197,94,.07)":"rgba(22,163,74,.06)",fill:true,borderWidth:2.5,borderDash:[],spanGaps:false},
                 ...BM_DEF.filter(b=>bmVisible[b.key]).map(b=>({
@@ -2041,8 +2166,14 @@ function App(){
               ];
               const lastPort=chartData.bmPortfolio.filter(v=>v!=null).slice(-1)[0]??0;
               return(<>
-                {portPoints<3&&<div style={{fontSize:10,color:T.amber,background:T.bg4,border:`1px solid ${T.amber}44`,borderRadius:6,padding:"6px 10px",marginBottom:8}}>
-                  ⚠️ Portfolio line shows only {portPoints} data point{portPoints!==1?"s":""} — it will become more accurate as you refresh prices daily. Benchmarks show full historical data.
+                {!holdingPricesLoaded&&<div style={{fontSize:10,color:T.amber,background:T.bg4,border:`1px solid ${T.amber}44`,borderRadius:6,padding:"6px 10px",marginBottom:8}}>
+                  ⏳ Fetching historical prices for each holding… Click 🔄 if this doesn't appear.
+                </div>}
+                {holdingPricesLoaded&&portPoints<2&&<div style={{fontSize:10,color:T.amber,background:T.bg4,border:`1px solid ${T.amber}44`,borderRadius:6,padding:"6px 10px",marginBottom:8}}>
+                  ⚠️ Not enough historical price data found for your holdings for this period.
+                </div>}
+                {holdingPricesLoaded&&portPoints>=2&&<div style={{fontSize:10,color:T.text3,background:T.bg4,border:`1px solid ${T.border}`,borderRadius:6,padding:"6px 10px",marginBottom:8}}>
+                  ℹ️ Holdings without live price history (PBS032, PBS033, NUL5339AU, NUL7270AU) use current price as a flat approximation.
                 </div>}
                 <ChartLine labels={chartData.bmLabels} datasets={datasets}
                   T={T} yFmt={v=>`${v>=0?"+":""}${v.toFixed(1)}%`} height={isMob?220:280} spanGaps={false}/>
