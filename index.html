@@ -1556,8 +1556,10 @@ function App(){
 
     // ── Waterfall: Growth Contributors ──────────────────────────────────────
     // Starting portfolio value
-    const startVal=baseSnap?fromAUD(baseSnap.totalValueAUD,displayCur,rates):0;
-    const endVal=fromAUD(totVal,displayCur,rates);
+    // Period return — use first/last from reconstructed vals (accurate)
+    // Falls back to snapshot-based if vals not available
+    const startVal=vals.length>0?vals[0]:(baseSnap?fromAUD(baseSnap.totalValueAUD,displayCur,rates):0);
+    const endVal=vals.length>0?vals[vals.length-1]:fromAUD(totVal,displayCur,rates);
     // Top-ups (buys) in period
     const topUps=portfolio.reduce((s,h)=>{
       return s+h.transactions.filter(t=>t.type==="buy"&&new Date(t.date)>=cutoff)
