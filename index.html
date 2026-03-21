@@ -1396,6 +1396,8 @@ function App(){
 
     let labels=[],vals=[],divCumul=[];
 
+    let preLabelCount=0; // tracks pre-period points added to vals for startVal alignment
+
     if(hasHoldingPrices&&hasBmLabels){
       const audIdr=rates.AUD_IDR||12000;
       const audUsd=rates.AUD_USD||0.65;
@@ -1420,7 +1422,6 @@ function App(){
       const timelineLabels=[...new Set([...(preLabel?[preLabel]:[]),...periodLabels])];
 
       // Track how many pre-period points are added (for startVal calculation)
-      let preLabelCount=0;
       timelineLabels.forEach(dateStr=>{
         const isPrePeriod=preLabel&&dateStr===preLabel;
         let totalAUD=0;
