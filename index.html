@@ -809,16 +809,21 @@ function ChartWaterfall({data,T,yFmt,height=240}){
     if(inst.current)inst.current.destroy();
     const labels=data.map(d=>d.label);
     // Build floating bars: [base, top]
-    let running=0;
+    // running starts at startVal (first bar's top) so intermediate bars connect
+    let running=data.length>0?data[0].value:0;
     const bases=[],tops=[],bgColors=[];
     data.forEach(d=>{
-      if(d.type==="start"||d.type==="total"){
+      if(d.type==="start"){
         bases.push(0);tops.push(d.value);
-        bgColors.push(d.type==="total"?(d.value>=0?"#6366f1":"#ef4444"):"#6366f155");
+        bgColors.push("#6366f177");
+      }else if(d.type==="total"){
+        bases.push(0);tops.push(d.value);
+        bgColors.push(d.value>=(data[0]?.value??0)?"#6366f1":"#ef4444");
       }else if(d.type==="pos"){
         bases.push(running);tops.push(running+d.value);
         bgColors.push("#22c55e");running+=d.value;
       }else{
+        // neg: bar goes down from running
         bases.push(running+d.value);tops.push(running);
         bgColors.push("#ef4444");running+=d.value;
       }
