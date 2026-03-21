@@ -65,7 +65,7 @@ button:active{transform:scale(.97)}
      See setup instructions in the README or the ☁️ Sync button in the app. -->
 <script>
 const FIREBASE_CONFIG = {
-    apiKey:            "AIzaSyBp20SC2Yt9IWkevpLgU6-nXZtA7HuNbN0",
+  apiKey:            "AIzaSyBp20SC2Yt9IWkevpLgU6-nXZtA7HuNbN0",
   authDomain:        "folio-sync.firebaseapp.com",
   projectId:         "folio-sync",
   storageBucket:     "folio-sync.firebasestorage.app",
@@ -1498,8 +1498,10 @@ function App(){
     const baseSnap=allSorted.filter(s=>new Date(s.date)<cutoff).slice(-1)[0];
 
     // Monthly income — per ticker (for stacked bar) + total
-    const monthly={};       // month → total
-    const monthlyByTicker={}; // ticker → {month → value}
+    const monthly={};
+    const monthlyByTicker={};
+    // Colour palette defined early so mDatasets can use it
+    const palette=["#6366f1","#22c55e","#06b6d4","#f59e0b","#ef4444","#8b5cf6","#ec4899","#14b8a6","#f97316","#84cc16","#3b82f6","#a78bfa"];
     portfolio.forEach(h=>{
       h.transactions.filter(t=>t.type==="dividend"&&new Date(t.date)>=cutoff).forEach(t=>{
         const m=t.date.slice(0,7);
@@ -1511,16 +1513,16 @@ function App(){
     });
     const mKeys=Object.keys(monthly).sort();
 
-    // Stacked bar datasets — one per ticker, only tickers that have dividends
+    // Stacked bar datasets — one per ticker
     const divTickers=Object.keys(monthlyByTicker).sort((a,b)=>{
       const totA=Object.values(monthlyByTicker[a]).reduce((s,v)=>s+v,0);
       const totB=Object.values(monthlyByTicker[b]).reduce((s,v)=>s+v,0);
-      return totB-totA; // sort by total dividend desc
+      return totB-totA;
     });
     const mDatasets=divTickers.map((ticker,i)=>({
       label:ticker,
       data:mKeys.map(m=>monthlyByTicker[ticker][m]||0),
-      backgroundColor:palette[i%palette.length]+(dark?"bb":"99"),
+      backgroundColor:palette[i%palette.length]+"aa",
       borderColor:palette[i%palette.length],
       borderWidth:1,
       borderRadius:3,
@@ -1551,7 +1553,6 @@ function App(){
     // Allocation (always full)
     const byType={};holdings.forEach(h=>{const k=h.assetType||"Other";byType[k]=(byType[k]||0)+fromAUD(h.currentValue,displayCur,rates);});
     const byCur={};holdings.forEach(h=>{byCur[h.currency]=(byCur[h.currency]||0)+fromAUD(h.currentValue,displayCur,rates);});
-    const palette=["#6366f1","#22c55e","#06b6d4","#f59e0b","#ef4444","#8b5cf6","#ec4899","#14b8a6","#f97316","#84cc16","#3b82f6","#a78bfa"];
 
     // ── Waterfall: Growth Contributors ──────────────────────────────────────
     // Starting portfolio value
@@ -1725,7 +1726,7 @@ function App(){
       waterfallData,startVal,endVal,
       bmLabels,bmSeries,bmPortfolio,
     };
-  },[history,holdings,displayCur,rates,portfolio,chartPeriod,periodCutoff,benchmarks,totVal]);
+  },[history,holdings,displayCur,rates,portfolio,chartPeriod,periodCutoff,benchmarks,totVal,dark]);
 
   const yFmtD=useCallback((v)=>{
     if(displayCur==="IDR"){const abs=Math.abs(v);if(abs>=1e9)return`Rp${(v/1e9).toFixed(1)}M`;if(abs>=1e6)return`Rp${(v/1e6).toFixed(1)}Jt`;return`Rp${(v/1e3).toFixed(0)}Rb`;}
