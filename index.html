@@ -1419,7 +1419,10 @@ function App(){
       const preLabel=benchmarks.labels.filter(l=>new Date(l)<cutoff).slice(-1)[0];
       const timelineLabels=[...new Set([...(preLabel?[preLabel]:[]),...periodLabels])];
 
+      // Track how many pre-period points are added (for startVal calculation)
+      let preLabelCount=0;
       timelineLabels.forEach(dateStr=>{
+        const isPrePeriod=preLabel&&dateStr===preLabel;
         let totalAUD=0;
         // Check if any holding was purchased by this date
         const anyHeld=portfolio.some(h=>h.transactions.some(t=>t.type==="buy"&&t.date<=dateStr));
@@ -1440,7 +1443,6 @@ function App(){
             priceInNative=findPrice(hp.priceMap,dateStr);
             if(h.isBondPct&&priceInNative) priceInNative=priceInNative*(h.faceValue||1000000)/100;
           }
-          // Fallback: current price or avg buy price
           if(!priceInNative||priceInNative<=0){
             const cp=prices[h.ticker];
             if(cp>0) priceInNative=cp;
@@ -1474,6 +1476,7 @@ function App(){
           labels.push(fmtMonShort(dateStr));
           vals.push(fromAUD(totalAUD,displayCur,rates));
           divCumul.push(fromAUD(divAUD,displayCur,rates));
+          if(isPrePeriod)preLabelCount++;
         }
       });
     }
@@ -1556,9 +1559,10 @@ function App(){
 
     // ── Waterfall: Growth Contributors ──────────────────────────────────────
     // Starting portfolio value
-    // Period return — use first/last from reconstructed vals (accurate)
-    // Falls back to snapshot-based if vals not available
-    const startVal=vals.length>0?vals[0]:(baseSnap?fromAUD(baseSnap.totalValueAUD,displayCur,rates):0);
+    // Period return — startVal from first IN-PERIOD point (skip pre-cutoff label)
+    // This aligns with the benchmark chart which also starts from the period cutoff
+    const periodStartIdx=hasHoldingPrices&&hasBmLabels?(preLabelCount||0):0;
+    const startVal=vals.length>periodStartIdx?vals[periodStartIdx]:(baseSnap?fromAUD(baseSnap.totalValueAUD,displayCur,rates):0);
     const endVal=vals.length>0?vals[vals.length-1]:fromAUD(totVal,displayCur,rates);
     // Top-ups (buys) in period
     const topUps=portfolio.reduce((s,h)=>{
