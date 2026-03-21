@@ -780,14 +780,14 @@ function ChartLine({labels,datasets,T,yFmt,y2Fmt,height=220,spanGaps=false}){
   },[labels,datasets,T,yFmt,y2Fmt]);
   return <div style={{height,position:"relative"}}><canvas ref={ref}/></div>;
 }
-function ChartBar({labels,datasets,T,yFmt,height=200}){
+function ChartBar({labels,datasets,T,yFmt,height=200,stacked=false}){
   const ref=useRef(null);const inst=useRef(null);
   useEffect(()=>{
     if(!ref.current||typeof Chart==="undefined")return;
     if(inst.current)inst.current.destroy();
-    inst.current=new Chart(ref.current,{type:"bar",data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:T.text2,font:{family:"Roboto",size:11},boxWidth:10}},tooltip:{backgroundColor:T.bg3,borderColor:T.border,borderWidth:1,titleColor:T.text,bodyColor:T.text2,padding:10,cornerRadius:8}},scales:{x:{grid:{color:"transparent"},ticks:{color:T.chartTick,font:{size:10}},border:{color:T.border}},y:{grid:{color:T.chartGrid},ticks:{color:T.chartTick,font:{size:10},callback:yFmt||(v=>`A$${v.toFixed(0)}`)},border:{color:T.border}}}}});
+    inst.current=new Chart(ref.current,{type:"bar",data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:stacked,labels:{color:T.text2,font:{family:"Roboto",size:9},boxWidth:8,padding:6}},tooltip:{backgroundColor:T.bg3,borderColor:T.border,borderWidth:1,titleColor:T.text,bodyColor:T.text2,padding:10,cornerRadius:8}},scales:{x:{grid:{color:"transparent"},ticks:{color:T.chartTick,font:{size:10}},border:{color:T.border},stacked:stacked},y:{grid:{color:T.chartGrid},ticks:{color:T.chartTick,font:{size:10},callback:yFmt||(v=>`A$${v.toFixed(0)}`)},border:{color:T.border},stacked:stacked}}}});
     return()=>{if(inst.current)inst.current.destroy();};
-  },[labels,datasets,T,yFmt]);
+  },[labels,datasets,T,yFmt,stacked]);
   return <div style={{height,position:"relative"}}><canvas ref={ref}/></div>;
 }
 function ChartDoughnut({labels,data,colors,T,height=230}){
@@ -1497,12 +1497,56 @@ function App(){
 
     const baseSnap=allSorted.filter(s=>new Date(s.date)<cutoff).slice(-1)[0];
 
-    // Monthly income (all time for bar, filtered by period)
-    const monthly={};
-    portfolio.forEach(h=>{h.transactions.filter(t=>t.type==="dividend"&&new Date(t.date)>=cutoff).forEach(t=>{
-      const m=t.date.slice(0,7);monthly[m]=(monthly[m]||0)+fromAUD(toAUD(t.totalAmount||0,h.currency,rates),displayCur,rates);
-    });});
+    // Monthly income — per ticker (for stacked bar) + total
+    const monthly={};       // month → total
+    const monthlyByTicker={}; // ticker → {month → value}
+    portfolio.forEach(h=>{
+      h.transactions.filter(t=>t.type==="dividend"&&new Date(t.date)>=cutoff).forEach(t=>{
+        const m=t.date.slice(0,7);
+        const val=fromAUD(toAUD(t.totalAmount||0,h.currency,rates),displayCur,rates);
+        monthly[m]=(monthly[m]||0)+val;
+        if(!monthlyByTicker[h.ticker])monthlyByTicker[h.ticker]={};
+        monthlyByTicker[h.ticker][m]=(monthlyByTicker[h.ticker][m]||0)+val;
+      });
+    });
     const mKeys=Object.keys(monthly).sort();
+
+    // Stacked bar datasets — one per ticker, only tickers that have dividends
+    const divTickers=Object.keys(monthlyByTicker).sort((a,b)=>{
+      const totA=Object.values(monthlyByTicker[a]).reduce((s,v)=>s+v,0);
+      const totB=Object.values(monthlyByTicker[b]).reduce((s,v)=>s+v,0);
+      return totB-totA; // sort by total dividend desc
+    });
+    const mDatasets=divTickers.map((ticker,i)=>({
+      label:ticker,
+      data:mKeys.map(m=>monthlyByTicker[ticker][m]||0),
+      backgroundColor:palette[i%palette.length]+(dark?"bb":"99"),
+      borderColor:palette[i%palette.length],
+      borderWidth:1,
+      borderRadius:3,
+    }));
+
+    // ── Dividend CAGR ────────────────────────────────────────────────────────
+    // CAGR = (EndValue/StartValue)^(1/years) - 1
+    // Use annual dividend totals: group ALL-TIME dividends by year
+    const divByYear={};
+    portfolio.forEach(h=>{
+      h.transactions.filter(t=>t.type==="dividend").forEach(t=>{
+        const y=t.date.slice(0,4);
+        const val=fromAUD(toAUD(t.totalAmount||0,h.currency,rates),displayCur,rates);
+        divByYear[y]=(divByYear[y]||0)+val;
+      });
+    });
+    const divYears=Object.keys(divByYear).sort();
+    let divCAGR=null,divCAGRYears=0;
+    if(divYears.length>=2){
+      const firstY=divYears[0],lastY=divYears[divYears.length-1];
+      const firstVal=divByYear[firstY],lastVal=divByYear[lastY];
+      divCAGRYears=parseInt(lastY)-parseInt(firstY);
+      if(divCAGRYears>0&&firstVal>0&&lastVal>0){
+        divCAGR=(Math.pow(lastVal/firstVal,1/divCAGRYears)-1)*100;
+      }
+    }
 
     // Allocation (always full)
     const byType={};holdings.forEach(h=>{const k=h.assetType||"Other";byType[k]=(byType[k]||0)+fromAUD(h.currentValue,displayCur,rates);});
@@ -1674,7 +1718,8 @@ function App(){
     }
 
     return{labels,vals,divCumul,
-      mLabels:mKeys.map(fmtMon),mVals:mKeys.map(k=>monthly[k]),
+      mLabels:mKeys.map(fmtMon),mVals:mKeys.map(k=>monthly[k]),mDatasets,
+      divCAGR,divCAGRYears,
       tLabels:Object.keys(byType),tVals:Object.values(byType),palette,
       byCurLabels:Object.keys(byCur),byCurVals:Object.values(byCur),byCurColors:["#22c55e","#06b6d4","#f59e0b","#8b5cf6"],
       waterfallData,startVal,endVal,
@@ -2172,8 +2217,13 @@ function App(){
                   <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>Monthly Income — Div &amp; Coupons</div>
                   <div style={{fontSize:11,color:T.text3}}>{chartData.mLabels.length} months · {chartPeriod} · {displayCur}</div>
                 </div>
+                {chartData.divCAGR!=null&&<div style={{textAlign:"right"}}>
+                  <div style={{fontSize:9,color:T.text3,letterSpacing:.5,textTransform:"uppercase"}}>Dividend CAGR</div>
+                  <div style={{fontFamily:"'Space Mono',monospace",fontSize:13,fontWeight:700,color:chartData.divCAGR>=0?T.green:T.red}}>{chartData.divCAGR>=0?"+":""}{chartData.divCAGR.toFixed(1)}%</div>
+                  <div style={{fontSize:9,color:T.text3}}>{chartData.divCAGRYears}yr growth</div>
+                </div>}
               </div>
-              <ChartBar labels={chartData.mLabels} datasets={[{label:"Income",data:chartData.mVals,backgroundColor:dark?"rgba(6,182,212,.72)":"rgba(8,145,178,.6)",borderColor:dark?"#06b6d4":"#0891b2",borderWidth:1,borderRadius:5}]} T={T} yFmt={yFmtD} height={isMob?160:210}/>
+              <ChartBar labels={chartData.mLabels} datasets={chartData.mDatasets&&chartData.mDatasets.length?chartData.mDatasets:[{label:"Income",data:chartData.mVals,backgroundColor:dark?"rgba(6,182,212,.72)":"rgba(8,145,178,.6)",borderColor:dark?"#06b6d4":"#0891b2",borderWidth:1,borderRadius:5}]} T={T} yFmt={yFmtD} height={isMob?160:210} stacked={!!(chartData.mDatasets&&chartData.mDatasets.length>1)}/>
             </div>
             <div style={{flex:"1 1 200px",...card({padding:16})}}>
               <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>Currency Split</div>
