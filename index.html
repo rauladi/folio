@@ -166,13 +166,13 @@ function _layout(it,x,y,w,h,tot,r){
 }
 
 // ─── Colors ───────────────────────────────────────────────────────────────────
-function gainColor(p,d){if(d){if(p>=3)return{bg:"#0d3d28",text:"#4ade80",border:"#166534"};if(p>=1)return{bg:"#0a2e1e",text:"#22c55e",border:"#15803d"};if(p>0)return{bg:"#071a12",text:"#16a34a",border:"#14532d"};if(p===0)return{bg:"#141828",text:"#6b7280",border:"#374151"};if(p>-1)return{bg:"#2d0f10",text:"#f87171",border:"#7f1d1d"};if(p>-3)return{bg:"#3d0a0a",text:"#f04060",border:"#991b1b"};return{bg:"#4a0606",text:"#fca5a5",border:"#b91c1c"};}else{if(p>=3)return{bg:"#bbf7d0",text:"#14532d",border:"#4ade80"};if(p>=1)return{bg:"#dcfce7",text:"#15803d",border:"#86efac"};if(p>0)return{bg:"#f0fdf4",text:"#16a34a",border:"#bbf7d0"};if(p===0)return{bg:"#f3f4f6",text:"#6b7280",border:"#d1d5db"};if(p>-1)return{bg:"#fef2f2",text:"#b91c1c",border:"#fecaca"};if(p>-3)return{bg:"#fee2e2",text:"#dc2626",border:"#fca5a5"};return{bg:"#fecaca",text:"#991b1b",border:"#f87171"};}}
-function dayColor(p,d){if(d){if(p>=2)return{bg:"#0d3d28",text:"#4ade80",border:"#166534"};if(p>=0.5)return{bg:"#0a2e1e",text:"#22c55e",border:"#15803d"};if(p>0)return{bg:"#071a12",text:"#16a34a",border:"#14532d"};if(p===0)return{bg:"#141828",text:"#6b7280",border:"#374151"};if(p>-0.5)return{bg:"#2d0f10",text:"#f87171",border:"#7f1d1d"};if(p>-2)return{bg:"#3d0a0a",text:"#f04060",border:"#991b1b"};return{bg:"#4a0606",text:"#fca5a5",border:"#b91c1c"};}else{if(p>=2)return{bg:"#bbf7d0",text:"#14532d",border:"#4ade80"};if(p>=0.5)return{bg:"#dcfce7",text:"#15803d",border:"#86efac"};if(p>0)return{bg:"#f0fdf4",text:"#16a34a",border:"#bbf7d0"};if(p===0)return{bg:"#f3f4f6",text:"#6b7280",border:"#d1d5db"};if(p>-0.5)return{bg:"#fef2f2",text:"#b91c1c",border:"#fecaca"};if(p>-2)return{bg:"#fee2e2",text:"#dc2626",border:"#fca5a5"};return{bg:"#fecaca",text:"#991b1b",border:"#f87171"};}}
-function divColor(y,d){if(d){if(y>=6)return{bg:"#062030",text:"#22d3ee",border:"#155e75"};if(y>=4)return{bg:"#051828",text:"#06b6d4",border:"#0e7490"};if(y>=2)return{bg:"#041018",text:"#0891b2",border:"#0c4a6e"};if(y>0)return{bg:"#030c12",text:"#0369a1",border:"#082f49"};return{bg:"#141828",text:"#374151",border:"#1f2937"};}else{if(y>=6)return{bg:"#cffafe",text:"#164e63",border:"#67e8f9"};if(y>=4)return{bg:"#e0f2fe",text:"#0c4a6e",border:"#7dd3fc"};if(y>=2)return{bg:"#eff6ff",text:"#1e3a8a",border:"#93c5fd"};if(y>0)return{bg:"#f0f9ff",text:"#0369a1",border:"#bae6fd"};return{bg:"#f3f4f6",text:"#9ca3af",border:"#e5e7eb"};}}
+function gainColor(p,d){if(d){if(p>=3)return{bg:"#166534",text:"#bbf7d0",border:"#4ade80"};if(p>=1)return{bg:"#14532d",text:"#86efac",border:"#22c55e"};if(p>0)return{bg:"#0f3d22",text:"#4ade80",border:"#16a34a"};if(p===0)return{bg:"#1e2235",text:"#9ca3af",border:"#374151"};if(p>-1)return{bg:"#7f1d1d",text:"#fecaca",border:"#f87171"};if(p>-3)return{bg:"#991b1b",text:"#fca5a5",border:"#ef4444"};return{bg:"#b91c1c",text:"#fef2f2",border:"#fca5a5"};}else{if(p>=3)return{bg:"#bbf7d0",text:"#14532d",border:"#4ade80"};if(p>=1)return{bg:"#dcfce7",text:"#15803d",border:"#86efac"};if(p>0)return{bg:"#f0fdf4",text:"#16a34a",border:"#bbf7d0"};if(p===0)return{bg:"#f3f4f6",text:"#6b7280",border:"#d1d5db"};if(p>-1)return{bg:"#fef2f2",text:"#b91c1c",border:"#fecaca"};if(p>-3)return{bg:"#fee2e2",text:"#dc2626",border:"#fca5a5"};return{bg:"#fecaca",text:"#991b1b",border:"#f87171"};}}
+function dayColor(p,d){if(d){if(p>=2)return{bg:"#166534",text:"#bbf7d0",border:"#4ade80"};if(p>=0.5)return{bg:"#14532d",text:"#86efac",border:"#22c55e"};if(p>0)return{bg:"#0f3d22",text:"#4ade80",border:"#16a34a"};if(p===0)return{bg:"#1e2235",text:"#9ca3af",border:"#374151"};if(p>-0.5)return{bg:"#7f1d1d",text:"#fecaca",border:"#f87171"};if(p>-2)return{bg:"#991b1b",text:"#fca5a5",border:"#ef4444"};return{bg:"#b91c1c",text:"#fef2f2",border:"#fca5a5"};}else{if(p>=2)return{bg:"#bbf7d0",text:"#14532d",border:"#4ade80"};if(p>=0.5)return{bg:"#dcfce7",text:"#15803d",border:"#86efac"};if(p>0)return{bg:"#f0fdf4",text:"#16a34a",border:"#bbf7d0"};if(p===0)return{bg:"#f3f4f6",text:"#6b7280",border:"#d1d5db"};if(p>-0.5)return{bg:"#fef2f2",text:"#b91c1c",border:"#fecaca"};if(p>-2)return{bg:"#fee2e2",text:"#dc2626",border:"#fca5a5"};return{bg:"#fecaca",text:"#991b1b",border:"#f87171"};}}
+function divColor(y,d){if(d){if(y>=6)return{bg:"#155e75",text:"#cffafe",border:"#22d3ee"};if(y>=4)return{bg:"#0e7490",text:"#a5f3fc",border:"#06b6d4"};if(y>=2)return{bg:"#0c4a6e",text:"#7dd3fc",border:"#0891b2"};if(y>0)return{bg:"#1e3a5f",text:"#93c5fd",border:"#3b82f6"};return{bg:"#1e2235",text:"#6b7280",border:"#374151"};}else{if(y>=6)return{bg:"#cffafe",text:"#164e63",border:"#67e8f9"};if(y>=4)return{bg:"#e0f2fe",text:"#0c4a6e",border:"#7dd3fc"};if(y>=2)return{bg:"#eff6ff",text:"#1e3a8a",border:"#93c5fd"};if(y>0)return{bg:"#f0f9ff",text:"#0369a1",border:"#bae6fd"};return{bg:"#f3f4f6",text:"#9ca3af",border:"#e5e7eb"};}}
 
 // ─── Currency ─────────────────────────────────────────────────────────────────
-const toAUD=(a,cur,R)=>{if(cur==="IDR")return a/R.AUD_IDR;if(cur==="USD")return a*R.AUD_USD;return a;};
-const fromAUD=(a,cur,R)=>{if(cur==="IDR")return a*R.AUD_IDR;if(cur==="USD")return a/R.AUD_USD;return a;};
+const toAUD=(a,cur,R)=>{if(cur==="IDR")return a/R.AUD_IDR;if(cur==="USD")return a/R.AUD_USD;return a;};
+const fromAUD=(a,cur,R)=>{if(cur==="IDR")return a*R.AUD_IDR;if(cur==="USD")return a*R.AUD_USD;return a;};
 function fmtIDR(n){try{return Math.round(n).toLocaleString("id-ID");}catch{return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,".");}}
 function fmtAUD(n){return Math.abs(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,",");}
 function fmtCur(audAmt,dc,R,compact=false){
@@ -320,16 +320,15 @@ function toStooqSymbol(yahooSymbol){
 async function fetchStooq(yahooSymbol){
   const stooq=toStooqSymbol(yahooSymbol);
   if(!stooq)throw new Error("No Stooq symbol for "+yahooSymbol);
-  // Request 5 days of daily data — last 2 rows give current close + previous close
+  // Fetch 5 days of daily OHLCV data — most recent close + official previous close
   const url=`https://stooq.com/q/l/?s=${stooq}&f=sd2t2ohlcv&h&e=csv`;
   const raw=await fetchWithProxyRaw(url);
-  // CSV: Symbol,Date,Time,Open,High,Low,Close,Volume
-  const lines=raw.trim().split("\n").filter(l=>l&&!l.startsWith("Symbol"));
+  const lines=raw.trim().split("\n").filter(l=>l&&!l.startsWith("Symbol")&&l.trim());
   if(!lines.length)throw new Error("Stooq: no data for "+stooq);
-  // Most recent row last
   const parseLine=l=>{const p=l.split(",");return parseFloat(p[6])||0;};
-  const cur=parseLine(lines[lines.length-1]);
-  const prev=lines.length>1?parseLine(lines[lines.length-2]):cur;
+  // Stooq returns newest first — row[0]=today, row[1]=yesterday
+  const cur=parseLine(lines[0]);
+  const prev=lines.length>1?parseLine(lines[1]):cur;
   if(!cur)throw new Error("Stooq: zero price for "+stooq);
   return{current:cur,prev};
 }
@@ -808,41 +807,111 @@ function ChartWaterfall({data,T,yFmt,height=240}){
     if(!ref.current||typeof Chart==="undefined"||!data.length)return;
     if(inst.current)inst.current.destroy();
     const labels=data.map(d=>d.label);
+
     // Build floating bars: [base, top]
-    // running starts at startVal (first bar's top) so intermediate bars connect
+    // running starts at startVal so intermediate bars connect correctly
     let running=data.length>0?data[0].value:0;
-    const bases=[],tops=[],bgColors=[];
+    const bases=[],tops=[],bgColors=[],borderColors=[];
+
+    // Calculate min/max of intermediate (non-start/total) bars to determine
+    // if we need axis compression. Start/End values dominate the scale.
+    const intermediateMins=[],intermediateMaxs=[];
+    data.forEach(d=>{
+      if(d.type==="pos"||d.type==="neg"){
+        intermediateMins.push(Math.min(running,running+d.value));
+        intermediateMaxs.push(Math.max(running,running+d.value));
+      }
+    });
+
+    // Reset running for actual bar building
+    running=data.length>0?data[0].value:0;
     data.forEach(d=>{
       if(d.type==="start"){
         bases.push(0);tops.push(d.value);
-        bgColors.push("#6366f177");
+        bgColors.push("#6366f177");borderColors.push("#6366f1");
       }else if(d.type==="total"){
         bases.push(0);tops.push(d.value);
         bgColors.push(d.value>=(data[0]?.value??0)?"#6366f1":"#ef4444");
+        borderColors.push(d.value>=(data[0]?.value??0)?"#818cf8":"#f87171");
       }else if(d.type==="pos"){
         bases.push(running);tops.push(running+d.value);
-        bgColors.push("#22c55e");running+=d.value;
+        bgColors.push("#22c55e");borderColors.push("#4ade80");
+        running+=d.value;
       }else{
-        // neg: bar goes down from running
         bases.push(running+d.value);tops.push(running);
-        bgColors.push("#ef4444");running+=d.value;
+        bgColors.push("#ef4444");borderColors.push("#f87171");
+        running+=d.value;
       }
     });
-    // Chart.js floating bars need [min,max]
+
     const floatData=bases.map((b,i)=>[Math.min(b,tops[i]),Math.max(b,tops[i])]);
+
+    // Determine y-axis range: compress start/end so intermediate bars visible
+    const allIntermediate=intermediateMins.concat(intermediateMaxs);
+    const interMin=allIntermediate.length?Math.min(...allIntermediate):0;
+    const interMax=allIntermediate.length?Math.max(...allIntermediate):0;
+    const interRange=interMax-interMin;
+    const startVal=data[0]?.value??0;
+    const endVal=data[data.length-1]?.value??0;
+    const bigVal=Math.max(startVal,endVal);
+
+    // If intermediate bars are <15% of the full range, compress the axis
+    const useCompressed=interRange>0&&interRange/bigVal<0.15&&bigVal>0;
+    const yMin=useCompressed?Math.max(0,interMin-interRange*2):0;
+    const yMax=useCompressed?Math.min(bigVal,interMax+interRange*2):bigVal*1.05;
+
     inst.current=new Chart(ref.current,{
       type:"bar",
-      data:{labels,datasets:[{data:floatData,backgroundColor:bgColors,borderColor:bgColors.map(c=>c+"cc"),borderWidth:1,borderRadius:4,borderSkipped:false}]},
-      options:{responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{display:false},tooltip:{backgroundColor:T.bg3,borderColor:T.border,borderWidth:1,titleColor:T.text,bodyColor:T.text2,padding:10,cornerRadius:8,
-          callbacks:{label:(ctx)=>{const d2=data[ctx.dataIndex];const v=d2.value;const sign=v>=0?"+":"";return`${sign}${yFmt?yFmt(Math.abs(v)):("A$"+(Math.abs(v)/1000).toFixed(1)+"K")} (${sign}${((v/(Math.abs(data[0].value)||1))*100).toFixed(1)}%)`;}}}},
-        scales:{x:{grid:{color:"transparent"},ticks:{color:T.chartTick,font:{size:10}},border:{color:T.border}},
-          y:{grid:{color:T.chartGrid},ticks:{color:T.chartTick,font:{size:10},callback:yFmt||(v=>`A$${(v/1000).toFixed(0)}K`)},border:{color:T.border}}},
+      data:{labels,datasets:[{
+        data:floatData,
+        backgroundColor:bgColors,
+        borderColor:borderColors,
+        borderWidth:1.5,
+        borderRadius:4,
+        borderSkipped:false,
+      }]},
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{
+          legend:{display:false},
+          tooltip:{
+            backgroundColor:T.bg3,borderColor:T.border,borderWidth:1,
+            titleColor:T.text,bodyColor:T.text2,padding:10,cornerRadius:8,
+            callbacks:{label:(ctx)=>{
+              const d2=data[ctx.dataIndex];
+              const v=d2.value;
+              const sign=v>=0?"+":"";
+              const pct=data[0]?.value?((v/Math.abs(data[0].value))*100).toFixed(1):0;
+              return`${sign}${yFmt?yFmt(Math.abs(v)):"A$"+(Math.abs(v)/1000).toFixed(1)+"K"} (${sign}${pct}%)`;
+            }},
+          },
+          annotation:useCompressed?{annotations:{
+            breakTop:{type:"line",yMin:yMax,yMax:yMax,borderColor:T.border,borderWidth:1,borderDash:[4,4]},
+            breakBot:{type:"line",yMin:yMin,yMax:yMin,borderColor:T.border,borderWidth:1,borderDash:[4,4]},
+            note:{type:"label",xValue:0,yValue:yMax,content:"* Start/End bars compressed for scale",color:T.text3,font:{size:9}},
+          }}:{},
+        },
+        scales:{
+          x:{grid:{color:"transparent"},ticks:{color:T.chartTick,font:{size:10}},border:{color:T.border}},
+          y:{
+            grid:{color:T.chartGrid},
+            ticks:{color:T.chartTick,font:{size:10},callback:yFmt||(v=>`A$${(v/1000).toFixed(0)}K`)},
+            border:{color:T.border},
+            ...(useCompressed?{min:yMin,max:yMax}:{}),
+          },
+        },
       }
     });
     return()=>{if(inst.current)inst.current.destroy();};
   },[data,T,yFmt]);
-  return <div style={{height,position:"relative"}}>{data.length?<canvas ref={ref}/>:<div style={{height,display:"flex",alignItems:"center",justifyContent:"center",color:T.text3,fontSize:12}}>No data for selected period</div>}</div>;
+  return(
+    <div style={{height,position:"relative"}}>
+      {data.length
+        ?<canvas ref={ref}/>
+        :<div style={{height,display:"flex",alignItems:"center",justifyContent:"center",color:T.text3,fontSize:12}}>No data for selected period</div>
+      }
+    </div>
+  );
 }
 
 // ─── Import / Export ─────────────────────────────────────────────────────────
@@ -1113,9 +1182,12 @@ function App(){
   const[tmMode,setTmMode]      =useState("performance");
   const[tmShowVal,setTmShowVal]=useState(true);
   const[tmSize,setTmSize]      =useState({w:600,h:420});
+  const[tmSlider,setTmSlider]  =useState(null); // null=live, otherwise index into bmLabels
   const[chartPeriod,setChartPeriod]=useState("1Y");
   const[benchmarks,setBenchmarks]=useState({labels:[],series:{},holdingPrices:{}});
   const[bmVisible,setBmVisible]  =useState({sp500:true,brk:false,jkse:true,eido:true,vas:false});
+  const[valuesHidden,setValuesHidden]=useState(false); // privacy eye toggle
+  const[editTx,setEditTx]        =useState(null); // {holdingId, txIndex, tx}
   // Fetch status
   const[fetchSt,setFetchSt]    =useState({loading:false,lastUpdate:null,errors:{},successes:0,total:0,fetched:0,rateOk:null,bmStatus:null});
 
@@ -1235,15 +1307,56 @@ function App(){
   const totDivs   =holdings.reduce((s,h)=>s+h.totalDividends,0);
   const divYld    =totInv>0?(totDivs/totInv)*100:0;
 
-  const FC=(a,compact=false)=>fmtCur(a,displayCur,rates,compact);
-  const FG=(a)=>fmtGain(a,displayCur,rates);
+  const FC=(a,compact=false)=>valuesHidden?"••••••":fmtCur(a,displayCur,rates,compact);
+  const FG=(a)=>valuesHidden?"••••••":fmtGain(a,displayCur,rates);
   const pColor=n=>n>=0?T.green:T.red;
 
   // Treemap rects
   const perfRects=useMemo(()=>{const it=holdings.map(h=>({...h,value:h.currentValue})).sort((a,b)=>b.value-a.value);return it.length?squarify(it,0,0,tmSize.w,tmSize.h):[];},[holdings,tmSize]);
   const divRects =useMemo(()=>{const it=holdings.filter(h=>h.totalDividends>0).map(h=>({...h,value:h.totalDividends})).sort((a,b)=>b.value-a.value);return it.length?squarify(it,0,0,tmSize.w,tmSize.h):[];},[holdings,tmSize]);
   const dayRects =useMemo(()=>{const it=holdings.map(h=>({...h,value:Math.max(Math.abs(h.dayGain),0.01)})).sort((a,b)=>b.value-a.value);return it.length?squarify(it,0,0,tmSize.w,tmSize.h):[];},[holdings,tmSize]);
-  const rects=tmMode==="performance"?perfRects:tmMode==="day"?dayRects:divRects;
+
+  // Slider: compute portfolio composition at a historical date using holding price history
+  const sliderDate=tmSlider!=null&&benchmarks.labels.length>tmSlider?benchmarks.labels[tmSlider]:null;
+  const sliderRects=useMemo(()=>{
+    if(!sliderDate||!benchmarks.holdingPrices)return null;
+    const audIdr=rates.AUD_IDR||12000;
+    const audUsd=rates.AUD_USD||0.65;
+    const findPrice=(priceMap,dateStr)=>{
+      if(!priceMap)return null;
+      if(priceMap[dateStr])return priceMap[dateStr];
+      const target=new Date(dateStr).getTime();
+      let best=null,bestDiff=35*86400000;
+      for(const [d,p] of Object.entries(priceMap)){
+        const diff=Math.abs(new Date(d).getTime()-target);
+        if(diff<bestDiff){bestDiff=diff;best=p;}
+      }
+      return best;
+    };
+    const items=[];
+    for(const h of portfolio){
+      let units=0;
+      for(const tx of h.transactions){
+        if(tx.date>sliderDate)continue;
+        if(tx.type==="buy")units+=tx.qty;
+        else if(tx.type==="sell")units-=tx.qty;
+      }
+      if(units<=0)continue;
+      const hp=benchmarks.holdingPrices[h.ticker];
+      let price=hp?.priceMap?findPrice(hp.priceMap,sliderDate):null;
+      if(!price&&prices[h.ticker]>0)price=prices[h.ticker];
+      if(!price)continue;
+      if(h.isBondPct)price=price*(h.faceValue||1000000)/100;
+      let valueAUD=units*price;
+      if(h.currency==="IDR")valueAUD/=audIdr;
+      else if(h.currency==="USD")valueAUD/=audUsd;
+      if(valueAUD>0)items.push({...h,currentValue:valueAUD,value:valueAUD,qty:units});
+    }
+    const sorted=items.sort((a,b)=>b.value-a.value);
+    return sorted.length?squarify(sorted,0,0,tmSize.w,tmSize.h):[];
+  },[sliderDate,benchmarks.holdingPrices,benchmarks.labels,portfolio,prices,rates,tmSize]);
+
+  const rects=tmSlider!=null&&sliderRects!=null?sliderRects:(tmMode==="performance"?perfRects:tmMode==="day"?dayRects:divRects);
   const totalPortfolioDivs=useMemo(()=>holdings.reduce((s,h)=>s+h.totalDividends,0),[holdings]);
   const selH=holdings.find(h=>h.ticker===selected);
 
@@ -1899,17 +2012,18 @@ function App(){
           ))}
         </div>
         {/* Controls */}
-        <div style={{display:"flex",gap:5,alignItems:"center",flexShrink:0,flexWrap:"wrap"}}>
+        <div style={{display:"flex",gap:5,alignItems:"center",flexShrink:0,flexWrap:"wrap",justifyContent:isMob?"flex-end":"flex-end"}}>
           <div style={{display:"flex",background:T.bg4,borderRadius:8,padding:2,border:`1px solid ${T.border}`}}>
             {CURRENCIES.map(c=><button key={c} onClick={()=>setDisplayCur(c)} style={{padding:"4px 8px",borderRadius:6,border:"none",background:displayCur===c?T.bg2:"transparent",color:displayCur===c?T.text:T.text3,fontSize:10,fontWeight:displayCur===c?700:400,fontFamily:"'Space Mono',monospace"}}>{c}</button>)}
           </div>
+          <button onClick={()=>setValuesHidden(v=>!v)} title={valuesHidden?"Show values":"Hide values"} style={{...bO(T.text2,{padding:"6px 9px",fontSize:14,lineHeight:1,borderRadius:8})}}>{valuesHidden?"🙈":"👁️"}</button>
           <button onClick={()=>setDark(d=>!d)} style={{...bO(T.text2,{padding:"6px 9px",fontSize:15,lineHeight:1,borderRadius:8})}}>{dark?"☀️":"🌙"}</button>
           <button onClick={autoRefresh} disabled={fetchSt.loading} style={{...bO(fetchBarColor,{padding:"6px 10px",fontSize:11,borderColor:fetchBarColor+"66",opacity:fetchSt.loading?.7:1})}}>
             <span className={fetchSt.loading?"spin":""} style={{marginRight:4,fontSize:12}}>{fetchSt.loading?"⟳":"🔄"}</span>
             {isMob?"":"Live Prices"}
           </button>
-          <button onClick={openManualPrice} style={{...bO(T.text2,{fontSize:11,padding:"6px 10px"})}}>✏️{isMob?"":""}</button>
-          <button onClick={openImport} style={{...bO(T.text2,{fontSize:11,padding:"6px 10px"})}}>📥 {isMob?"":"Import"}</button>
+          <button onClick={openManualPrice} style={{...bO(T.text2,{fontSize:11,padding:"6px 10px"})}}>✏️</button>
+          <button onClick={openImport} style={{...bO(T.text2,{fontSize:11,padding:"6px 10px"})}}>📥</button>
 
           {/* ── Cloud Sync Button ── */}
           {FB_CONFIGURED?(
@@ -1931,7 +2045,7 @@ function App(){
                     {fbUser.photoURL?<img src={fbUser.photoURL} style={{width:16,height:16,borderRadius:"50%",verticalAlign:"middle"}} alt=""/>:"👤"}
                   </button>
                 </div>
-                {syncMsg&&<span style={{fontSize:9,color:syncSt==="error"?T.red:syncSt==="ok"?T.green:T.amber,maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{syncMsg}</span>}
+                {syncMsg&&!isMob&&<span style={{fontSize:9,color:syncSt==="error"?T.red:syncSt==="ok"?T.green:T.amber,maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{syncMsg}</span>}
               </div>
             ):(
               <button onClick={()=>signInGoogle().then(u=>{setFbUser(u);cloudLoadAll();}).catch(e=>setSyncMsg(e.message))}
@@ -2056,6 +2170,33 @@ function App(){
             })}
             {rects.length===0&&<div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",color:T.text4,fontFamily:"'Space Mono',monospace",fontSize:11,textAlign:"center",padding:20}}>{tmMode==="dividend"?"No dividends recorded yet":"No holdings — tap + Add"}</div>}
           </div>
+
+          {/* ── Portfolio Time Evolution Slider ── */}
+          {benchmarks.labels.length>1&&(
+            <div style={{...card({padding:12}),marginTop:0,width:"100%"}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8,flexWrap:"wrap"}}>
+                <span style={{fontSize:10,fontWeight:600,color:T.text2,whiteSpace:"nowrap"}}>⏱ Portfolio evolution</span>
+                <span style={{fontSize:10,color:T.teal,fontFamily:"'Space Mono',monospace",fontWeight:700}}>
+                  {tmSlider!=null?benchmarks.labels[tmSlider]:"Live (now)"}
+                </span>
+                {tmSlider!=null&&<button onClick={()=>setTmSlider(null)}
+                  style={{fontSize:9,padding:"2px 8px",borderRadius:4,border:`1px solid ${T.teal}`,background:"transparent",color:T.teal,cursor:"pointer"}}>↩ Back to live</button>}
+                <span style={{fontSize:9,color:T.text3,marginLeft:"auto"}}>Drag slider to see how your portfolio looked at any point in time</span>
+              </div>
+              <input type="range" min={0} max={benchmarks.labels.length-1}
+                value={tmSlider??benchmarks.labels.length-1}
+                onChange={e=>{
+                  const idx=parseInt(e.target.value);
+                  setTmSlider(idx===benchmarks.labels.length-1?null:idx);
+                }}
+                style={{width:"100%",accentColor:T.teal,cursor:"pointer"}}/>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:9,color:T.text3,marginTop:4}}>
+                <span>{benchmarks.labels[0]}</span>
+                <span>{benchmarks.labels[Math.floor(benchmarks.labels.length/2)]}</span>
+                <span>Now</span>
+              </div>
+            </div>
+          )}
 
           {/* Detail panel */}
           <div className="detail-panel" style={{width:isMob?"100%":264,flexShrink:0,...card({padding:16,minHeight:isMob?0:200})}}>
@@ -2588,11 +2729,12 @@ function App(){
             </div>
             <div style={{overflowX:"auto",borderRadius:8,border:`1px solid ${T.border}`}}>
               <table style={{width:"100%",borderCollapse:"collapse"}}>
-                <thead><tr>{["Date","Type","Units / Div","Price / Div","Total"].map(c=>(
+                <thead><tr>{["Date","Type","Units / Div","Price / Div","Total",""].map(c=>(
                   <th key={c} style={{padding:"8px 10px",textAlign:"left",fontSize:8,letterSpacing:1.5,color:T.text3,textTransform:"uppercase",background:T.bg,borderBottom:`1px solid ${T.border}`,whiteSpace:"nowrap"}}>{c}</th>
                 ))}</tr></thead>
                 <tbody>
                   {[...histH.transactions].sort((a,b)=>new Date(b.date)-new Date(a.date)).map((tx,i)=>{
+                    const origIdx=histH.transactions.indexOf(tx);
                     const tmap={buy:{l:"BUY",c:T.green,bg:dark?"#0d3d2833":"#dcfce7"},sell:{l:"SELL",c:T.red,bg:dark?"#3d0a0a33":"#fee2e2"},dividend:{l:histH.isBondPct?"COUPON":"DIV",c:T.teal,bg:dark?"#04182833":"#cffafe"}};
                     const t=tmap[tx.type]||tmap.buy;const cur=histH.currency;
                     const fL=(v)=>cur==="IDR"?`Rp ${fmtIDR(v)}`:cur==="USD"?`US$${v.toFixed(2)}`:`A$${v.toFixed(2)}`;
@@ -2608,6 +2750,14 @@ function App(){
                         <td style={{padding:"8px 10px",fontFamily:"'Space Mono',monospace",fontSize:10,color:T.text2,borderBottom:`1px solid ${T.border}`}}>{units}</td>
                         <td style={{padding:"8px 10px",fontFamily:"'Space Mono',monospace",fontSize:10,color:T.text2,borderBottom:`1px solid ${T.border}`}}>{price}</td>
                         <td style={{padding:"8px 10px",fontFamily:"'Space Mono',monospace",fontSize:11,fontWeight:700,color:t.c,borderBottom:`1px solid ${T.border}`}}>{total}</td>
+                        <td style={{padding:"4px 8px",borderBottom:`1px solid ${T.border}`}}>
+                          <div style={{display:"flex",gap:4}}>
+                            <button onClick={()=>setEditTx({holdingId:histH.id,txIndex:origIdx,tx:{...tx}})}
+                              style={{fontSize:10,padding:"2px 7px",borderRadius:4,border:`1px solid ${T.border}`,background:T.bg4,color:T.text2,cursor:"pointer"}}>✏️</button>
+                            <button onClick={()=>{if(!confirm("Delete this transaction?"))return;setPortfolio(p=>p.map(h=>h.id===histH.id?{...h,transactions:h.transactions.filter((_,j)=>j!==origIdx)}:h));}}
+                              style={{fontSize:10,padding:"2px 7px",borderRadius:4,border:`1px solid ${T.red}44`,background:T.bg4,color:T.red,cursor:"pointer"}}>🗑️</button>
+                          </div>
+                        </td>
                       </tr>
                     );
                   })}
@@ -2893,6 +3043,51 @@ function App(){
         </div>
       </div>
     )}
+
+    {/* ── Edit Transaction Overlay (separate from main modal) ── */}
+    {editTx&&(()=>{
+      const h=portfolio.find(p=>p.id===editTx.holdingId);
+      if(!h)return null;
+      const tx=editTx.tx;
+      const cur=h.currency||"AUD";
+      const save=()=>{
+        setPortfolio(p=>p.map(holding=>holding.id===editTx.holdingId?{
+          ...holding,
+          transactions:holding.transactions.map((t,j)=>j===editTx.txIndex?{...editTx.tx}:t)
+        }:holding));
+        setEditTx(null);
+      };
+      const fi=(field,label,type="text",placeholder="")=>(
+        <div key={field}>
+          <label style={{fontSize:10,color:T.text3,letterSpacing:1,textTransform:"uppercase"}}>{label}</label>
+          <input type={type} style={{...inp(),marginTop:2}} value={tx[field]??""} placeholder={placeholder}
+            onChange={e=>{
+              const v=type==="number"?(parseFloat(e.target.value)||0):e.target.value;
+              setEditTx(s=>({...s,tx:{...s.tx,[field]:v}}));
+            }}/>
+        </div>
+      );
+      return(
+        <div onClick={()=>setEditTx(null)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.82)",backdropFilter:"blur(8px)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:12}}>
+          <div onClick={e=>e.stopPropagation()} style={{background:T.bg2,border:`1px solid ${T.border}`,borderRadius:14,padding:22,width:"100%",maxWidth:400,boxShadow:T.shadow}}>
+            <h2 style={{fontFamily:"'Space Mono',monospace",fontSize:14,fontWeight:700,color:T.text,marginBottom:4}}>✏️ Edit Transaction</h2>
+            <p style={{fontSize:11,color:T.text3,marginBottom:16}}>{h.ticker} — {tx.type?.toUpperCase()}</p>
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              {fi("date","Date","date")}
+              {tx.type!=="dividend"&&fi("qty","Units / Quantity","number","0")}
+              {tx.type!=="dividend"&&fi("price",`Price (${cur})`,"number","0")}
+              {tx.type==="dividend"&&fi("amountPerShare",`Amount per Unit (${cur})`,"number","0")}
+              {tx.type==="dividend"&&fi("entitledQty","Entitled Units","number","0")}
+              {tx.type==="dividend"&&fi("totalAmount",`Total Amount (${cur})`,"number","0")}
+            </div>
+            <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:16}}>
+              <button style={bO(T.text2)} onClick={()=>setEditTx(null)}>Cancel</button>
+              <button style={bS(T.greenBtn,"#fff")} onClick={save}>Save Changes</button>
+            </div>
+          </div>
+        </div>
+      );
+    })()}
   </div>
   );
 }
