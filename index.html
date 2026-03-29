@@ -8,11 +8,11 @@
 // Load fonts via FontFace API — works on file:// pages where <link> is blocked
 (function(){
   const fonts=[
-    {family:"Montserrat",     weight:"400", url:"https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2"},
-    {family:"Montserrat",     weight:"500", url:"https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmEU9fBBc4.woff2"},
-    {family:"Montserrat",     weight:"700", url:"https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc4.woff2"},
-    {family:"Montserrat", weight:"400", url:"https://fonts.gstatic.com/s/spacemono/v13/i7dPIFZifjKcF5UAWdDRUEZ2RFq7AwU.woff2"},
-    {family:"Montserrat", weight:"700", url:"https://fonts.gstatic.com/s/spacemono/v13/i7dMIFZifjKcF5UAWdDRaPpZYFKQHwyVd3U.woff2"},
+    {family:"Roboto",     weight:"400", url:"https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2"},
+    {family:"Roboto",     weight:"500", url:"https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmEU9fBBc4.woff2"},
+    {family:"Roboto",     weight:"700", url:"https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc4.woff2"},
+    {family:"Space Mono", weight:"400", url:"https://fonts.gstatic.com/s/spacemono/v13/i7dPIFZifjKcF5UAWdDRUEZ2RFq7AwU.woff2"},
+    {family:"Space Mono", weight:"700", url:"https://fonts.gstatic.com/s/spacemono/v13/i7dMIFZifjKcF5UAWdDRaPpZYFKQHwyVd3U.woff2"},
   ];
   fonts.forEach(({family,weight,url})=>{
     try{
@@ -35,8 +35,8 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
-body{min-height:100vh;font-family:'Montserrat',sans-serif;font-size:14px;-webkit-font-smoothing:antialiased}
-input,select{font-family:'Montserrat',sans-serif}
+body{min-height:100vh;font-family:'Roboto',sans-serif;font-size:14px;-webkit-font-smoothing:antialiased}
+input,select{font-family:'Roboto',sans-serif}
 input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 input[type=number]{-moz-appearance:textfield}
 button{cursor:pointer;font-family:inherit;transition:opacity .15s,transform .1s}
