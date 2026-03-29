@@ -320,15 +320,16 @@ function toStooqSymbol(yahooSymbol){
 async function fetchStooq(yahooSymbol){
   const stooq=toStooqSymbol(yahooSymbol);
   if(!stooq)throw new Error("No Stooq symbol for "+yahooSymbol);
-  // Fetch 5 days of daily OHLCV data — most recent close + official previous close
-  const url=`https://stooq.com/q/l/?s=${stooq}&f=sd2t2ohlcv&h&e=csv`;
+  // q/d/l = daily historical data, ascending date (oldest→newest)
+  // Last row = today's close, second-to-last = official previous close
+  const url=`https://stooq.com/q/d/l/?s=${stooq}&f=sd2ohlcv&e=csv`;
   const raw=await fetchWithProxyRaw(url);
-  const lines=raw.trim().split("\n").filter(l=>l&&!l.startsWith("Symbol")&&l.trim());
+  const lines=raw.trim().split("\n").filter(l=>l&&!l.startsWith("Symbol")&&!l.startsWith("Date")&&l.trim());
   if(!lines.length)throw new Error("Stooq: no data for "+stooq);
-  const parseLine=l=>{const p=l.split(",");return parseFloat(p[6])||0;};
-  // Stooq returns newest first — row[0]=today, row[1]=yesterday
-  const cur=parseLine(lines[0]);
-  const prev=lines.length>1?parseLine(lines[1]):cur;
+  const parseLine=l=>{const p=l.split(",");return parseFloat(p[5])||0;}; // col 5 = Close in sd2ohlcv (no Time col)
+  // Ascending date order → last row = most recent, second-to-last = previous close
+  const cur=parseLine(lines[lines.length-1]);
+  const prev=lines.length>1?parseLine(lines[lines.length-2]):cur;
   if(!cur)throw new Error("Stooq: zero price for "+stooq);
   return{current:cur,prev};
 }
@@ -375,7 +376,8 @@ async function fetchYahooPrice(symbol){
         if(res){
           const m=res.meta;
           const cur=m.regularMarketPrice??m.price??m.postMarketPrice;
-          if(cur){const prev=m.previousClose??m.chartPreviousClose??m.regularMarketPreviousClose??cur;return{current:cur,prev};}
+          // regularMarketPreviousClose is the official previous session close — always prefer it
+          if(cur){const prev=m.regularMarketPreviousClose??m.chartPreviousClose??m.previousClose??cur;return{current:cur,prev};}
         }
         const q=d?.quoteResponse?.result?.[0];
         if(q&&q.regularMarketPrice){
@@ -589,9 +591,13 @@ async function fetchDJPPRPrice(seriSBN){
 
   // ── Source 5: Stooq ──
   try{
-    const raw=await fetchWithProxyRaw(`https://stooq.com/q/l/?s=${sn.toLowerCase()}.id&f=sd2ohlcv&h&e=csv`,6000);
-    const lines=raw.trim().split("\n").filter(l=>l&&!l.startsWith("Symbol"));
-    if(lines.length){const p=lines[lines.length-1].split(",");const cur=parseFloat(p[6])||0;if(cur>0)return{current:cur,prev:cur};}
+    const raw=await fetchWithProxyRaw(`https://stooq.com/q/d/l/?s=${sn.toLowerCase()}.id&f=sd2ohlcv&e=csv`,6000);
+    const lines=raw.trim().split("\n").filter(l=>l&&!l.startsWith("Symbol")&&!l.startsWith("Date")&&l.trim());
+    if(lines.length){
+      const p=lines[lines.length-1].split(",");const cur=parseFloat(p[5])||0;
+      const prev=lines.length>1?(parseFloat(lines[lines.length-2].split(",")[5])||cur):cur;
+      if(cur>0)return{current:cur,prev};
+    }
   }catch(e){}
 
   throw new Error(sn+": bond price unavailable — enter manually");
@@ -1353,10 +1359,10 @@ function App(){
       if(valueAUD>0)items.push({...h,currentValue:valueAUD,value:valueAUD,qty:units});
     }
     const sorted=items.sort((a,b)=>b.value-a.value);
-    return sorted.length?squarify(sorted,0,0,tmSize.w,tmSize.h):[];
+    return sorted.length?squarify(sorted,0,0,tmSize.w,tmSize.h):null; // null = fall back to current rects
   },[sliderDate,benchmarks.holdingPrices,benchmarks.labels,portfolio,prices,rates,tmSize]);
 
-  const rects=tmSlider!=null&&sliderRects!=null?sliderRects:(tmMode==="performance"?perfRects:tmMode==="day"?dayRects:divRects);
+  const rects=tmSlider!=null&&sliderRects!=null&&sliderRects.length>0?sliderRects:(tmMode==="performance"?perfRects:tmMode==="day"?dayRects:divRects);
   const totalPortfolioDivs=useMemo(()=>holdings.reduce((s,h)=>s+h.totalDividends,0),[holdings]);
   const selH=holdings.find(h=>h.ticker===selected);
 
@@ -2148,7 +2154,7 @@ function App(){
         <div className="tm-wrap" style={{display:"flex",gap:12,alignItems:"flex-start",flexWrap:isMob?"wrap":"nowrap"}}>
           <div ref={mapRef} style={{flex:"1 1 280px",width:isMob?"100%":"auto",height:isMob?"calc(100vw - 28px)":440,position:"relative",borderRadius:12,overflow:"hidden",border:`1px solid ${T.border}`,background:T.bg3,minWidth:200}}>
             {rects.map(r=>{
-              const c=tmMode==="performance"?gainColor(r.gainPct,dark):tmMode==="day"?dayColor(r.dayGainPct,dark):divColor(r.divYieldOnCost,dark);
+              const c=tmSlider!=null&&sliderRects!=null?gainColor(r.gainPct??0,dark):(tmMode==="performance"?gainColor(r.gainPct,dark):tmMode==="day"?dayColor(r.dayGainPct,dark):divColor(r.divYieldOnCost,dark));
               const area=r.w*r.h,big=area>15000,mid=area>3500,sm=area>1400;
               return(
                 <div key={r.ticker} onClick={()=>setSelected(r.ticker===selected?null:r.ticker)}
@@ -2181,7 +2187,13 @@ function App(){
                 </span>
                 {tmSlider!=null&&<button onClick={()=>setTmSlider(null)}
                   style={{fontSize:9,padding:"2px 8px",borderRadius:4,border:`1px solid ${T.teal}`,background:"transparent",color:T.teal,cursor:"pointer"}}>↩ Back to live</button>}
-                <span style={{fontSize:9,color:T.text3,marginLeft:"auto"}}>Drag slider to see how your portfolio looked at any point in time</span>
+                {!Object.keys(benchmarks.holdingPrices||{}).length&&
+                  <span style={{fontSize:9,color:T.amber,marginLeft:4}}>⚠️ Click 🔄 Live Prices first to enable slider</span>
+                }
+                {tmSlider!=null&&sliderRects===null&&Object.keys(benchmarks.holdingPrices||{}).length>0&&
+                  <span style={{fontSize:9,color:T.amber}}>No holdings found at this date (before first purchase)</span>
+                }
+                <span style={{fontSize:9,color:T.text3,marginLeft:"auto"}}>Drag to see your portfolio at any past month</span>
               </div>
               <input type="range" min={0} max={benchmarks.labels.length-1}
                 value={tmSlider??benchmarks.labels.length-1}
