@@ -318,19 +318,29 @@ function toStooqSymbol(yahooSymbol){
 }
 
 async function fetchStooq(yahooSymbol){
+  // Stooq is FALLBACK ONLY for current price — Yahoo is primary for prev close
   const stooq=toStooqSymbol(yahooSymbol);
   if(!stooq)throw new Error("No Stooq symbol for "+yahooSymbol);
-  // q/d/l = daily historical data, ascending date (oldest→newest)
-  // Last row = today's close, second-to-last = official previous close
-  const url=`https://stooq.com/q/d/l/?s=${stooq}&f=sd2ohlcv&e=csv`;
+  // Fetch last 7 days explicitly — prevents years of data being returned
+  const now=new Date();
+  const d1=new Date(now);d1.setDate(d1.getDate()-7);
+  const fmt=d=>`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}`;
+  const url=`https://stooq.com/q/d/l/?s=${stooq}&d1=${fmt(d1)}&d2=${fmt(now)}&i=d`;
   const raw=await fetchWithProxyRaw(url);
-  const lines=raw.trim().split("\n").filter(l=>l&&!l.startsWith("Symbol")&&!l.startsWith("Date")&&l.trim());
-  if(!lines.length)throw new Error("Stooq: no data for "+stooq);
-  const parseLine=l=>{const p=l.split(",");return parseFloat(p[5])||0;}; // col 5 = Close in sd2ohlcv (no Time col)
-  // Ascending date order → last row = most recent, second-to-last = previous close
-  const cur=parseLine(lines[lines.length-1]);
-  const prev=lines.length>1?parseLine(lines[lines.length-2]):cur;
-  if(!cur)throw new Error("Stooq: zero price for "+stooq);
+  const allLines=raw.trim().split("\n").map(l=>l.trim()).filter(Boolean);
+  if(allLines.length<2)throw new Error("Stooq: no data for "+stooq);
+  // First line is header — find Close column dynamically
+  const header=allLines[0].toLowerCase().split(",");
+  const closeIdx=header.indexOf("close");
+  if(closeIdx<0)throw new Error("Stooq: no Close col");
+  const dataLines=allLines.slice(1).filter(l=>!/no data/i.test(l));
+  if(!dataLines.length)throw new Error("Stooq: empty data");
+  // Sort by date ascending to ensure last row is most recent
+  dataLines.sort((a,b)=>a.split(",")[0].localeCompare(b.split(",")[0]));
+  const parseClose=l=>parseFloat(l.split(",")[closeIdx])||0;
+  const cur=parseClose(dataLines[dataLines.length-1]);
+  const prev=dataLines.length>1?parseClose(dataLines[dataLines.length-2]):cur;
+  if(!cur)throw new Error("Stooq: zero price");
   return{current:cur,prev};
 }
 
@@ -362,42 +372,61 @@ async function fetchYahooPrice(symbol){
   const sym=encodeURIComponent(symbol);
   const isJK=symbol.endsWith(".JK");
 
-  // Race Yahoo (3 endpoints) AND Stooq simultaneously — fastest valid response wins
-  const yahooAttempt=(async()=>{
-    const candidates=[
+  // ── Yahoo FIRST — regularMarketPreviousClose is the gold standard prev close ──
+  // All 3 Yahoo endpoints raced in parallel; Stooq is NOT included here
+  // because Stooq can return stale/truncated historical data as prev close.
+  const parseYahoo=(d)=>{
+    const res=d?.chart?.result?.[0];
+    if(res){
+      const m=res.meta;
+      const cur=m.regularMarketPrice??m.price??m.postMarketPrice;
+      if(cur>0){
+        // regularMarketPreviousClose = what Google Finance/Yahoo show as "Prev close"
+        const prev=m.regularMarketPreviousClose??m.chartPreviousClose??cur;
+        return{current:cur,prev};
+      }
+    }
+    const q=d?.quoteResponse?.result?.[0];
+    if(q?.regularMarketPrice>0){
+      return{current:q.regularMarketPrice,
+             prev:q.regularMarketPreviousClose??q.regularMarketPrice};
+    }
+    return null;
+  };
+
+  // Race all Yahoo endpoints simultaneously
+  const yahooResult=await new Promise((resolve)=>{
+    let done=false;
+    const endpoints=[
       YAHOO_BASE +sym+"?interval=1d&range=5d&includePrePost=false",
       YAHOO_BASE1+sym+"?interval=1d&range=5d&includePrePost=false",
-      YAHOO_V7   +sym+"&fields=regularMarketPrice,regularMarketPreviousClose,previousClose",
+      YAHOO_V7   +sym+"&fields=regularMarketPrice,regularMarketPreviousClose",
     ];
-    for(const url of candidates){
-      try{
-        const d=await fetchWithProxy(url);
-        const res=d?.chart?.result?.[0];
-        if(res){
-          const m=res.meta;
-          const cur=m.regularMarketPrice??m.price??m.postMarketPrice;
-          // regularMarketPreviousClose is the official previous session close — always prefer it
-          if(cur){const prev=m.regularMarketPreviousClose??m.chartPreviousClose??m.previousClose??cur;return{current:cur,prev};}
-        }
-        const q=d?.quoteResponse?.result?.[0];
-        if(q&&q.regularMarketPrice){
-          return{current:q.regularMarketPrice,prev:q.regularMarketPreviousClose??q.previousClose??q.regularMarketPrice};
-        }
-      }catch(e){}
-    }
-    throw new Error("Yahoo failed");
-  })();
+    let pending=endpoints.length;
+    endpoints.forEach(url=>{
+      fetchWithProxy(url).then(d=>{
+        if(done)return;
+        const result=parseYahoo(d);
+        if(result&&result.current>0){done=true;resolve(result);}
+      }).catch(()=>{}).finally(()=>{
+        pending--;
+        if(pending===0&&!done)resolve(null);
+      });
+    });
+  });
 
-  const stooqAttempt=fetchStooq(symbol).catch(e=>Promise.reject(e));
+  if(yahooResult) return yahooResult;
 
-  // Race both — whichever wins first
+  // ── Stooq fallback (current price only — prev from Stooq may be stale) ──
   try{
-    return await Promise.any([yahooAttempt,stooqAttempt]);
-  }catch(e){
-    // Both failed — try IDX API as last resort for .JK stocks
-    if(isJK){try{return await fetchIDXPrice(symbol);}catch(e2){}}
-    throw new Error("All sources failed for "+symbol);
-  }
+    const s=await fetchStooq(symbol);
+    if(s?.current>0) return s;
+  }catch(e){}
+
+  // ── IDX API last resort for Indonesian stocks ──
+  if(isJK){try{return await fetchIDXPrice(symbol);}catch(e){}}
+
+  throw new Error("All sources failed for "+symbol);
 }
 
 async function fetchBenchmark(symbol){
@@ -2177,39 +2206,6 @@ function App(){
             {rects.length===0&&<div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",color:T.text4,fontFamily:"'Space Mono',monospace",fontSize:11,textAlign:"center",padding:20}}>{tmMode==="dividend"?"No dividends recorded yet":"No holdings — tap + Add"}</div>}
           </div>
 
-          {/* ── Portfolio Time Evolution Slider ── */}
-          {benchmarks.labels.length>1&&(
-            <div style={{...card({padding:12}),marginTop:0,width:"100%"}}>
-              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8,flexWrap:"wrap"}}>
-                <span style={{fontSize:10,fontWeight:600,color:T.text2,whiteSpace:"nowrap"}}>⏱ Portfolio evolution</span>
-                <span style={{fontSize:10,color:T.teal,fontFamily:"'Space Mono',monospace",fontWeight:700}}>
-                  {tmSlider!=null?benchmarks.labels[tmSlider]:"Live (now)"}
-                </span>
-                {tmSlider!=null&&<button onClick={()=>setTmSlider(null)}
-                  style={{fontSize:9,padding:"2px 8px",borderRadius:4,border:`1px solid ${T.teal}`,background:"transparent",color:T.teal,cursor:"pointer"}}>↩ Back to live</button>}
-                {!Object.keys(benchmarks.holdingPrices||{}).length&&
-                  <span style={{fontSize:9,color:T.amber,marginLeft:4}}>⚠️ Click 🔄 Live Prices first to enable slider</span>
-                }
-                {tmSlider!=null&&sliderRects===null&&Object.keys(benchmarks.holdingPrices||{}).length>0&&
-                  <span style={{fontSize:9,color:T.amber}}>No holdings found at this date (before first purchase)</span>
-                }
-                <span style={{fontSize:9,color:T.text3,marginLeft:"auto"}}>Drag to see your portfolio at any past month</span>
-              </div>
-              <input type="range" min={0} max={benchmarks.labels.length-1}
-                value={tmSlider??benchmarks.labels.length-1}
-                onChange={e=>{
-                  const idx=parseInt(e.target.value);
-                  setTmSlider(idx===benchmarks.labels.length-1?null:idx);
-                }}
-                style={{width:"100%",accentColor:T.teal,cursor:"pointer"}}/>
-              <div style={{display:"flex",justifyContent:"space-between",fontSize:9,color:T.text3,marginTop:4}}>
-                <span>{benchmarks.labels[0]}</span>
-                <span>{benchmarks.labels[Math.floor(benchmarks.labels.length/2)]}</span>
-                <span>Now</span>
-              </div>
-            </div>
-          )}
-
           {/* Detail panel */}
           <div className="detail-panel" style={{width:isMob?"100%":264,flexShrink:0,...card({padding:16,minHeight:isMob?0:200})}}>
             {selH?(
@@ -2261,6 +2257,43 @@ function App(){
             )}
           </div>
         </div>
+
+        {/* ── Portfolio Time Evolution Slider — below treemap ── */}
+        {view==="treemap"&&benchmarks.labels.length>1&&(
+          <div style={{...card({padding:12}),marginTop:8}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,flexWrap:"wrap"}}>
+              <span style={{fontSize:10,fontWeight:600,color:T.text2}}>⏱ Portfolio Evolution</span>
+              <span style={{fontSize:11,color:T.teal,fontFamily:"'Space Mono',monospace",fontWeight:700}}>
+                {tmSlider!=null?benchmarks.labels[tmSlider]:"▶ Live"}
+              </span>
+              {tmSlider!=null&&(
+                <button onClick={()=>setTmSlider(null)}
+                  style={{fontSize:9,padding:"2px 8px",borderRadius:4,border:`1px solid ${T.teal}`,background:"transparent",color:T.teal,cursor:"pointer"}}>
+                  ↩ Back to live
+                </button>
+              )}
+              {!Object.keys(benchmarks.holdingPrices||{}).length&&(
+                <span style={{fontSize:9,color:T.amber}}>⚠️ Click 🔄 to enable</span>
+              )}
+              {tmSlider!=null&&!sliderRects&&Object.keys(benchmarks.holdingPrices||{}).length>0&&(
+                <span style={{fontSize:9,color:T.amber}}>No holdings at this date</span>
+              )}
+              <span style={{fontSize:9,color:T.text3,marginLeft:"auto"}}>Drag to see portfolio composition at any past month</span>
+            </div>
+            <input type="range" min={0} max={benchmarks.labels.length-1}
+              value={tmSlider??benchmarks.labels.length-1}
+              onChange={e=>{
+                const idx=parseInt(e.target.value);
+                setTmSlider(idx===benchmarks.labels.length-1?null:idx);
+              }}
+              style={{width:"100%",accentColor:T.teal,cursor:"pointer",height:6}}/>
+            <div style={{display:"flex",justifyContent:"space-between",fontSize:9,color:T.text3,marginTop:4}}>
+              <span>{benchmarks.labels[0]}</span>
+              <span>{benchmarks.labels[Math.floor(benchmarks.labels.length/2)]}</span>
+              <span>Now</span>
+            </div>
+          </div>
+        )}
       )}
 
       {/* TABLE */}
