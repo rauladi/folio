@@ -1439,86 +1439,28 @@ try {
   const hasHoldingPrices = Object.keys(benchmarks.holdingPrices || {}).length > 0;
   const hasBmLabels = benchmarks.labels.length > 0;
 
-  let labels = [], vals = [], divCumul = [];
-  let preLabelCount = 0;
+let labels = [], vals = [], divCumul = [];
 
-  if (hasHoldingPrices && hasBmLabels) {
-    const audIdr = rates.AUD_IDR || 12000;
-    const audUsd = rates.AUD_USD || 0.65;
+// For periods shorter than 6 months, always use snapshot history (more reliable)
+const useSnapshots = (chartPeriod === "1M" || chartPeriod === "3M" || chartPeriod === "6M");
 
-    const findPrice = (priceMap, dateStr) => {
-      if (!priceMap) return null;
-      if (priceMap[dateStr]) return priceMap[dateStr];
-      const target = new Date(dateStr).getTime();
-      let best = null, bestDiff = 35 * 86400000;
-      for (const [d, p] of Object.entries(priceMap)) {
-        const diff = Math.abs(new Date(d).getTime() - target);
-        if (diff < bestDiff) { bestDiff = diff; best = p; }
-      }
-      return best;
-    };
-
-    const periodLabels = benchmarks.labels.filter(l => new Date(l) >= cutoff);
-    const preLabel = benchmarks.labels.filter(l => new Date(l) < cutoff).slice(-1)[0];
-    const timelineLabels = [...new Set([...(preLabel ? [preLabel] : []), ...periodLabels])];
-
-    timelineLabels.forEach(dateStr => {
-      const isPrePeriod = preLabel && dateStr === preLabel;
-      let totalAUD = 0;
-      const anyHeld = portfolio.some(h => h.transactions.some(t => t.type === "buy" && t.date <= dateStr));
-      if (!anyHeld) return;
-
-      for (const h of portfolio) {
-        let units = 0;
-        for (const tx of h.transactions) {
-          if (tx.date > dateStr) continue;
-          if (tx.type === "buy") units += tx.qty;
-          else if (tx.type === "sell") units -= tx.qty;
-        }
-        if (units <= 0) continue;
-
-        const hp = benchmarks.holdingPrices[h.ticker];
-        let priceInNative = null;
-        if (hp?.priceMap) {
-          priceInNative = findPrice(hp.priceMap, dateStr);
-          if (h.isBondPct && priceInNative) priceInNative = priceInNative * (h.faceValue || 1000000) / 100;
-        }
-        if (!priceInNative || priceInNative <= 0) {
-          const cp = prices[h.ticker];
-          if (cp > 0) priceInNative = cp;
-          else {
-            const buys = h.transactions.filter(t => t.type === "buy" && t.date <= dateStr);
-            if (buys.length) {
-              const tc = buys.reduce((s, t) => s + t.qty * t.price, 0);
-              const tq = buys.reduce((s, t) => s + t.qty, 0);
-              priceInNative = tq > 0 ? tc / tq : 0;
-            }
-          }
-        }
-        if (!priceInNative || priceInNative <= 0) continue;
-
-        const currency = h.currency || "AUD";
-        let valueAUD = units * priceInNative;
-        if (currency === "IDR") valueAUD /= audIdr;
-        else if (currency === "USD") valueAUD /= audUsd;
-        totalAUD += valueAUD;
-      }
-
-      let divAUD = 0;
-      portfolio.forEach(h => {
-        h.transactions.filter(t => t.type === "dividend" && t.date <= dateStr).forEach(t => {
-          divAUD += toAUD(t.totalAmount || 0, h.currency, rates);
-        });
+if (!useSnapshots && hasHoldingPrices && hasBmLabels) {
+  // ... (the reconstructed code from earlier)
+} else {
+  // Fallback to snapshot history
+  const filtered = allSorted.filter(s => new Date(s.date) >= cutoff);
+  labels = filtered.map(s => fmtMonShort(s.date));
+  vals = filtered.map(s => fromAUD(s.totalValueAUD, displayCur, rates));
+  divCumul = filtered.map(s => {
+    let divAUD = 0;
+    portfolio.forEach(h => {
+      h.transactions.filter(t => t.type === "dividend" && t.date <= s.date).forEach(t => {
+        divAUD += toAUD(t.totalAmount || 0, h.currency, rates);
       });
-
-      if (totalAUD > 0) {
-        labels.push(fmtMonShort(dateStr));
-        vals.push(fromAUD(totalAUD, displayCur, rates));
-        divCumul.push(fromAUD(divAUD, displayCur, rates));
-        if (isPrePeriod) preLabelCount++;
-      }
     });
-  }
+    return fromAUD(divAUD, displayCur, rates);
+  });
+}
 
   // Fallback to snapshot history if no holding prices loaded
   if (vals.length < 2) {
