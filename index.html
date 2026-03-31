@@ -1319,50 +1319,46 @@ function App(){
       setRates(newRates);rateOk=true;
     }catch(e){console.warn("Rate fetch failed:",e.message);}
 
-    let bmStatus="loading";
-    try{
-      const BM_DEFS=[
-        {key:"sp500",  label:"S&P 500",          fetch:()=>fetchBenchmark("^GSPC")},
-        {key:"brk",    label:"BRK-B",             fetch:()=>fetchBenchmark("BRK-B")},
-        {key:"jkse",   label:"IDX Composite",     fetch:()=>fetchBenchmark("^JKSE")},
-        {key:"eido",   label:"EIDO",              fetch:()=>fetchBenchmark("EIDO")},
-        {key:"vas",    label:"VAS",               fetch:()=>fetchBenchmark("VAS.AX")},
-      ];
-      const results=await Promise.allSettled(BM_DEFS.map(b=>b.fetch()));
-      const successes=results.map((r,i)=>r.status==="fulfilled"?{...BM_DEFS[i],data:r.value}:null).filter(Boolean);
-      if(successes.length>0){
-        const ref=successes.reduce((a,b)=>b.data.labels.length>a.data.labels.length?b:a);
-        const series={};
-        results.forEach((r,i)=>{
-          series[BM_DEFS[i].key]=r.status==="fulfilled"?r.value.pct:null;
-        });
-        setBenchmarks({labels:ref.data.labels,series,holdingPrices:{}});
-        const holdingsWithSymbol=portfolio.filter(h=>h.yahooSymbol);
-        Promise.allSettled(holdingsWithSymbol.map(h=>
-          fetchHoldingHistory(h.yahooSymbol).then(r=>({ticker:h.ticker,data:r,isBondPct:h.isBondPct,faceValue:h.faceValue,currency:h.currency}))
-        )).then(results=>{
-          const holdingPrices={};
-          results.forEach(r=>{
-            if(r.status==="fulfilled"&&r.value.data){
-              holdingPrices[r.value.ticker]={
-                priceMap:r.value.data.priceMap,
-                currency:r.value.data.currency,
-                isBondPct:r.value.isBondPct,
-                faceValue:r.value.faceValue,
-                holdingCurrency:r.value.currency,
-              };
-            }
-          });
-          setBenchmarks(prev=>({...prev,holdingPrices}));
-        });
-        const ok=BM_DEFS.map((b,i)=>results[i].status==="fulfilled"?b.label+"✓":null).filter(Boolean);
-        const fail=BM_DEFS.map((b,i)=>results[i].status==="rejected"?b.label:null).filter(Boolean);
-        bmStatus=`${ok.length}/${BM_DEFS.length} loaded${fail.length?` · failed: ${fail.join(", ")}`:""}`; 
-      }else{
-        bmStatus="failed — all benchmarks unavailable";
-      }
-    }catch(e){bmStatus="error: "+e.message;}
+    // In autoRefresh, replace the block that starts with:
+//   let bmStatus = "loading";
+//   try {
+//     const BM_DEFS = ...
 
+// With the following:
+
+let bmStatus = "no benchmark data";
+try {
+  // Ensure fetchBenchmark exists
+  if (typeof fetchBenchmark === "undefined") {
+    console.warn("fetchBenchmark not defined – skipping benchmarks");
+    bmStatus = "error: fetchBenchmark missing";
+  } else {
+    const BM_DEFS = [
+      { key: "sp500",  label: "S&P 500",          fetch: () => fetchBenchmark("^GSPC") },
+      { key: "brk",    label: "BRK-B",             fetch: () => fetchBenchmark("BRK-B") },
+      { key: "jkse",   label: "IDX Composite",     fetch: () => fetchBenchmark("^JKSE") },
+      { key: "eido",   label: "EIDO",              fetch: () => fetchBenchmark("EIDO") },
+      { key: "vas",    label: "VAS",               fetch: () => fetchBenchmark("VAS.AX") },
+    ];
+    const results = await Promise.allSettled(BM_DEFS.map(b => b.fetch()));
+    const successes = results.map((r, i) => r.status === "fulfilled" ? { ...BM_DEFS[i], data: r.value } : null).filter(Boolean);
+    if (successes.length > 0) {
+      const ref = successes.reduce((a, b) => b.data.labels.length > a.data.labels.length ? b : a);
+      const series = {};
+      results.forEach((r, i) => {
+        series[BM_DEFS[i].key] = r.status === "fulfilled" ? r.value.pct : null;
+      });
+      setBenchmarks({ labels: ref.data.labels, series, holdingPrices: {} });
+      const ok = BM_DEFS.map((b, i) => results[i].status === "fulfilled" ? b.label + "✓" : null).filter(Boolean);
+      const fail = BM_DEFS.map((b, i) => results[i].status === "rejected" ? b.label : null).filter(Boolean);
+      bmStatus = `${ok.length}/${BM_DEFS.length} loaded${fail.length ? ` · failed: ${fail.join(", ")}` : ""}`;
+    } else {
+      bmStatus = "failed — all benchmarks unavailable";
+    }
+  }
+} catch (e) {
+  bmStatus = "error: " + e.message;
+}
     const fetchable=portfolio.filter(h=>{
       if(h.yahooSymbol)return true;
       if(/^(PBS|SBN|SR|ST|FR|ORI|SUKUK)\d/i.test(h.ticker))return true;
