@@ -1658,15 +1658,20 @@ function App(){
     // Monthly income — per ticker (for stacked bar) + total
     const monthly={};
     const monthlyByTicker={};
+
     // Colour palette defined early so mDatasets can use it
     const palette=["#6366f1","#22c55e","#06b6d4","#f59e0b","#ef4444","#8b5cf6","#ec4899","#14b8a6","#f97316","#84cc16","#3b82f6","#a78bfa"];
+
     portfolio.forEach(h=>{
-      h.transactions.filter(t=>t.type==="dividend"&&new Date(t.date)>=cutoff).forEach(t=>{
+      h.transactions
+	.filter(t=>t.type==="dividend"&&new Date(t.date)>=cutoff)
+	.forEach(t=>{
         const m=t.date.slice(0,7);
         const val=fromAUD(toAUD(t.totalAmount||0,h.currency,rates),displayCur,rates);
-        monthly[m]=(monthly[m]||0)+val;
+        
+	 monthly[m]=(monthly[m]||0)+val;
 
-        if(!monthlyByTicker[h.ticker]) {
+        if(!monthlyByTicker[h.ticker]){
           monthlyByTicker[h.ticker]={};
 }        
 monthlyByTicker[h.ticker][m]=(monthlyByTicker[h.ticker][m]||0)+val;
@@ -1905,7 +1910,7 @@ monthlyByTicker[h.ticker][m]=(monthlyByTicker[h.ticker][m]||0)+val;
     const hc=computeHolding(h,prices,prevPrices,rates);
     setModal({mode:"dividend",holding:h});
     setForm({amountPerShare:"",entitledQty:String(hc.qty),date:new Date().toISOString().slice(0,10)});
-  };;
+  };
   const openHistory=(h)=>{setModal({mode:"history",holding:h});};
   const openManualPrice=()=>{
     const f={displayCur};
