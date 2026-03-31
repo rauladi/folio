@@ -64,7 +64,7 @@ button:active{transform:scale(.97)}
      Replace the values below with your own Firebase project config.
      See setup instructions in the README or the ☁️ Sync button in the app. -->
 <script>
-const firebaseConfig = {
+const FIREBASE_CONFIG = {
   apiKey: "AIzaSyBp20SC2Yt9IWkevpLgU6-nXZtA7HuNbN0",
   authDomain: "folio-sync.firebaseapp.com",
   projectId: "folio-sync",
@@ -73,6 +73,7 @@ const firebaseConfig = {
   appId: "1:763988334867:web:f5984340db588992e9a2e6",
   measurementId: "G-YDQLTZ8SP4"
 };
+
 
 // Detect if Firebase has been configured (placeholder values = not configured)
 const FB_CONFIGURED = !FIREBASE_CONFIG.apiKey.startsWith("YOUR_");
