@@ -463,6 +463,34 @@ async function fetchYahooPrice(symbol) {
 
   throw new Error(`All price sources failed for ${symbol}`);
 }
+  async function fetchBenchmark(symbol) {
+  const sym = encodeURIComponent(symbol);
+  const candidates = [
+    YAHOO_BASE + sym + "?interval=1mo&range=5y",
+    YAHOO_BASE1 + sym + "?interval=1mo&range=5y",
+    YAHOO_BASE + sym + "?interval=1mo&range=3y",
+  ];
+  let lastErr = "No data";
+  for (const url of candidates) {
+    try {
+      const d = await fetchWithProxy(url);
+      const res = d?.chart?.result?.[0];
+      if (!res) continue;
+      const ts = res.timestamp || [];
+      const closes = res.indicators?.quote?.[0]?.close || [];
+      if (!ts.length || !closes.length) continue;
+      const base = closes.find(v => v != null) || 1;
+      return {
+        labels: ts.map(t => new Date(t * 1000).toISOString().slice(0, 10)),
+        pct: closes.map(v => v != null ? ((v - base) / base) * 100 : null),
+        raw: closes,
+      };
+    } catch (e) {
+      lastErr = e.message;
+    }
+  }
+  throw new Error(lastErr);
+}
   async function fetchHoldingHistory(yahooSymbol){
   const sym=encodeURIComponent(yahooSymbol);
   const candidates=[
