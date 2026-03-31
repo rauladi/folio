@@ -3140,3 +3140,30 @@ ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
 </script>
 </body>
 </html>
+          // ... (this finishes the fetch logic and closes the React component)
+          let parsed = JSON.parse(t);
+          resolve(parsed.contents || t);
+        })
+        .catch(() => {
+          pending--;
+          if (pending === 0 && !settled) reject(new Error("All proxies failed"));
+        });
+    });
+  });
+}
+
+// Minimal placeholder for the React App to ensure it renders
+const App = () => {
+  return (
+    <div style={{ padding: '20px', textAlign: 'center' }}>
+      <h1>FOLIO Dashboard Loaded</h1>
+      <p>System is ready. Add your components here.</p>
+    </div>
+  );
+};
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>
