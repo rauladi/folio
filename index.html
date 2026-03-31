@@ -363,87 +363,94 @@ async function fetchStooq(yahooSymbol){
   return{current:cur,prev};
 }
 
-async function fetchYahooPrice(symbol){
-  const sym=encodeURIComponent(symbol);
-  const isJK=symbol.endsWith(".JK");
+async function fetchYahooPrice(symbol) {
+  const sym = encodeURIComponent(symbol);
+  const isJK = symbol.endsWith(".JK");
 
-  const parseYahoo=(d)=>{
-    const res=d?.chart?.result?.[0];
-    if(res){
-      const m=res.meta;
-      const cur=m.regularMarketPrice??m.price??m.postMarketPrice;
-      if(cur>0){
-        const prev=m.regularMarketPreviousClose??m.chartPreviousClose??cur;
-        return{current:cur,prev};
-      }
-    }
-    const q=d?.quoteResponse?.result?.[0];
-    if(q?.regularMarketPrice>0){
-      return{current:q.regularMarketPrice,
-             prev:q.regularMarketPreviousClose??q.regularMarketPrice};
+  // Helper to parse Yahoo quote response (v7 endpoint)
+  const parseQuote = (d) => {
+    const quote = d?.quoteResponse?.result?.[0];
+    if (quote && quote.regularMarketPrice) {
+      return {
+        current: quote.regularMarketPrice,
+        prev: quote.regularMarketPreviousClose ?? quote.regularMarketPrice,
+      };
     }
     return null;
   };
 
-  const yahooResult=await new Promise((resolve)=>{
-    let done=false;
-    const endpoints=[
-      YAHOO_BASE +sym+"?interval=1d&range=5d&includePrePost=false",
-      YAHOO_BASE1+sym+"?interval=1d&range=5d&includePrePost=false",
-      YAHOO_V7   +sym+"&fields=regularMarketPrice,regularMarketPreviousClose",
-    ];
-    let pending=endpoints.length;
-    endpoints.forEach(url=>{
-      fetchWithProxy(url).then(d=>{
-        if(done)return;
-        const result=parseYahoo(d);
-        if(result&&result.current>0){done=true;resolve(result);}
-      }).catch(()=>{}).finally(()=>{
-        pending--;
-        if(pending===0&&!done)resolve(null);
-      });
-    });
-  });
+  // Helper to parse Yahoo chart response (v8 endpoint)
+  const parseChart = (d) => {
+    const res = d?.chart?.result?.[0];
+    if (res) {
+      const meta = res.meta;
+      const cur = meta.regularMarketPrice ?? meta.price ?? meta.postMarketPrice;
+      if (cur) {
+        // Use regularMarketPreviousClose if available, else chartPreviousClose, else current
+        const prev = meta.regularMarketPreviousClose ?? meta.chartPreviousClose ?? cur;
+        return { current: cur, prev };
+      }
+    }
+    return null;
+  };
 
-  if(yahooResult) return yahooResult;
-
-  try{
-    const s=await fetchStooq(symbol);
-    if(s?.current>0) return s;
-  }catch(e){}
-
-  if(isJK){try{return await fetchIDXPrice(symbol);}catch(e){}}
-
-  throw new Error("All sources failed for "+symbol);
-}
-
-async function fetchBenchmark(symbol){
-  const sym=encodeURIComponent(symbol);
-  const candidates=[
-    YAHOO_BASE +sym+"?interval=1mo&range=5y",
-    YAHOO_BASE1+sym+"?interval=1mo&range=5y",
-    YAHOO_BASE +sym+"?interval=1mo&range=3y",
-  ];
-  let lastErr="No data";
-  for(const url of candidates){
-    try{
-      const d=await fetchWithProxy(url);
-      const res=d?.chart?.result?.[0];
-      if(!res)continue;
-      const ts=res.timestamp||[];
-      const closes=res.indicators?.quote?.[0]?.close||[];
-      if(!ts.length||!closes.length)continue;
-      const base=closes.find(v=>v!=null)||1;
-      return{
-        labels:ts.map(t=>new Date(t*1000).toISOString().slice(0,10)),
-        pct:closes.map(v=>v!=null?((v-base)/base)*100:null),
-        raw:closes,
-      };
-    }catch(e){ lastErr=e.message; }
+  // --- Step 1: Try the quote endpoint (most reliable for previous close) ---
+  try {
+    const quoteUrl = YAHOO_V7 + sym + "&fields=regularMarketPrice,regularMarketPreviousClose";
+    const quoteData = await fetchWithProxy(quoteUrl);
+    const result = parseQuote(quoteData);
+    if (result && result.current > 0) {
+      console.log(`✅ ${symbol}: price from Yahoo quote (prev=${result.prev}, current=${result.current})`);
+      return result;
+    }
+  } catch (e) {
+    console.warn(`Yahoo quote endpoint failed for ${symbol}:`, e.message);
   }
-  throw new Error(lastErr);
-}
 
+  // --- Step 2: Try chart endpoints (two variations) ---
+  const chartUrls = [
+    YAHOO_BASE + sym + "?interval=1d&range=2d&includePrePost=false",
+    YAHOO_BASE1 + sym + "?interval=1d&range=2d&includePrePost=false",
+  ];
+  for (const url of chartUrls) {
+    try {
+      const chartData = await fetchWithProxy(url);
+      const result = parseChart(chartData);
+      if (result && result.current > 0) {
+        console.log(`✅ ${symbol}: price from Yahoo chart (prev=${result.prev}, current=${result.current})`);
+        return result;
+      }
+    } catch (e) {
+      console.warn(`Yahoo chart endpoint failed for ${symbol}:`, e.message);
+    }
+  }
+
+  // --- Step 3: Fallback to Stooq (only current price, prev may be stale) ---
+  try {
+    const stooqResult = await fetchStooq(symbol);
+    if (stooqResult?.current > 0) {
+      console.log(`⚠️ ${symbol}: using Stooq fallback (prev from Stooq may be unreliable)`);
+      return stooqResult;
+    }
+  } catch (e) {
+    console.warn(`Stooq fallback failed for ${symbol}:`, e.message);
+  }
+
+  // --- Step 4: Fallback to IDX API for Indonesian stocks ---
+  if (isJK) {
+    try {
+      const idxResult = await fetchIDXPrice(symbol);
+      if (idxResult?.current > 0) {
+        console.log(`⚠️ ${symbol}: using IDX fallback`);
+        return idxResult;
+      }
+    } catch (e) {
+      console.warn(`IDX fallback failed for ${symbol}:`, e.message);
+    }
+  }
+
+  throw new Error(`All price sources failed for ${symbol}`);
+}
 async function fetchHoldingHistory(yahooSymbol){
   const sym=encodeURIComponent(yahooSymbol);
   const candidates=[
