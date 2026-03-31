@@ -371,25 +371,33 @@ async function fetchYahooPrice(symbol) {
   const parseQuote = (d) => {
     const quote = d?.quoteResponse?.result?.[0];
     if (quote && quote.regularMarketPrice) {
-      return {
-        current: quote.regularMarketPrice,
-        prev: quote.regularMarketPreviousClose ?? quote.regularMarketPrice,
-      };
+      // Ensure previous close is different from current (sometimes it's missing)
+      const prev = quote.regularMarketPreviousClose;
+      if (prev && prev !== quote.regularMarketPrice) {
+        return {
+          current: quote.regularMarketPrice,
+          prev: prev,
+        };
+      }
+      // If previous close is missing or equals current, try to get from chart later
+      return { current: quote.regularMarketPrice, prev: null };
     }
     return null;
   };
 
-  // Helper to parse Yahoo chart response (v8 endpoint)
-  const parseChart = (d) => {
+  // Helper to parse Yahoo chart response and extract previous close from the last two days
+  const parseChartForPrevClose = (d) => {
     const res = d?.chart?.result?.[0];
-    if (res) {
-      const meta = res.meta;
-      const cur = meta.regularMarketPrice ?? meta.price ?? meta.postMarketPrice;
-      if (cur) {
-        // Use regularMarketPreviousClose if available, else chartPreviousClose, else current
-        const prev = meta.regularMarketPreviousClose ?? meta.chartPreviousClose ?? cur;
-        return { current: cur, prev };
-      }
+    if (!res) return null;
+    const timestamps = res.timestamp;
+    const indicators = res.indicators?.quote?.[0];
+    const closes = indicators?.close;
+    if (!timestamps || !closes || timestamps.length < 2) return null;
+    // The last timestamp is today (or latest). The second last is previous trading day.
+    const prevClose = closes[closes.length - 2];
+    const current = closes[closes.length - 1];
+    if (prevClose && current) {
+      return { current, prev: prevClose };
     }
     return null;
   };
@@ -399,15 +407,19 @@ async function fetchYahooPrice(symbol) {
     const quoteUrl = YAHOO_V7 + sym + "&fields=regularMarketPrice,regularMarketPreviousClose";
     const quoteData = await fetchWithProxy(quoteUrl);
     const result = parseQuote(quoteData);
-    if (result && result.current > 0) {
+    if (result && result.current > 0 && result.prev !== null) {
       console.log(`✅ ${symbol}: price from Yahoo quote (prev=${result.prev}, current=${result.current})`);
       return result;
+    }
+    // If quote gave current but no prev, store current for later
+    if (result && result.current > 0) {
+      console.log(`⚠️ ${symbol}: Yahoo quote gave current=${result.current} but no prev, will try chart`);
     }
   } catch (e) {
     console.warn(`Yahoo quote endpoint failed for ${symbol}:`, e.message);
   }
 
-  // --- Step 2: Try chart endpoints (two variations) ---
+  // --- Step 2: Try chart endpoints (with 2d range to get previous close) ---
   const chartUrls = [
     YAHOO_BASE + sym + "?interval=1d&range=2d&includePrePost=false",
     YAHOO_BASE1 + sym + "?interval=1d&range=2d&includePrePost=false",
@@ -415,8 +427,8 @@ async function fetchYahooPrice(symbol) {
   for (const url of chartUrls) {
     try {
       const chartData = await fetchWithProxy(url);
-      const result = parseChart(chartData);
-      if (result && result.current > 0) {
+      const result = parseChartForPrevClose(chartData);
+      if (result && result.current > 0 && result.prev > 0) {
         console.log(`✅ ${symbol}: price from Yahoo chart (prev=${result.prev}, current=${result.current})`);
         return result;
       }
@@ -451,7 +463,7 @@ async function fetchYahooPrice(symbol) {
 
   throw new Error(`All price sources failed for ${symbol}`);
 }
-async function fetchHoldingHistory(yahooSymbol){
+  async function fetchHoldingHistory(yahooSymbol){
   const sym=encodeURIComponent(yahooSymbol);
   const candidates=[
     YAHOO_BASE +sym+"?interval=1mo&range=5y",
