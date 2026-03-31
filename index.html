@@ -118,6 +118,16 @@ async function signOut(){
 }
 </script>
 
+<script>
+window.onerror = function(message, source, lineno, colno, error) {
+  document.body.innerHTML =
+    "<pre style='color:red;padding:20px'>" +
+    message + "\n\nLine: " + lineno + "\n\n" +
+    (error && error.stack ? error.stack : "") +
+    "</pre>";
+};
+</script>
+
 <script type="text/babel">
 const {useState,useMemo,useCallback,useEffect,useRef}=React;
 
@@ -3142,6 +3152,7 @@ monthlyByTicker[h.ticker][m]=(monthlyByTicker[h.ticker][m]||0)+val;
   </div>
   );
 }
+
 
 try {
   ReactDOM.createRoot(document.getElementById("root")).render(<App />);
