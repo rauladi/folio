@@ -1330,9 +1330,9 @@ let bmStatus = "no benchmark data";
 try {
   // Ensure fetchBenchmark exists
   if (typeof fetchBenchmark === "undefined") {
-    console.warn("fetchBenchmark not defined – skipping benchmarks");
-    bmStatus = "error: fetchBenchmark missing";
-  } else {
+  console.error("fetchBenchmark is not defined – this should never happen");
+  bmStatus = "error: fetchBenchmark missing – check console";
+} else {
     const BM_DEFS = [
       { key: "sp500",  label: "S&P 500",          fetch: () => fetchBenchmark("^GSPC") },
       { key: "brk",    label: "BRK-B",             fetch: () => fetchBenchmark("BRK-B") },
