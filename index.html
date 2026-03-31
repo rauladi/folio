@@ -1105,7 +1105,7 @@ function parseRows(rawRows){
 
 function buildPortfolioFromRows(parsedRows,existingPortfolio=[]){
   // Group rows by ticker, merge into existing portfolio
-  const portfolio=[...existingPortfolio.map(h=>({...h,transactions:[...h.transactions]}))];
+  const portfolio=[...existing(portfolio || []).map(h=>({...h,transactions:[...h.transactions]}))];
   const valid=parsedRows.filter(r=>!r._errors.length);
 
   valid.forEach(row=>{
@@ -1142,7 +1142,7 @@ function buildPortfolioFromRows(parsedRows,existingPortfolio=[]){
   });
 
   // Sort each holding's transactions by date
-  portfolio.forEach(h=>h.transactions.sort((a,b)=>new Date(a.date)-new Date(b.date)));
+  (portfolio || []).forEach(h=>h.transactions.sort((a,b)=>new Date(a.date)-new Date(b.date)));
   return portfolio;
 }
 
@@ -1331,7 +1331,7 @@ function App(){
     obs.observe(node);
   },[]);
 
-  const holdings=useMemo(()=>portfolio.map(h=>computeHolding(h,prices,prevPrices,rates)).filter(h=>h.qty>0),[portfolio,prices,prevPrices,rates]);
+  const holdings=useMemo(()=>(portfolio || []).map(h=>computeHolding(h,prices,prevPrices,rates)).filter(h=>h.qty>0),[portfolio,prices,prevPrices,rates]);
 
   const totVal    =holdings.reduce((s,h)=>s+h.currentValue,0);
   const totGain   =holdings.reduce((s,h)=>s+h.totalGain,0);
@@ -1514,7 +1514,7 @@ function App(){
     setPrices(newP);setPrevPrices(newPP);
     const now=new Date();
     const date=now.toISOString().slice(0,10);
-    const hs=portfolio.map(h=>computeHolding(h,newP,newPP,newRates)).filter(h=>h.qty>0);
+    const hs=(portfolio || []).map(h=>computeHolding(h,newP,newPP,newRates)).filter(h=>h.qty>0);
     const snap={date,totalValueAUD:hs.reduce((s,h)=>s+h.currentValue,0),totalDividendsAUD:hs.reduce((s,h)=>s+h.totalDividends,0)};
     setHistory(prev=>[...prev.filter(s=>s.date!==date),snap].sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(-90));
     setFetchSt({loading:false,lastUpdate:now,errors,successes,total:fetchable.length,fetched:fetchable.length,rateOk,bmStatus});
@@ -1602,7 +1602,7 @@ function App(){
             const cp=prices[h.ticker];
             if(cp>0) priceInNative=cp;
             else{
-              const buys=h.transactions.filter(t=>t.type==="buy"&&t.date<=dateStr);
+              const buys=(h.transactions || []).filter(t=>t.type==="buy"&&t.date<=dateStr);
               if(buys.length){
                 const tc=buys.reduce((s,t)=>s+t.qty*t.price,0);
                 const tq=buys.reduce((s,t)=>s+t.qty,0);
@@ -1621,8 +1621,8 @@ function App(){
 
         // Cumulative dividends up to this date
         let divAUD=0;
-        portfolio.forEach(h=>{
-          h.transactions.filter(t=>t.type==="dividend"&&t.date<=dateStr).forEach(t=>{
+        (portfolio || []).forEach(h=>{
+          (h.transactions || []).filter(t=>t.type==="dividend"&&t.date<=dateStr).forEach(t=>{
             divAUD+=toAUD(t.totalAmount||0,h.currency,rates);
           });
         });
@@ -1644,8 +1644,8 @@ function App(){
       // Fix cumulative dividends from transactions, not snapshots
       divCumul=filtered.map(s=>{
         let divAUD=0;
-        portfolio.forEach(h=>{
-          h.transactions.filter(t=>t.type==="dividend"&&t.date<=s.date).forEach(t=>{
+        (portfolio || []).forEach(h=>{
+          (h.transactions || []).filter(t=>t.type==="dividend"&&t.date<=s.date).forEach(t=>{
             divAUD+=toAUD(t.totalAmount||0,h.currency,rates);
           });
         });
@@ -1659,10 +1659,7 @@ function App(){
     const monthly={};
     const monthlyByTicker={};
 
-    // Colour palette defined early so mDatasets can use it
-    const palette=["#6366f1","#22c55e","#06b6d4","#f59e0b","#ef4444","#8b5cf6","#ec4899","#14b8a6","#f97316","#84cc16","#3b82f6","#a78bfa"];
-
-    portfolio.forEach(h=>{
+    (portfolio || []).forEach(h=>{
       h.transactions
 	.filter(t=>t.type==="dividend"&&new Date(t.date)>=cutoff)
 	.forEach(t=>{
@@ -1698,8 +1695,8 @@ monthlyByTicker[h.ticker][m]=(monthlyByTicker[h.ticker][m]||0)+val;
     // CAGR = (EndValue/StartValue)^(1/years) - 1
     // Use annual dividend totals: group ALL-TIME dividends by year
     const divByYear={};
-    portfolio.forEach(h=>{
-      h.transactions.filter(t=>t.type==="dividend").forEach(t=>{
+    (portfolio || []).forEach(h=>{
+      (h.transactions || []).filter(t=>t.type==="dividend").forEach(t=>{
         const y=t.date.slice(0,4);
         const val=fromAUD(toAUD(t.totalAmount||0,h.currency,rates),displayCur,rates);
         divByYear[y]=(divByYear[y]||0)+val;
@@ -1729,17 +1726,17 @@ monthlyByTicker[h.ticker][m]=(monthlyByTicker[h.ticker][m]||0)+val;
     const endVal=vals.length>0?vals[vals.length-1]:fromAUD(totVal,displayCur,rates);
     // Top-ups (buys) in period
     const topUps=portfolio.reduce((s,h)=>{
-      return s+h.transactions.filter(t=>t.type==="buy"&&new Date(t.date)>=cutoff)
+      return s+(h.transactions || []).filter(t=>t.type==="buy"&&new Date(t.date)>=cutoff)
         .reduce((ss,t)=>ss+fromAUD(toAUD(t.qty*t.price,h.currency,rates),displayCur,rates),0);
     },0);
     // Dividends received in period
     const divInPeriod=portfolio.reduce((s,h)=>{
-      return s+h.transactions.filter(t=>t.type==="dividend"&&new Date(t.date)>=cutoff)
+      return s+(h.transactions || []).filter(t=>t.type==="dividend"&&new Date(t.date)>=cutoff)
         .reduce((ss,t)=>ss+fromAUD(toAUD(t.totalAmount||0,h.currency,rates),displayCur,rates),0);
     },0);
     // Capital gain = end - start - topups (net of sales)
     const netSales=portfolio.reduce((s,h)=>{
-      return s+h.transactions.filter(t=>t.type==="sell"&&new Date(t.date)>=cutoff)
+      return s+(h.transactions || []).filter(t=>t.type==="sell"&&new Date(t.date)>=cutoff)
         .reduce((ss,t)=>ss+fromAUD(toAUD(t.qty*t.price,h.currency,rates),displayCur,rates),0);
     },0);
     const capitalGain=endVal-startVal-topUps+netSales-divInPeriod;
@@ -1834,7 +1831,7 @@ monthlyByTicker[h.ticker][m]=(monthlyByTicker[h.ticker][m]||0)+val;
                   priceInNative=currentP;
                 }else{
                   // Use weighted average buy price from transactions before this date
-                  const buys=h.transactions.filter(t=>t.type==="buy"&&t.date<=dateStr);
+                  const buys=(h.transactions || []).filter(t=>t.type==="buy"&&t.date<=dateStr);
                   if(buys.length>0){
                     const totalCost=buys.reduce((s,t)=>s+t.qty*t.price,0);
                     const totalQty=buys.reduce((s,t)=>s+t.qty,0);
@@ -1981,7 +1978,7 @@ monthlyByTicker[h.ticker][m]=(monthlyByTicker[h.ticker][m]||0)+val;
     // Snapshot
     const newP={...prices,...c},newPP={...prevPrices,...p};
     const date=new Date().toISOString().slice(0,10);
-    const hs=portfolio.map(h=>computeHolding(h,newP,newPP,rates)).filter(h=>h.qty>0);
+    const hs=(portfolio || []).map(h=>computeHolding(h,newP,newPP,rates)).filter(h=>h.qty>0);
     const snap={date,totalValueAUD:hs.reduce((s,h)=>s+h.currentValue,0),totalDividendsAUD:hs.reduce((s,h)=>s+h.totalDividends,0)};
     setHistory(prev=>[...prev.filter(s=>s.date!==date),snap].sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(-90));
     closeModal();
@@ -2808,7 +2805,7 @@ monthlyByTicker[h.ticker][m]=(monthlyByTicker[h.ticker][m]||0)+val;
                           <div style={{display:"flex",gap:4}}>
                             <button onClick={()=>setEditTx({holdingId:histH.id,txIndex:origIdx,tx:{...tx}})}
                               style={{fontSize:10,padding:"2px 7px",borderRadius:4,border:`1px solid ${T.border}`,background:T.bg4,color:T.text2,cursor:"pointer"}}>✏️</button>
-                            <button onClick={()=>{if(!confirm("Delete this transaction?"))return;setPortfolio(p=>p.map(h=>h.id===histH.id?{...h,transactions:h.transactions.filter((_,j)=>j!==origIdx)}:h));}}
+                            <button onClick={()=>{if(!confirm("Delete this transaction?"))return;setPortfolio(p=>p.map(h=>h.id===histH.id?{...h,transactions:(h.transactions || []).filter((_,j)=>j!==origIdx)}:h));}}
                               style={{fontSize:10,padding:"2px 7px",borderRadius:4,border:`1px solid ${T.red}44`,background:T.bg4,color:T.red,cursor:"pointer"}}>🗑️</button>
                           </div>
                         </td>
@@ -3146,7 +3143,12 @@ monthlyByTicker[h.ticker][m]=(monthlyByTicker[h.ticker][m]||0)+val;
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+try {
+  ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+} catch (e) {
+  document.body.innerHTML =
+    "<pre style='color:red;padding:20px'>" + e.stack + "</pre>";
+}
 </script>
 </body>
 </html>
