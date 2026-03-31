@@ -3125,7 +3125,7 @@ function App(){
               {tx.type==="dividend"&&fi("totalAmount",`Total Amount (${cur})`,"number","0")}
             </div>
 
-            <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:16}}>
+                        <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:16}}>
               <button style={bO(T.text2)} onClick={()=>setEditTx(null)}>Cancel</button>
               <button style={bS(T.greenBtn,"#fff")} onClick={save}>Save Changes</button>
             </div>
@@ -3138,7 +3138,4 @@ function App(){
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
-</script>
-</body>
-</html>
   
