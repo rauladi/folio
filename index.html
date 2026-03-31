@@ -75,7 +75,7 @@ const firebaseConfig = {
 };
 
 // Detect if Firebase has been configured (placeholder values = not configured)
-const FB_CONFIGURED = !FIREBASE_CONFIG.apiKey.startsWith("YOUR_");
+const FB_CONFIGURED = !firebaseConfig.apiKey.startsWith("YOUR_");
 
 let fbApp=null, fbAuth=null, fbDb=null;
 if(FB_CONFIGURED){
