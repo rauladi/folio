@@ -65,7 +65,7 @@ button:active{transform:scale(.97)}
      See setup instructions in the README or the ☁️ Sync button in the app. -->
 <script>
 const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyBp20SC2Yt9IWkevpLgU6-nXZtA7HuNbN0",
+apiKey: "AIzaSyBp20SC2Yt9IWkevpLgU6-nXZtA7HuNbN0",
   authDomain: "folio-sync.firebaseapp.com",
   projectId: "folio-sync",
   storageBucket: "folio-sync.firebasestorage.app",
@@ -1665,8 +1665,11 @@ function App(){
         const m=t.date.slice(0,7);
         const val=fromAUD(toAUD(t.totalAmount||0,h.currency,rates),displayCur,rates);
         monthly[m]=(monthly[m]||0)+val;
-        if(!monthlyByTicker[h.ticker])monthlyByTicker[h.ticker]={};
-        monthlyByTicker[h.ticker][m]=(monthlyByTicker[h.ticker][m]||0)+val;
+
+        if(!monthlyByTicker[h.ticker]) {
+          monthlyByTicker[h.ticker]={};
+}        
+monthlyByTicker[h.ticker][m]=(monthlyByTicker[h.ticker][m]||0)+val;
       });
     });
     const mKeys=Object.keys(monthly).sort();
