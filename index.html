@@ -1250,23 +1250,9 @@ function App(){
     return()=>clearTimeout(t);
   },[portfolio,prices,history]);
 
-  useEffect(()=>{
-    setHistory(prev=>{
-      if(prev.length<2)return prev;
-      const sorted=[...prev].sort((a,b)=>new Date(a.date)-new Date(b.date));
-      const recent=sorted.slice(-3).map(s=>s.totalValueAUD).filter(v=>v>0);
-      if(!recent.length)return prev;
-      const refVal=Math.max(...recent);
-      const threshold=refVal*0.30;
-      const cleaned=sorted.filter(s=>s.totalValueAUD>=threshold);
-      if(cleaned.length<prev.length){
-        console.log(`FOLIO: purged ${prev.length-cleaned.length} seed/corrupt history snapshots`);
-        return cleaned;
-      }
-      return prev;
-    });
-  },[]);
-
+ // History sanitization removed to preserve all snapshots
+useEffect(()=>{},[]);
+  
   useEffect(()=>{const t=setTimeout(()=>autoRefresh(),800);return()=>clearTimeout(t);},[]);
 
   const mapRef=useCallback(node=>{
@@ -1630,31 +1616,47 @@ const chartData = useMemo(() => {
         }
       }
 
-      // Fallback to snapshot history if reconstruction gave no points
-      if (!reconstructionWorked) {
-        // Use the snapshot history to build a monthly portfolio line
-        // For each benchmark date, find the closest snapshot (on or before that date)
-        const snapshotMap = new Map(); // date string -> totalValueAUD
-        allSorted.forEach(snap => snapshotMap.set(snap.date, snap.totalValueAUD));
-        bmPortfolio = filtIdx.map(idx => {
-          const bmDate = benchmarks.labels[idx];
-          // Find snapshot with date <= bmDate
-          let bestSnap = null;
-          for (let i = allSorted.length-1; i >= 0; i--) {
-            if (allSorted[i].date <= bmDate) {
-              bestSnap = allSorted[i];
-              break;
-            }
-          }
-          if (!bestSnap) return null;
-          const baseSnapForPort = allSorted.find(s => s.date <= benchmarks.labels[filtIdx[0]]);
-          if (!baseSnapForPort) return null;
-          const baseVal = baseSnapForPort.totalValueAUD;
-          return ((bestSnap.totalValueAUD - baseVal) / baseVal) * 100;
-        });
+// Fallback to snapshot history if reconstruction gave no points
+if (!reconstructionWorked) {
+  // Aggregate snapshots by month (last snapshot of each month)
+  const monthMap = new Map();
+  allSorted.forEach(snap => {
+    const yearMonth = snap.date.slice(0, 7);
+    if (!monthMap.has(yearMonth) || snap.date > monthMap.get(yearMonth).date) {
+      monthMap.set(yearMonth, snap);
+    }
+  });
+  const months = Array.from(monthMap.keys()).sort();
+  const monthDates = months.map(m => m + "-01");
+
+  // For each benchmark date, find the closest month (on or before)
+  bmPortfolio = filtIdx.map(idx => {
+    const bmDate = benchmarks.labels[idx];
+    // Find month index
+    let bestMonth = null;
+    for (let i = monthDates.length-1; i >= 0; i--) {
+      if (monthDates[i] <= bmDate) {
+        bestMonth = months[i];
+        break;
       }
     }
-  }
+    if (!bestMonth) return null;
+    const snap = monthMap.get(bestMonth);
+    if (!snap) return null;
+    const baseIdx = filtIdx[0];
+    const baseMonthDate = benchmarks.labels[baseIdx];
+    let baseSnap = null;
+    for (let i = monthDates.length-1; i >= 0; i--) {
+      if (monthDates[i] <= baseMonthDate) {
+        baseSnap = monthMap.get(months[i]);
+        break;
+      }
+    }
+    if (!baseSnap) return null;
+    const baseVal = baseSnap.totalValueAUD;
+    return ((snap.totalValueAUD - baseVal) / baseVal) * 100;
+  });
+}
 
   // Log for debugging
   console.log(`Chart data: ${labels.length} points for period ${chartPeriod}`);
