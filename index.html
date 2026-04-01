@@ -1529,23 +1529,116 @@ const chartData = useMemo(() => {
   const cutoff = periodCutoff(chartPeriod);
   const allSorted = [...history].sort((a, b) => new Date(a.date) - new Date(b.date));
 
-  // Filter snapshots to the selected period
-  const periodSnaps = allSorted.filter(s => new Date(s.date) >= cutoff);
-  const labels = periodSnaps.map(s => fmtMonShort(s.date));
-  const vals = periodSnaps.map(s => fromAUD(s.totalValueAUD, displayCur, rates));
-  const divCumul = periodSnaps.map(s => {
-    let divAUD = 0;
-    portfolio.forEach(h => {
-      h.transactions.filter(t => t.type === "dividend" && t.date <= s.date).forEach(t => {
-        divAUD += toAUD(t.totalAmount || 0, h.currency, rates);
+  // ------------------------------------------------------------------
+  // 1. Determine if we have price maps to reconstruct history
+  const hasPriceMaps = Object.keys(benchmarks.holdingPrices || {}).length > 0;
+  const hasBenchmarkLabels = benchmarks.labels && benchmarks.labels.length > 0;
+
+  let labels = [], vals = [], divCumul = [];
+  let bmLabels = [], bmSeries = {}, bmPortfolio = [];
+
+  if (hasPriceMaps && hasBenchmarkLabels) {
+    // Use the same benchmark date grid for everything
+    const allBenchmarkDates = benchmarks.labels;
+    const bCutoff = periodCutoff(chartPeriod);
+    const filtIdx = allBenchmarkDates.map((l, i) => new Date(l) >= bCutoff ? i : -1).filter(i => i >= 0);
+    if (filtIdx.length > 1) {
+      bmLabels = filtIdx.map(i => fmtMonShort(allBenchmarkDates[i]));
+      const i0 = filtIdx[0];
+      const BM_KEYS = ["sp500", "brk", "jkse", "eido", "vas"];
+      BM_KEYS.forEach(k => {
+        const s = benchmarks.series[k];
+        if (!s) { bmSeries[k] = filtIdx.map(() => null); return; }
+        const base = s[i0] ?? null;
+        bmSeries[k] = filtIdx.map(i => s[i] != null && base != null ? s[i] - base : null);
       });
+
+      // Helper to find nearest price in a map
+      const findPrice = (priceMap, dateStr) => {
+        if (!priceMap) return null;
+        if (priceMap[dateStr]) return priceMap[dateStr];
+        const target = new Date(dateStr).getTime();
+        let best = null, bestDiff = 35 * 86400000;
+        for (const [d, p] of Object.entries(priceMap)) {
+          const diff = Math.abs(new Date(d).getTime() - target);
+          if (diff < bestDiff) { bestDiff = diff; best = p; }
+        }
+        return best;
+      };
+
+      // Reconstruct portfolio value at a given date
+      const portfolioValAtDate = (dateStr) => {
+        let totalAUD = 0;
+        for (const h of portfolio) {
+          let units = 0;
+          for (const tx of h.transactions) {
+            if (tx.date > dateStr) continue;
+            if (tx.type === "buy") units += tx.qty;
+            else if (tx.type === "sell") units -= tx.qty;
+          }
+          if (units <= 0) continue;
+
+          let priceInNative = null;
+          const hp = benchmarks.holdingPrices[h.ticker];
+          if (hp) {
+            priceInNative = findPrice(hp, dateStr);
+            if (h.isBondPct && priceInNative) priceInNative = priceInNative * (h.faceValue || 1000000) / 100;
+          }
+          // Fallback to current price if no historical price found
+          if (!priceInNative) priceInNative = prices[h.ticker];
+          if (!priceInNative || priceInNative <= 0) continue;
+
+          const currency = h.currency || "AUD";
+          let valueAUD = units * priceInNative;
+          if (currency === "IDR") valueAUD /= rates.AUD_IDR;
+          else if (currency === "USD") valueAUD /= rates.AUD_USD;
+          totalAUD += valueAUD;
+        }
+        return totalAUD > 0 ? totalAUD : null;
+      };
+
+      const cumulativeDividendsAtDate = (dateStr) => {
+        let divAUD = 0;
+        for (const h of portfolio) {
+          h.transactions.filter(t => t.type === "dividend" && t.date <= dateStr).forEach(t => {
+            divAUD += toAUD(t.totalAmount || 0, h.currency, rates);
+          });
+        }
+        return divAUD;
+      };
+
+      const bmDates = filtIdx.map(i => allBenchmarkDates[i]);
+      const portVals = bmDates.map(date => portfolioValAtDate(date));
+      const baseIdx = portVals.findIndex(v => v != null);
+      if (baseIdx >= 0) {
+        const baseVal = portVals[baseIdx];
+        bmPortfolio = portVals.map((v, j) => v == null || j < baseIdx ? null : ((v - baseVal) / baseVal) * 100);
+      }
+      // For the main chart, use the same dates and values
+      labels = bmLabels;
+      vals = portVals.map(v => fromAUD(v || 0, displayCur, rates));
+      divCumul = bmDates.map(d => fromAUD(cumulativeDividendsAtDate(d), displayCur, rates));
+    }
+  } else {
+    // Fallback to the old snapshot-based method
+    const periodSnaps = allSorted.filter(s => new Date(s.date) >= cutoff);
+    labels = periodSnaps.map(s => fmtMonShort(s.date));
+    vals = periodSnaps.map(s => fromAUD(s.totalValueAUD, displayCur, rates));
+    divCumul = periodSnaps.map(s => {
+      let divAUD = 0;
+      portfolio.forEach(h => {
+        h.transactions.filter(t => t.type === "dividend" && t.date <= s.date).forEach(t => {
+          divAUD += toAUD(t.totalAmount || 0, h.currency, rates);
+        });
+      });
+      return fromAUD(divAUD, displayCur, rates);
     });
-    return fromAUD(divAUD, displayCur, rates);
-  });
+  }
 
   const baseSnap = allSorted.filter(s => new Date(s.date) < cutoff).slice(-1)[0];
 
-  // Monthly income (stacked bar)
+  // ------------------------------------------------------------------
+  // 2. Monthly income (stacked bar)
   const monthly = {};
   const monthlyByTicker = {};
   const palette = ["#6366f1","#22c55e","#06b6d4","#f59e0b","#ef4444","#8b5cf6","#ec4899","#14b8a6","#f97316","#84cc16","#3b82f6","#a78bfa"];
@@ -1617,46 +1710,8 @@ const chartData = useMemo(() => {
     { label: "End Value", value: endVal, type: "total" },
   ].filter(Boolean);
 
-  // Benchmark comparison using snapshot interpolation (same as before)
-  const BM_KEYS = ["sp500", "brk", "jkse", "eido", "vas"];
-  let bmLabels = [], bmPortfolio = [];
-  const bmSeries = {};
-  BM_KEYS.forEach(k => bmSeries[k] = []);
-
-  if (benchmarks.labels.length > 0) {
-    const bCutoff = periodCutoff(chartPeriod);
-    const filtIdx = benchmarks.labels.map((l, i) => new Date(l) >= bCutoff ? i : -1).filter(i => i >= 0);
-    if (filtIdx.length > 1) {
-      bmLabels = filtIdx.map(i => fmtMonShort(benchmarks.labels[i]));
-      const i0 = filtIdx[0];
-      BM_KEYS.forEach(k => {
-        const s = benchmarks.series[k];
-        if (!s) { bmSeries[k] = filtIdx.map(() => null); return; }
-        const base = s[i0] ?? null;
-        bmSeries[k] = filtIdx.map(i => s[i] != null && base != null ? s[i] - base : null);
-      });
-
-      // Interpolate portfolio values from monthly snapshots
-      const bmDates = filtIdx.map(i => benchmarks.labels[i]);
-      const portVals = bmDates.map(date => {
-        const snap = history.find(s => s.date === date);
-        if (snap) return snap.totalValueAUD;
-        const prevSnap = [...history].reverse().find(s => s.date <= date);
-        const nextSnap = history.find(s => s.date >= date);
-        if (prevSnap && nextSnap) {
-          const t = (new Date(date) - new Date(prevSnap.date)) / (new Date(nextSnap.date) - new Date(prevSnap.date));
-          return prevSnap.totalValueAUD * (1 - t) + nextSnap.totalValueAUD * t;
-        }
-        return null;
-      });
-      const baseIdx = portVals.findIndex(v => v != null);
-      if (baseIdx >= 0) {
-        const baseVal = portVals[baseIdx];
-        bmPortfolio = portVals.map((v, j) => v == null || j < baseIdx ? null : ((v - baseVal) / baseVal) * 100);
-      }
-    }
-  }
-
+  // ------------------------------------------------------------------
+  // 3. Return everything
   return {
     labels, vals, divCumul,
     mLabels: mKeys.map(fmtMon), mVals: mKeys.map(k => monthly[k]), mDatasets,
