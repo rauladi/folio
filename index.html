@@ -1456,21 +1456,20 @@ try {
 const chartData = useMemo(() => {
   const cutoff = periodCutoff(chartPeriod);
 
-  // Sanitise history (for fallback)
+  // Sanitise history (fallback only)
   const rawSorted = [...history].sort((a,b) => new Date(a.date) - new Date(b.date));
   const recentVals = rawSorted.slice(-3).map(s => s.totalValueAUD).filter(v => v > 0);
   const refVal = recentVals.length ? Math.max(...recentVals) : 0;
   const hThreshold = refVal * 0.30;
   const allSorted = refVal > 0 ? rawSorted.filter(s => s.totalValueAUD >= hThreshold) : rawSorted;
 
-  // Check if we have reconstructed price maps
   const hasHoldingPrices = Object.keys(benchmarks.holdingPrices || {}).length > 0;
   const hasBmLabels = benchmarks.labels.length > 0;
 
   let labels = [], vals = [], divCumul = [];
-  let preLabelCount = 0; // for waterfall start value
+  let preLabelCount = 0;
 
-  // Try reconstruction (monthly points from price maps) FIRST
+  // --- Always try reconstruction (monthly points) ---
   if (hasHoldingPrices && hasBmLabels) {
     const audIdr = rates.AUD_IDR || 12000;
     const audUsd = rates.AUD_USD || 0.65;
@@ -1487,7 +1486,7 @@ const chartData = useMemo(() => {
       return best;
     };
 
-    // Use all benchmark labels as timeline (they are monthly)
+    // Use all benchmark labels as timeline
     const periodLabels = benchmarks.labels.filter(l => new Date(l) >= cutoff);
     const preLabel = benchmarks.labels.filter(l => new Date(l) < cutoff).slice(-1)[0];
     const timelineLabels = [...new Set([...(preLabel ? [preLabel] : []), ...periodLabels])];
@@ -1550,7 +1549,7 @@ const chartData = useMemo(() => {
     });
   }
 
-  // Fallback to snapshot history if reconstruction gave no points
+  // --- Fallback to snapshot history if reconstruction gave no points ---
   if (vals.length < 2) {
     const filtered = allSorted.filter(s => new Date(s.date) >= cutoff);
     labels = filtered.map(s => fmtMonShort(s.date));
