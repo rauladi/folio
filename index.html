@@ -1175,7 +1175,10 @@ function App(){
   const[tmMode,setTmMode]      =useState("performance");
   const[tmShowVal,setTmShowVal]=useState(true);
   const[tmSize,setTmSize]      =useState({w:600,h:420});
-  const[tmSlider,setTmSlider]  =useState(null);
+  // New time slider states
+  const[timeSliderEnabled, setTimeSliderEnabled] = useState(false);
+  const[selectedYearDate, setSelectedYearDate] = useState(null);
+  const[yearsList, setYearsList] = useState([]);
   const[chartPeriod,setChartPeriod]=useState("1Y");
   const[benchmarks,setBenchmarks]=useState({labels:[],series:{},holdingPrices:{}});
   const[bmVisible,setBmVisible]  =useState({sp500:true,brk:false,jkse:true,eido:true,vas:false});
@@ -1249,6 +1252,7 @@ function App(){
     const t=setTimeout(()=>cloudSaveAll(),3000);
     return()=>clearTimeout(t);
   },[portfolio,prices,history]);
+
 // Ensure monthly snapshots exist for the last 5 years
 useEffect(() => {
   const now = new Date();
@@ -1299,8 +1303,35 @@ useEffect(() => {
   newSnapshots.sort((a, b) => new Date(a.date) - new Date(b.date));
   setHistory(newSnapshots);
 }, [portfolio, prices, rates]); // dependency on holdings is indirect via these
-  
+
   useEffect(()=>{const t=setTimeout(()=>autoRefresh(),800);return()=>clearTimeout(t);},[]);
+
+  // Compute years list for time slider
+  useEffect(() => {
+    if (!timeSliderEnabled) return;
+    let earliestTx = null;
+    for (const h of portfolio) {
+      for (const tx of h.transactions) {
+        const txDate = tx.date;
+        if (!earliestTx || txDate < earliestTx) earliestTx = txDate;
+      }
+    }
+    if (!earliestTx) return;
+    const startYear = new Date(earliestTx).getFullYear();
+    const currentYear = new Date().getFullYear();
+    const years = [];
+    for (let y = startYear; y <= currentYear; y++) years.push(y);
+    setYearsList(years);
+    if (years.length) {
+      setSelectedYearDate(`${currentYear}-12-31`);
+    }
+  }, [portfolio, timeSliderEnabled]);
+
+  const handleSliderChange = (e) => {
+    const idx = parseInt(e.target.value, 10);
+    const year = yearsList[idx];
+    setSelectedYearDate(`${year}-12-31`);
+  };
 
   const mapRef=useCallback(node=>{
     if(!node)return;
@@ -1328,46 +1359,58 @@ useEffect(() => {
   const divRects =useMemo(()=>{const it=holdings.filter(h=>h.totalDividends>0).map(h=>({...h,value:h.totalDividends})).sort((a,b)=>b.value-a.value);return it.length?squarify(it,0,0,tmSize.w,tmSize.h):[];},[holdings,tmSize]);
   const dayRects =useMemo(()=>{const it=holdings.map(h=>({...h,value:Math.max(Math.abs(h.dayGain),0.01)})).sort((a,b)=>b.value-a.value);return it.length?squarify(it,0,0,tmSize.w,tmSize.h):[];},[holdings,tmSize]);
 
-  const sliderDate=tmSlider!=null&&benchmarks.labels.length>tmSlider?benchmarks.labels[tmSlider]:null;
-  const sliderRects=useMemo(()=>{
-    if(!sliderDate||!benchmarks.holdingPrices)return null;
-    const audIdr=rates.AUD_IDR||12000;
-    const audUsd=rates.AUD_USD||0.65;
-    const findPrice=(priceMap,dateStr)=>{
-      if(!priceMap)return null;
-      if(priceMap[dateStr])return priceMap[dateStr];
-      const target=new Date(dateStr).getTime();
-      let best=null,bestDiff=35*86400000;
-      for(const [d,p] of Object.entries(priceMap)){
-        const diff=Math.abs(new Date(d).getTime()-target);
-        if(diff<bestDiff){bestDiff=diff;best=p;}
+  // Historical treemap based on selected date
+  const historicalRects = useMemo(() => {
+    if (!timeSliderEnabled || !selectedYearDate) return null;
+    const audIdr = rates.AUD_IDR || 12000;
+    const audUsd = rates.AUD_USD || 0.65;
+    const findPrice = (priceMap, dateStr) => {
+      if (!priceMap) return null;
+      if (priceMap[dateStr]) return priceMap[dateStr];
+      const target = new Date(dateStr).getTime();
+      let best = null, bestDiff = 35 * 86400000;
+      for (const [d, p] of Object.entries(priceMap)) {
+        const diff = Math.abs(new Date(d).getTime() - target);
+        if (diff < bestDiff) { bestDiff = diff; best = p; }
       }
       return best;
     };
-    const items=[];
-    for(const h of portfolio){
-      let units=0;
-      for(const tx of h.transactions){
-        if(tx.date>sliderDate)continue;
-        if(tx.type==="buy")units+=tx.qty;
-        else if(tx.type==="sell")units-=tx.qty;
+    const items = [];
+    for (const h of portfolio) {
+      let units = 0;
+      for (const tx of h.transactions) {
+        if (tx.date > selectedYearDate) continue;
+        if (tx.type === "buy") units += tx.qty;
+        else if (tx.type === "sell") units -= tx.qty;
       }
-      if(units<=0)continue;
-      const hp=benchmarks.holdingPrices[h.ticker];
-      let price=hp?.priceMap?findPrice(hp.priceMap,sliderDate):null;
-      if(!price&&prices[h.ticker]>0)price=prices[h.ticker];
-      if(!price)continue;
-      if(h.isBondPct)price=price*(h.faceValue||1000000)/100;
-      let valueAUD=units*price;
-      if(h.currency==="IDR")valueAUD/=audIdr;
-      else if(h.currency==="USD")valueAUD/=audUsd;
-      if(valueAUD>0)items.push({...h,currentValue:valueAUD,value:valueAUD,qty:units});
+      if (units <= 0) continue;
+      const hp = benchmarks.holdingPrices[h.ticker];
+      let price = hp?.priceMap ? findPrice(hp.priceMap, selectedYearDate) : null;
+      if (!price && prices[h.ticker] > 0) price = prices[h.ticker];
+      if (!price) continue;
+      if (h.isBondPct) price = price * (h.faceValue || 1000000) / 100;
+      let valueAUD = units * price;
+      if (h.currency === "IDR") valueAUD /= audIdr;
+      else if (h.currency === "USD") valueAUD /= audUsd;
+      if (valueAUD > 0) {
+        items.push({
+          ...h,
+          currentValue: valueAUD,
+          value: valueAUD,
+          qty: units,
+          // For colouring we still use current gain metrics (since historical gains are not computed)
+          gainPct: 0,
+          dayGainPct: 0,
+          divYieldOnCost: 0,
+          totalDividends: 0,
+        });
+      }
     }
-    const sorted=items.sort((a,b)=>b.value-a.value);
-    return sorted.length?squarify(sorted,0,0,tmSize.w,tmSize.h):null;
-  },[sliderDate,benchmarks.holdingPrices,benchmarks.labels,portfolio,prices,rates,tmSize]);
+    const sorted = items.sort((a, b) => b.value - a.value);
+    return sorted.length ? squarify(sorted, 0, 0, tmSize.w, tmSize.h) : null;
+  }, [timeSliderEnabled, selectedYearDate, portfolio, prices, benchmarks.holdingPrices, rates, tmSize]);
 
-  const rects=tmSlider!=null&&sliderRects!=null&&sliderRects.length>0?sliderRects:(tmMode==="performance"?perfRects:tmMode==="day"?dayRects:divRects);
+  const rects = timeSliderEnabled && historicalRects && historicalRects.length > 0 ? historicalRects : (tmMode==="performance"?perfRects:tmMode==="day"?dayRects:divRects);
   const totalPortfolioDivs=useMemo(()=>holdings.reduce((s,h)=>s+h.totalDividends,0),[holdings]);
   const selH=holdings.find(h=>h.ticker===selected);
 
@@ -2027,6 +2070,11 @@ const submitManualPrice = () => {
                     {tmShowVal?"% only":"% + val"}
                   </button>
                 )}
+                {/* New toggle button for time slider */}
+                <button onClick={() => setTimeSliderEnabled(prev => !prev)} 
+                  style={{...bO(T.text2,{padding:"4px 10px",fontSize:10})}}>
+                  {timeSliderEnabled ? "🕒 Slider Off" : "⏩ Time Slider"}
+                </button>
               </div>
             )}
             <div style={{display:"flex",background:T.bg4,borderRadius:8,padding:2,border:`1px solid ${T.border}`}}>
@@ -2040,79 +2088,100 @@ const submitManualPrice = () => {
         {/* ── MAIN ── */}
         <main style={{padding:"12px 14px"}}>
           {view==="treemap"&&(
-            <div className="tm-wrap" style={{display:"flex",gap:12,alignItems:"flex-start",flexWrap:isMob?"wrap":"nowrap"}}>
-              <div ref={mapRef} style={{flex:"1 1 280px",width:isMob?"100%":"auto",height:isMob?"calc(100vw - 28px)":440,position:"relative",borderRadius:12,overflow:"hidden",border:`1px solid ${T.border}`,background:T.bg3,minWidth:200}}>
-                {rects.map(r=>{
-                  const c=tmSlider!=null&&sliderRects!=null?gainColor(r.gainPct??0,dark):(tmMode==="performance"?gainColor(r.gainPct,dark):tmMode==="day"?dayColor(r.dayGainPct,dark):divColor(r.divYieldOnCost,dark));
-                  const area=r.w*r.h,big=area>15000,mid=area>3500,sm=area>1400;
-                  return(
-                    <div key={r.ticker} onClick={()=>setSelected(r.ticker===selected?null:r.ticker)}
-                      style={{position:"absolute",left:r.x+1,top:r.y+1,width:r.w-2,height:r.h-2,background:c.bg,border:`1px solid ${c.border}`,borderRadius:5,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",overflow:"hidden",outline:r.ticker===selected?`2px solid ${c.text}`:"none",transition:"filter .12s"}}
-                      onMouseEnter={e=>e.currentTarget.style.filter="brightness(1.2)"}
-                      onMouseLeave={e=>e.currentTarget.style.filter="brightness(1)"}
-                    >
-                      {mid&&<span style={{fontSize:big?19:sm?12:10,fontFamily:"'Space Mono',monospace",fontWeight:700,color:c.text,letterSpacing:.5,textAlign:"center",padding:"0 3px",lineHeight:1.2}}>{r.ticker}</span>}
-                      {sm&&<span style={{fontSize:big?12:9,fontFamily:"'Space Mono',monospace",color:c.text,opacity:.85,marginTop:1}}>
-                        {tmMode==="performance"?fmtPct(r.gainPct):tmMode==="day"?fmtPct(r.dayGainPct):tmShowVal?FC(r.totalDividends,true):fmtPct(r.divYieldOnCost)+" yld"}
-                      </span>}
-                      {big&&tmMode==="day"&&tmShowVal&&<span style={{fontSize:9,fontFamily:"'Space Mono',monospace",color:c.text,opacity:.6,marginTop:1}}>{FG(r.dayGain)}</span>}
-                      {big&&tmMode==="dividend"&&tmShowVal&&<span style={{fontSize:9,fontFamily:"'Space Mono',monospace",color:c.text,opacity:.6,marginTop:1}}>{fmtPct(r.divYieldOnCost)} yld</span>}
-                      {big&&tmMode==="dividend"&&!tmShowVal&&totalPortfolioDivs>0&&<span style={{fontSize:9,fontFamily:"'Space Mono',monospace",color:c.text,opacity:.6,marginTop:1}}>{(r.totalDividends/totalPortfolioDivs*100).toFixed(1)}% of total</span>}
-                      {r.isBondPct&&sm&&<span style={{fontSize:7,color:c.text,opacity:.5,marginTop:1}}>BOND</span>}
-                    </div>
-                  );
-                })}
-                {rects.length===0&&<div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",color:T.text4,fontFamily:"'Space Mono',monospace",fontSize:11,textAlign:"center",padding:20}}>{tmMode==="dividend"?"No dividends recorded yet":"No holdings — tap + Add"}</div>}
-              </div>
-              <div className="detail-panel" style={{width:isMob?"100%":264,flexShrink:0,...card({padding:16,minHeight:isMob?0:200})}}>
-                {selH?(
-                  <>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
-                      <div style={{flex:1,minWidth:0,marginRight:8}}>
-                        <div style={{fontFamily:"'Space Mono',monospace",fontSize:18,fontWeight:700,color:T.text}}>{selH.ticker}</div>
-                        <div style={{fontSize:11,color:T.text3,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{selH.name}</div>
-                        <div style={{display:"flex",gap:4,marginTop:5,flexWrap:"wrap"}}>
-                          {[selH.assetType,selH.currency,selH.exchange,selH.yahooSymbol].filter(Boolean).map(tag=>(
-                            <span key={tag} style={{fontSize:9,background:T.bg4,padding:"2px 6px",borderRadius:4,border:`1px solid ${T.border}`,color:T.text3,whiteSpace:"nowrap"}}>{tag}</span>
-                          ))}
-                          {selH.isBondPct&&<span style={{fontSize:9,background:dark?"#0a2030":"#e0f9ff",padding:"2px 6px",borderRadius:4,border:`1px solid ${T.teal}55`,color:T.teal,whiteSpace:"nowrap"}}>Fixed Rate Bond</span>}
-                        </div>
+            <>
+              <div className="tm-wrap" style={{display:"flex",gap:12,alignItems:"flex-start",flexWrap:isMob?"wrap":"nowrap"}}>
+                <div ref={mapRef} style={{flex:"1 1 280px",width:isMob?"100%":"auto",height:isMob?"calc(100vw - 28px)":440,position:"relative",borderRadius:12,overflow:"hidden",border:`1px solid ${T.border}`,background:T.bg3,minWidth:200}}>
+                  {rects.map(r=>{
+                    const c=timeSliderEnabled && selectedYearDate ? gainColor(0, dark) : (tmMode==="performance"?gainColor(r.gainPct,dark):tmMode==="day"?dayColor(r.dayGainPct,dark):divColor(r.divYieldOnCost,dark));
+                    const area=r.w*r.h,big=area>15000,mid=area>3500,sm=area>1400;
+                    return(
+                      <div key={r.ticker} onClick={()=>setSelected(r.ticker===selected?null:r.ticker)}
+                        style={{position:"absolute",left:r.x+1,top:r.y+1,width:r.w-2,height:r.h-2,background:c.bg,border:`1px solid ${c.border}`,borderRadius:5,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",overflow:"hidden",outline:r.ticker===selected?`2px solid ${c.text}`:"none",transition:"filter .12s"}}
+                        onMouseEnter={e=>e.currentTarget.style.filter="brightness(1.2)"}
+                        onMouseLeave={e=>e.currentTarget.style.filter="brightness(1)"}
+                      >
+                        {mid&&<span style={{fontSize:big?19:sm?12:10,fontFamily:"'Space Mono',monospace",fontWeight:700,color:c.text,letterSpacing:.5,textAlign:"center",padding:"0 3px",lineHeight:1.2}}>{r.ticker}</span>}
+                        {sm&&<span style={{fontSize:big?12:9,fontFamily:"'Space Mono',monospace",color:c.text,opacity:.85,marginTop:1}}>
+                          {timeSliderEnabled ? FC(r.currentValue, true) : (tmMode==="performance"?fmtPct(r.gainPct):tmMode==="day"?fmtPct(r.dayGainPct):tmShowVal?FC(r.totalDividends,true):fmtPct(r.divYieldOnCost)+" yld")}
+                        </span>}
+                        {big&&tmMode==="day"&&tmShowVal&&!timeSliderEnabled&&<span style={{fontSize:9,fontFamily:"'Space Mono',monospace",color:c.text,opacity:.6,marginTop:1}}>{FG(r.dayGain)}</span>}
+                        {big&&tmMode==="dividend"&&tmShowVal&&!timeSliderEnabled&&<span style={{fontSize:9,fontFamily:"'Space Mono',monospace",color:c.text,opacity:.6,marginTop:1}}>{fmtPct(r.divYieldOnCost)} yld</span>}
+                        {big&&tmMode==="dividend"&&!tmShowVal&&!timeSliderEnabled&&totalPortfolioDivs>0&&<span style={{fontSize:9,fontFamily:"'Space Mono',monospace",color:c.text,opacity:.6,marginTop:1}}>{(r.totalDividends/totalPortfolioDivs*100).toFixed(1)}% of total</span>}
+                        {r.isBondPct&&sm&&<span style={{fontSize:7,color:c.text,opacity:.5,marginTop:1}}>BOND</span>}
                       </div>
-                      <div style={{padding:"3px 8px",borderRadius:20,background:gainColor(selH.gainPct,dark).bg,color:gainColor(selH.gainPct,dark).text,fontFamily:"'Space Mono',monospace",fontSize:10,fontWeight:700,whiteSpace:"nowrap"}}>{fmtPct(selH.gainPct)}</div>
-                    </div>
-                    {selH.isBondPct&&<div style={{background:dark?"#040e18":"#f0f9ff",border:`1px solid ${T.teal}44`,borderRadius:8,padding:"6px 10px",marginBottom:12,fontSize:10,color:T.teal}}>
-                      Face value: Rp {fmtIDR(selH.faceValue||1000000)} · {selH.qty} units
-                    </div>}
-                    {[
-                      {title:"Price & Day",rows:[["Native Price",fmtNativePrice(selH,selH.currentPrice),T.text],["Prev Close",fmtNativePrice(selH,selH.prevClose),T.text2],["Day G/L",`${FG(selH.dayGain)} (${fmtPct(selH.dayGainPct)})`,pColor(selH.dayGain)]]},
-                      {title:"Position",rows:[["Units",selH.qty<1?selH.qty.toFixed(6):selH.qty.toFixed(4),T.text],["Market Value",FC(selH.currentValue),T.text],["Cost Basis",FC(selH.costBasis),T.text2],["Unrealized",FG(selH.unrealizedGain),pColor(selH.unrealizedGain)],["Realized",FG(selH.realizedGain),pColor(selH.realizedGain)]]},
-                      {title:"Income (Div / Coupon)",rows:[["Total Received",FC(selH.totalDividends),T.teal],["Yield on Cost",fmtPct(selH.divYieldOnCost),T.teal]]},
-                    ].map(sec=>(
-                      <div key={sec.title} style={{marginBottom:12,paddingBottom:12,borderBottom:`1px solid ${T.border}`}}>
-                        <div style={{fontSize:8,letterSpacing:1.5,color:T.text3,textTransform:"uppercase",marginBottom:7}}>{sec.title}</div>
-                        {sec.rows.map(([l,v,c])=>(
-                          <div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
-                            <span style={{fontSize:9,color:T.text3,textTransform:"uppercase",letterSpacing:.3}}>{l}</span>
-                            <span style={{fontFamily:"'Space Mono',monospace",fontSize:10,color:c,fontWeight:600,textAlign:"right",maxWidth:"60%",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{v}</span>
+                    );
+                  })}
+                  {rects.length===0&&<div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",color:T.text4,fontFamily:"'Space Mono',monospace",fontSize:11,textAlign:"center",padding:20}}>{timeSliderEnabled?"No holdings for selected date":(tmMode==="dividend"?"No dividends recorded yet":"No holdings — tap + Add")}</div>}
+                </div>
+                <div className="detail-panel" style={{width:isMob?"100%":264,flexShrink:0,...card({padding:16,minHeight:isMob?0:200})}}>
+                  {selH?(
+                    <>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
+                        <div style={{flex:1,minWidth:0,marginRight:8}}>
+                          <div style={{fontFamily:"'Space Mono',monospace",fontSize:18,fontWeight:700,color:T.text}}>{selH.ticker}</div>
+                          <div style={{fontSize:11,color:T.text3,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{selH.name}</div>
+                          <div style={{display:"flex",gap:4,marginTop:5,flexWrap:"wrap"}}>
+                            {[selH.assetType,selH.currency,selH.exchange,selH.yahooSymbol].filter(Boolean).map(tag=>(
+                              <span key={tag} style={{fontSize:9,background:T.bg4,padding:"2px 6px",borderRadius:4,border:`1px solid ${T.border}`,color:T.text3,whiteSpace:"nowrap"}}>{tag}</span>
+                            ))}
+                            {selH.isBondPct&&<span style={{fontSize:9,background:dark?"#0a2030":"#e0f9ff",padding:"2px 6px",borderRadius:4,border:`1px solid ${T.teal}55`,color:T.teal,whiteSpace:"nowrap"}}>Fixed Rate Bond</span>}
                           </div>
-                        ))}
+                        </div>
+                        <div style={{padding:"3px 8px",borderRadius:20,background:gainColor(selH.gainPct,dark).bg,color:gainColor(selH.gainPct,dark).text,fontFamily:"'Space Mono',monospace",fontSize:10,fontWeight:700,whiteSpace:"nowrap"}}>{fmtPct(selH.gainPct)}</div>
                       </div>
-                    ))}
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:5}}>
-                      <button onClick={()=>openTrade(selH,"buy")}  style={bS(T.greenBtn,"#fff",{padding:"7px 0",fontSize:11})}>Buy</button>
-                      <button onClick={()=>openTrade(selH,"sell")} style={bS(T.redBtn,"#fff",{padding:"7px 0",fontSize:11})}>Sell</button>
-                      <button onClick={()=>openDiv(selH)}          style={bS(T.tealBtn,"#fff",{padding:"7px 0",fontSize:11})}>💰 {selH.isBondPct?"Coupon":"Dividend"}</button>
-                      <button onClick={()=>openHistory(selH)}      style={bO(T.text2,{padding:"7px 0",fontSize:11})}>📋 History</button>
+                      {selH.isBondPct&&<div style={{background:dark?"#040e18":"#f0f9ff",border:`1px solid ${T.teal}44`,borderRadius:8,padding:"6px 10px",marginBottom:12,fontSize:10,color:T.teal}}>
+                        Face value: Rp {fmtIDR(selH.faceValue||1000000)} · {selH.qty} units
+                      </div>}
+                      {[
+                        {title:"Price & Day",rows:[["Native Price",fmtNativePrice(selH,selH.currentPrice),T.text],["Prev Close",fmtNativePrice(selH,selH.prevClose),T.text2],["Day G/L",`${FG(selH.dayGain)} (${fmtPct(selH.dayGainPct)})`,pColor(selH.dayGain)]]},
+                        {title:"Position",rows:[["Units",selH.qty<1?selH.qty.toFixed(6):selH.qty.toFixed(4),T.text],["Market Value",FC(selH.currentValue),T.text],["Cost Basis",FC(selH.costBasis),T.text2],["Unrealized",FG(selH.unrealizedGain),pColor(selH.unrealizedGain)],["Realized",FG(selH.realizedGain),pColor(selH.realizedGain)]]},
+                        {title:"Income (Div / Coupon)",rows:[["Total Received",FC(selH.totalDividends),T.teal],["Yield on Cost",fmtPct(selH.divYieldOnCost),T.teal]]},
+                      ].map(sec=>(
+                        <div key={sec.title} style={{marginBottom:12,paddingBottom:12,borderBottom:`1px solid ${T.border}`}}>
+                          <div style={{fontSize:8,letterSpacing:1.5,color:T.text3,textTransform:"uppercase",marginBottom:7}}>{sec.title}</div>
+                          {sec.rows.map(([l,v,c])=>(
+                            <div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
+                              <span style={{fontSize:9,color:T.text3,textTransform:"uppercase",letterSpacing:.3}}>{l}</span>
+                              <span style={{fontFamily:"'Space Mono',monospace",fontSize:10,color:c,fontWeight:600,textAlign:"right",maxWidth:"60%",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{v}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:5}}>
+                        <button onClick={()=>openTrade(selH,"buy")}  style={bS(T.greenBtn,"#fff",{padding:"7px 0",fontSize:11})}>Buy</button>
+                        <button onClick={()=>openTrade(selH,"sell")} style={bS(T.redBtn,"#fff",{padding:"7px 0",fontSize:11})}>Sell</button>
+                        <button onClick={()=>openDiv(selH)}          style={bS(T.tealBtn,"#fff",{padding:"7px 0",fontSize:11})}>💰 {selH.isBondPct?"Coupon":"Dividend"}</button>
+                        <button onClick={()=>openHistory(selH)}      style={bO(T.text2,{padding:"7px 0",fontSize:11})}>📋 History</button>
+                      </div>
+                    </>
+                  ):(
+                    <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:120,textAlign:"center"}}>
+                      <div style={{fontSize:28,marginBottom:8,opacity:.4}}>👆</div>
+                      <div style={{fontFamily:"'Space Mono',monospace",fontSize:11,color:T.text3,lineHeight:1.8}}>Tap any box<br/>to view details</div>
                     </div>
-                  </>
-                ):(
-                  <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:120,textAlign:"center"}}>
-                    <div style={{fontSize:28,marginBottom:8,opacity:.4}}>👆</div>
-                    <div style={{fontFamily:"'Space Mono',monospace",fontSize:11,color:T.text3,lineHeight:1.8}}>Tap any box<br/>to view details</div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
+              {/* Time slider UI */}
+              {timeSliderEnabled && yearsList.length > 0 && (
+                <div style={{marginTop: 16, width: "100%"}}>
+                  <input
+                    type="range"
+                    min={0}
+                    max={yearsList.length - 1}
+                    value={yearsList.indexOf(parseInt(selectedYearDate?.slice(0,4) || yearsList[yearsList.length-1]))}
+                    onChange={handleSliderChange}
+                    style={{width: "100%"}}
+                  />
+                  <div style={{display: "flex", justifyContent: "space-between", fontSize: 10, color: T.text3, marginTop: 4}}>
+                    {yearsList.map(y => <span key={y}>{y}</span>)}
+                  </div>
+                  <div style={{textAlign: "center", fontSize: 11, marginTop: 6, color: T.text2}}>
+                    Portfolio composition at {selectedYearDate ? new Date(selectedYearDate).toLocaleDateString() : "latest"}
+                  </div>
+                </div>
+              )}
+            </>
           )}
           {view==="table"&&(
             <div style={{overflowX:"auto",...card()}}>
