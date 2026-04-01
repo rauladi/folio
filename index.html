@@ -2042,7 +2042,7 @@ function App(){
                 <thead>
                   <tr>{["Ticker","Type","CCY","Units","Avg Cost","Current","Day G/L","Mkt Value","Unrealzd","Realzd","Div/Coupon","Div Yld","ROI","Total G/L","G/L%","Actions"].map(c=>(
                     <th key={c} style={{padding:"10px 10px",textAlign:"left",fontSize:8,letterSpacing:1.5,color:T.text3,textTransform:"uppercase",background:T.bg2,borderBottom:`1px solid ${T.border}`,whiteSpace:"nowrap"}}>{c}</th>
-                  ))}</tr>
+                  ))}/>
                 </thead>
                 <tbody>
                   {holdings.sort((a,b)=>b.currentValue-a.currentValue).map((h,i)=>{
