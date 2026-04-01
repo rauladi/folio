@@ -1616,49 +1616,50 @@ const chartData = useMemo(() => {
         }
       }
 
-// Fallback to snapshot history if reconstruction gave no points
-if (!reconstructionWorked) {
-  // Aggregate snapshots by month (last snapshot of each month)
-  const monthMap = new Map();
-  allSorted.forEach(snap => {
-    const yearMonth = snap.date.slice(0, 7);
-    if (!monthMap.has(yearMonth) || snap.date > monthMap.get(yearMonth).date) {
-      monthMap.set(yearMonth, snap);
-    }
-  });
-  const months = Array.from(monthMap.keys()).sort();
-  const monthDates = months.map(m => m + "-01");
+      // Fallback to snapshot history if reconstruction gave no points
+      if (!reconstructionWorked) {
+        // Aggregate snapshots by month (last snapshot of each month)
+        const monthMap = new Map();
+        allSorted.forEach(snap => {
+          const yearMonth = snap.date.slice(0, 7);
+          if (!monthMap.has(yearMonth) || snap.date > monthMap.get(yearMonth).date) {
+            monthMap.set(yearMonth, snap);
+          }
+        });
+        const months = Array.from(monthMap.keys()).sort();
+        const monthDates = months.map(m => m + "-01");
 
-  // For each benchmark date, find the closest month (on or before)
-  bmPortfolio = filtIdx.map(idx => {
-    const bmDate = benchmarks.labels[idx];
-    // Find month index
-    let bestMonth = null;
-    for (let i = monthDates.length-1; i >= 0; i--) {
-      if (monthDates[i] <= bmDate) {
-        bestMonth = months[i];
-        break;
+        // For each benchmark date, find the closest month (on or before)
+        bmPortfolio = filtIdx.map(idx => {
+          const bmDate = benchmarks.labels[idx];
+          // Find month index
+          let bestMonth = null;
+          for (let i = monthDates.length-1; i >= 0; i--) {
+            if (monthDates[i] <= bmDate) {
+              bestMonth = months[i];
+              break;
+            }
+          }
+          if (!bestMonth) return null;
+          const snap = monthMap.get(bestMonth);
+          if (!snap) return null;
+          const baseIdx = filtIdx[0];
+          const baseMonthDate = benchmarks.labels[baseIdx];
+          let baseSnap = null;
+          for (let i = monthDates.length-1; i >= 0; i--) {
+            if (monthDates[i] <= baseMonthDate) {
+              baseSnap = monthMap.get(months[i]);
+              break;
+            }
+          }
+          if (!baseSnap) return null;
+          const baseVal = baseSnap.totalValueAUD;
+          return ((snap.totalValueAUD - baseVal) / baseVal) * 100;
+        });
       }
     }
-    if (!bestMonth) return null;
-    const snap = monthMap.get(bestMonth);
-    if (!snap) return null;
-    const baseIdx = filtIdx[0];
-    const baseMonthDate = benchmarks.labels[baseIdx];
-    let baseSnap = null;
-    for (let i = monthDates.length-1; i >= 0; i--) {
-      if (monthDates[i] <= baseMonthDate) {
-        baseSnap = monthMap.get(months[i]);
-        break;
-      }
-    }
-    if (!baseSnap) return null;
-    const baseVal = baseSnap.totalValueAUD;
-    return ((snap.totalValueAUD - baseVal) / baseVal) * 100;
-  });
-}
-     }
   }
+
   // Log for debugging
   console.log(`Chart data: ${labels.length} points for period ${chartPeriod}`);
 
