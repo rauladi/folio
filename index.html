@@ -1456,51 +1456,106 @@ try {
 const chartData = useMemo(() => {
   const cutoff = periodCutoff(chartPeriod);
 
-  // Sanitise history — remove seed data and corrupt snapshots
+  // Sanitise history (fallback only)
   const rawSorted = [...history].sort((a,b) => new Date(a.date) - new Date(b.date));
   const recentVals = rawSorted.slice(-3).map(s => s.totalValueAUD).filter(v => v > 0);
   const refVal = recentVals.length ? Math.max(...recentVals) : 0;
   const hThreshold = refVal * 0.30;
   const allSorted = refVal > 0 ? rawSorted.filter(s => s.totalValueAUD >= hThreshold) : rawSorted;
 
-  // Filter snapshots to the selected period
-  const periodSnaps = allSorted.filter(s => new Date(s.date) >= cutoff);
-
-  // Decide whether to show daily or monthly data
-  const useDaily = ["1M", "3M", "6M"].includes(chartPeriod);
+  const hasHoldingPrices = Object.keys(benchmarks.holdingPrices || {}).length > 0;
+  const hasBmLabels = benchmarks.labels.length > 0;
 
   let labels = [], vals = [], divCumul = [];
 
-  if (useDaily) {
-    // Daily snapshots
-    labels = periodSnaps.map(s => fmtMonShort(s.date));
-    vals = periodSnaps.map(s => fromAUD(s.totalValueAUD, displayCur, rates));
-    divCumul = periodSnaps.map(s => {
+  // --- Try reconstruction (monthly points from price maps) for ALL periods ---
+  if (hasHoldingPrices && hasBmLabels) {
+    const audIdr = rates.AUD_IDR || 12000;
+    const audUsd = rates.AUD_USD || 0.65;
+
+    const findPrice = (priceMap, dateStr) => {
+      if (!priceMap) return null;
+      if (priceMap[dateStr]) return priceMap[dateStr];
+      const target = new Date(dateStr).getTime();
+      let best = null, bestDiff = 35 * 86400000;
+      for (const [d, p] of Object.entries(priceMap)) {
+        const diff = Math.abs(new Date(d).getTime() - target);
+        if (diff < bestDiff) { bestDiff = diff; best = p; }
+      }
+      return best;
+    };
+
+    // Use all benchmark labels as timeline (they are monthly)
+    const periodLabels = benchmarks.labels.filter(l => new Date(l) >= cutoff);
+    // Also include one pre‑period point if available (for start value)
+    const preLabel = benchmarks.labels.filter(l => new Date(l) < cutoff).slice(-1)[0];
+    const timelineLabels = [...new Set([...(preLabel ? [preLabel] : []), ...periodLabels])];
+
+    timelineLabels.forEach(dateStr => {
+      let totalAUD = 0;
+      const anyHeld = portfolio.some(h => h.transactions.some(t => t.type === "buy" && t.date <= dateStr));
+      if (!anyHeld) return;
+
+      for (const h of portfolio) {
+        let units = 0;
+        for (const tx of h.transactions) {
+          if (tx.date > dateStr) continue;
+          if (tx.type === "buy") units += tx.qty;
+          else if (tx.type === "sell") units -= tx.qty;
+        }
+        if (units <= 0) continue;
+
+        const hp = benchmarks.holdingPrices[h.ticker];
+        let priceInNative = null;
+        if (hp?.priceMap) {
+          priceInNative = findPrice(hp.priceMap, dateStr);
+          if (h.isBondPct && priceInNative) priceInNative = priceInNative * (h.faceValue || 1000000) / 100;
+        }
+        if (!priceInNative || priceInNative <= 0) {
+          const cp = prices[h.ticker];
+          if (cp > 0) priceInNative = cp;
+          else {
+            const buys = h.transactions.filter(t => t.type === "buy" && t.date <= dateStr);
+            if (buys.length) {
+              const tc = buys.reduce((s, t) => s + t.qty * t.price, 0);
+              const tq = buys.reduce((s, t) => s + t.qty, 0);
+              priceInNative = tq > 0 ? tc / tq : 0;
+            }
+          }
+        }
+        if (!priceInNative || priceInNative <= 0) continue;
+
+        const currency = h.currency || "AUD";
+        let valueAUD = units * priceInNative;
+        if (currency === "IDR") valueAUD /= audIdr;
+        else if (currency === "USD") valueAUD /= audUsd;
+        totalAUD += valueAUD;
+      }
+
       let divAUD = 0;
       portfolio.forEach(h => {
-        h.transactions.filter(t => t.type === "dividend" && t.date <= s.date).forEach(t => {
+        h.transactions.filter(t => t.type === "dividend" && t.date <= dateStr).forEach(t => {
           divAUD += toAUD(t.totalAmount || 0, h.currency, rates);
         });
       });
-      return fromAUD(divAUD, displayCur, rates);
-    });
-  } else {
-    // Aggregate to monthly: keep only the last snapshot of each month
-    const monthMap = new Map();
-    periodSnaps.forEach(snap => {
-      const yearMonth = snap.date.slice(0, 7); // "YYYY-MM"
-      if (!monthMap.has(yearMonth) || snap.date > monthMap.get(yearMonth).date) {
-        monthMap.set(yearMonth, snap);
+
+      if (totalAUD > 0) {
+        labels.push(fmtMonShort(dateStr));
+        vals.push(fromAUD(totalAUD, displayCur, rates));
+        divCumul.push(fromAUD(divAUD, displayCur, rates));
       }
     });
-    const months = Array.from(monthMap.keys()).sort();
-    labels = months.map(m => fmtMon(m + "-01")); // format as "Mar 24"
-    vals = months.map(m => fromAUD(monthMap.get(m).totalValueAUD, displayCur, rates));
-    divCumul = months.map(m => {
-      const snap = monthMap.get(m);
+  }
+
+  // --- Fallback to snapshot history if reconstruction gave no points ---
+  if (vals.length < 2) {
+    const filtered = allSorted.filter(s => new Date(s.date) >= cutoff);
+    labels = filtered.map(s => fmtMonShort(s.date));
+    vals = filtered.map(s => fromAUD(s.totalValueAUD, displayCur, rates));
+    divCumul = filtered.map(s => {
       let divAUD = 0;
       portfolio.forEach(h => {
-        h.transactions.filter(t => t.type === "dividend" && t.date <= snap.date).forEach(t => {
+        h.transactions.filter(t => t.type === "dividend" && t.date <= s.date).forEach(t => {
           divAUD += toAUD(t.totalAmount || 0, h.currency, rates);
         });
       });
@@ -1565,7 +1620,7 @@ const chartData = useMemo(() => {
   const byCur = {};
   holdings.forEach(h => { byCur[h.currency] = (byCur[h.currency] || 0) + fromAUD(h.currentValue, displayCur, rates); });
 
-  // Waterfall – uses first value in the period (or baseSnap if no points)
+  // Waterfall – uses first value in the period
   const startVal = vals.length ? vals[0] : (baseSnap ? fromAUD(baseSnap.totalValueAUD, displayCur, rates) : 0);
   const endVal = vals.length ? vals[vals.length-1] : fromAUD(totVal, displayCur, rates);
   const topUps = portfolio.reduce((s,h) => s + h.transactions.filter(t => t.type === "buy" && new Date(t.date) >= cutoff).reduce((ss,t) => ss + fromAUD(toAUD(t.qty * t.price, h.currency, rates), displayCur, rates), 0), 0);
@@ -1582,7 +1637,7 @@ const chartData = useMemo(() => {
     { label: "End Value", value: endVal, type: "total" },
   ].filter(Boolean);
 
-  // Benchmark comparison – unchanged (uses reconstruction)
+  // Benchmark comparison – unchanged (uses the same reconstruction)
   const BM_KEYS = ["sp500","brk","jkse","eido","vas"];
   let bmLabels = [], bmPortfolio = [];
   const bmSeries = {};
@@ -1601,9 +1656,8 @@ const chartData = useMemo(() => {
         bmSeries[k] = filtIdx.map(i => s[i] != null && base != null ? s[i] - base : null);
       });
 
-      // Reconstruct portfolio value at each benchmark date (same as before)
-      const hasHoldingPrices = Object.keys(benchmarks.holdingPrices || {}).length > 0;
-      if (hasHoldingPrices) {
+      // Reconstruct portfolio value at each benchmark date (same as above)
+      if (hasHoldingPrices && hasBmLabels) {
         const audIdr = rates.AUD_IDR || 12000;
         const audUsd = rates.AUD_USD || 0.65;
         const findPrice = (priceMap, dateStr) => {
@@ -1661,7 +1715,7 @@ const chartData = useMemo(() => {
           bmPortfolio = portVals.map((v,j) => v == null || j < baseIdx ? null : ((v - baseVal) / baseVal) * 100);
         }
       } else {
-        // Fallback to snapshot-based for benchmark portfolio line
+        // Fallback to snapshot-based
         const rawSorted = [...history].sort((a,b)=>new Date(a.date)-new Date(b.date));
         const recentVals = rawSorted.slice(-3).map(s=>s.totalValueAUD).filter(v=>v>0);
         const refVal = recentVals.length ? Math.max(...recentVals) : 0;
