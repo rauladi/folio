@@ -1452,7 +1452,6 @@ try {
     if(period==="5Y"){const d=new Date(now);d.setFullYear(d.getFullYear()-5);return d;}
     return new Date(0);
   },[]);
-
 const chartData = useMemo(() => {
   const cutoff = periodCutoff(chartPeriod);
 
@@ -1462,47 +1461,18 @@ const chartData = useMemo(() => {
   // Filter snapshots to the selected period
   const periodSnaps = allSorted.filter(s => new Date(s.date) >= cutoff);
 
-  // For periods longer than 6 months, aggregate to monthly (take last snapshot of each month)
-  const useMonthly = ["YTD", "1Y", "5Y"].includes(chartPeriod);
-
-  let labels = [], vals = [], divCumul = [];
-
-  if (useMonthly) {
-    // Aggregate by month
-    const monthMap = new Map();
-    periodSnaps.forEach(snap => {
-      const yearMonth = snap.date.slice(0, 7); // "YYYY-MM"
-      if (!monthMap.has(yearMonth) || snap.date > monthMap.get(yearMonth).date) {
-        monthMap.set(yearMonth, snap);
-      }
-    });
-    const months = Array.from(monthMap.keys()).sort();
-    labels = months.map(m => fmtMon(m + "-01")); // format as "Mar 24"
-    vals = months.map(m => fromAUD(monthMap.get(m).totalValueAUD, displayCur, rates));
-    divCumul = months.map(m => {
-      const snap = monthMap.get(m);
-      let divAUD = 0;
-      portfolio.forEach(h => {
-        h.transactions.filter(t => t.type === "dividend" && t.date <= snap.date).forEach(t => {
-          divAUD += toAUD(t.totalAmount || 0, h.currency, rates);
-        });
+  // Always use daily snapshots for the main chart – this gives many points for any period
+  const labels = periodSnaps.map(s => fmtMonShort(s.date));
+  const vals = periodSnaps.map(s => fromAUD(s.totalValueAUD, displayCur, rates));
+  const divCumul = periodSnaps.map(s => {
+    let divAUD = 0;
+    portfolio.forEach(h => {
+      h.transactions.filter(t => t.type === "dividend" && t.date <= s.date).forEach(t => {
+        divAUD += toAUD(t.totalAmount || 0, h.currency, rates);
       });
-      return fromAUD(divAUD, displayCur, rates);
     });
-  } else {
-    // Daily snapshots for 1M,3M,6M
-    labels = periodSnaps.map(s => fmtMonShort(s.date));
-    vals = periodSnaps.map(s => fromAUD(s.totalValueAUD, displayCur, rates));
-    divCumul = periodSnaps.map(s => {
-      let divAUD = 0;
-      portfolio.forEach(h => {
-        h.transactions.filter(t => t.type === "dividend" && t.date <= s.date).forEach(t => {
-          divAUD += toAUD(t.totalAmount || 0, h.currency, rates);
-        });
-      });
-      return fromAUD(divAUD, displayCur, rates);
-    });
-  }
+    return fromAUD(divAUD, displayCur, rates);
+  });
 
   const baseSnap = allSorted.filter(s => new Date(s.date) < cutoff).slice(-1)[0];
 
@@ -1578,7 +1548,7 @@ const chartData = useMemo(() => {
     { label: "End Value", value: endVal, type: "total" },
   ].filter(Boolean);
 
-  // --- Benchmark comparison – uses snapshot history (fallback) when reconstruction fails ---
+  // --- Benchmark comparison – robust: try reconstruction, fallback to snapshot history ---
   const BM_KEYS = ["sp500","brk","jkse","eido","vas"];
   let bmLabels = [], bmPortfolio = [];
   const bmSeries = {};
@@ -1597,10 +1567,10 @@ const chartData = useMemo(() => {
         bmSeries[k] = filtIdx.map(i => s[i] != null && base != null ? s[i] - base : null);
       });
 
-      // Try reconstruction with price maps; if fails, use snapshot history
+      // Try reconstruction with price maps
       const hasHoldingPrices = Object.keys(benchmarks.holdingPrices || {}).length > 0;
+      let reconstructionWorked = false;
       if (hasHoldingPrices) {
-        // Use the same portfolioValAtDate function as before (but we'll define it inline)
         const audIdr = rates.AUD_IDR || 12000;
         const audUsd = rates.AUD_USD || 0.65;
         const findPrice = (priceMap, dateStr) => {
@@ -1656,38 +1626,38 @@ const chartData = useMemo(() => {
         if (baseIdx >= 0) {
           const baseVal = portVals[baseIdx];
           bmPortfolio = portVals.map((v,j) => v == null || j < baseIdx ? null : ((v - baseVal) / baseVal) * 100);
+          reconstructionWorked = bmPortfolio.some(v => v !== null);
         }
       }
-      // Fallback to snapshot-based if reconstruction still gave no points
-      if (bmPortfolio.length === 0 || bmPortfolio.every(v => v === null)) {
+
+      // Fallback to snapshot history if reconstruction gave no points
+      if (!reconstructionWorked) {
         // Use the snapshot history to build a monthly portfolio line
-        const snapMap = new Map();
-        allSorted.forEach(snap => {
-          const yearMonth = snap.date.slice(0,7);
-          if (!snapMap.has(yearMonth) || snap.date > snapMap.get(yearMonth).date) {
-            snapMap.set(yearMonth, snap);
+        // For each benchmark date, find the closest snapshot (on or before that date)
+        const snapshotMap = new Map(); // date string -> totalValueAUD
+        allSorted.forEach(snap => snapshotMap.set(snap.date, snap.totalValueAUD));
+        bmPortfolio = filtIdx.map(idx => {
+          const bmDate = benchmarks.labels[idx];
+          // Find snapshot with date <= bmDate
+          let bestSnap = null;
+          for (let i = allSorted.length-1; i >= 0; i--) {
+            if (allSorted[i].date <= bmDate) {
+              bestSnap = allSorted[i];
+              break;
+            }
           }
+          if (!bestSnap) return null;
+          const baseSnapForPort = allSorted.find(s => s.date <= benchmarks.labels[filtIdx[0]]);
+          if (!baseSnapForPort) return null;
+          const baseVal = baseSnapForPort.totalValueAUD;
+          return ((bestSnap.totalValueAUD - baseVal) / baseVal) * 100;
         });
-        const months = Array.from(snapMap.keys()).sort();
-        const monthDates = months.map(m => m + "-01");
-        const bmMonthIndices = filtIdx.map(i => {
-          const bmDate = benchmarks.labels[i].slice(0,7) + "-01";
-          return monthDates.indexOf(bmDate);
-        }).filter(idx => idx !== -1);
-        if (bmMonthIndices.length > 1) {
-          const baseIdx2 = bmMonthIndices[0];
-          const baseVal = snapMap.get(months[baseIdx2]).totalValueAUD;
-          bmPortfolio = bmMonthIndices.map(idx => {
-            const val = snapMap.get(months[idx]).totalValueAUD;
-            return ((val - baseVal) / baseVal) * 100;
-          });
-        }
       }
     }
   }
 
   // Log for debugging
-  console.log(`Chart data: ${labels.length} points for period ${chartPeriod} (useMonthly: ${useMonthly})`);
+  console.log(`Chart data: ${labels.length} points for period ${chartPeriod}`);
 
   return {
     labels, vals, divCumul,
