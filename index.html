@@ -1750,7 +1750,8 @@ const chartData = useMemo(() => {
     waterfallData, startVal, endVal,
     bmLabels, bmSeries, bmPortfolio,
   };
-}, [history, holdings, displayCur, rates, portfolio, chartPeriod, periodCutoff, benchmarks, totVal, dark]);  const yFmtD=useCallback((v)=>{
+}, [history, holdings, displayCur, rates, portfolio, chartPeriod, periodCutoff, benchmarks, totVal, dark]);  
+  const yFmtD=useCallback((v)=>{
     if(displayCur==="IDR"){const abs=Math.abs(v);if(abs>=1e9)return`Rp${(v/1e9).toFixed(1)}M`;if(abs>=1e6)return`Rp${(v/1e6).toFixed(1)}Jt`;return`Rp${(v/1e3).toFixed(0)}Rb`;}
     const abs=Math.abs(v);if(abs>=1e6)return`${displayCur==="USD"?"US$":"A$"}${(v/1e6).toFixed(1)}M`;return`${displayCur==="USD"?"US$":"A$"}${(v/1e3).toFixed(0)}K`;
   },[displayCur]);
