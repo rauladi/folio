@@ -22,12 +22,14 @@
   });
 })();
 </script>
+<!-- Development React for better error messages -->
 <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -61,6 +63,7 @@ button:active{transform:scale(.97)}
 <div id="root"></div>
 
 <script>
+// Firebase config (unchanged)
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyBp20SC2Yt9IWkevpLgU6-nXZtA7HuNbN0",
   authDomain: "folio-sync.firebaseapp.com",
@@ -351,7 +354,6 @@ async function fetchStooq(yahooSymbol){
   return{current:cur,prev};
 }
 
-// Improved fetchYahooPrice for ASX stocks (BHP, WDS, etc.)
 async function fetchYahooPrice(symbol) {
   const sym = encodeURIComponent(symbol);
   const isJK = symbol.endsWith(".JK");
@@ -368,7 +370,6 @@ async function fetchYahooPrice(symbol) {
     return null;
   };
 
-  // Step 1: Try v8 chart endpoint with 2d range (gives both current and previous)
   try {
     const quoteUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=2d&includePrePost=false`;
     const data = await fetchWithProxy(quoteUrl);
@@ -379,7 +380,6 @@ async function fetchYahooPrice(symbol) {
     }
   } catch (e) { console.warn(`Yahoo v8 failed for ${symbol}:`, e.message); }
 
-  // Step 2: Try v7 quote endpoint
   try {
     const quoteUrl = YAHOO_V7 + sym + "&fields=regularMarketPrice,regularMarketPreviousClose";
     const quoteData = await fetchWithProxy(quoteUrl);
@@ -390,7 +390,6 @@ async function fetchYahooPrice(symbol) {
     }
   } catch (e) { console.warn(`Yahoo v7 quote failed for ${symbol}:`, e.message); }
 
-  // Step 3: Try other chart endpoints
   const chartUrls = [
     YAHOO_BASE + sym + "?interval=1d&range=2d&includePrePost=false",
     YAHOO_BASE1 + sym + "?interval=1d&range=2d&includePrePost=false",
@@ -406,7 +405,6 @@ async function fetchYahooPrice(symbol) {
     } catch (e) { console.warn(`Yahoo chart endpoint failed for ${symbol}:`, e.message); }
   }
 
-  // Step 4: Fallback to Stooq
   try {
     const stooqResult = await fetchStooq(symbol);
     if (stooqResult?.current > 0) {
@@ -415,7 +413,6 @@ async function fetchYahooPrice(symbol) {
     }
   } catch (e) { console.warn(`Stooq fallback failed for ${symbol}:`, e.message); }
 
-  // Step 5: IDX fallback for Indonesian stocks
   if (isJK) {
     try {
       const idxResult = await fetchIDXPrice(symbol);
@@ -1153,6 +1150,18 @@ function App(){
   const winW=useWindowSize();
   const isMob=winW<768;
 
+  // ========== PERIOD CUTOFF ==========
+  const periodCutoff = useCallback((period) => {
+    const now = new Date();
+    if (period === "1M") { const d = new Date(now); d.setMonth(d.getMonth() - 1); return d; }
+    if (period === "3M") { const d = new Date(now); d.setMonth(d.getMonth() - 3); return d; }
+    if (period === "6M") { const d = new Date(now); d.setMonth(d.getMonth() - 6); return d; }
+    if (period === "YTD") { return new Date(now.getFullYear(), 0, 1); }
+    if (period === "1Y") { const d = new Date(now); d.setFullYear(d.getFullYear() - 1); return d; }
+    if (period === "5Y") { const d = new Date(now); d.setFullYear(d.getFullYear() - 5); return d; }
+    return new Date(0);
+  }, []);
+
   useEffect(()=>{try{localStorage.setItem("f6_p",JSON.stringify(portfolio));}catch{}},[portfolio]);
   useEffect(()=>{try{localStorage.setItem("f6_pr",JSON.stringify(prices));}catch{}},[prices]);
   useEffect(()=>{try{localStorage.setItem("f6_pp",JSON.stringify(prevPrices));}catch{}},[prevPrices]);
@@ -1211,44 +1220,83 @@ function App(){
     return()=>clearTimeout(t);
   },[portfolio,prices,history]);
 
-  // Ensure monthly snapshots exist for the last 5 years
+  // Rebuild history from actual transactions (remove random walk)
   useEffect(() => {
-    const now = new Date();
-    const last60Months = [];
-    for (let i = 59; i >= 0; i--) {
-      const date = new Date(now);
-      date.setMonth(date.getMonth() - i);
-      date.setDate(0);
-      last60Months.push(date.toISOString().slice(0, 10));
-    }
-    const existing = new Map(history.map(s => [s.date, s]));
-    const missing = last60Months.filter(d => !existing.has(d));
-    if (missing.length === 0) return;
-
-    const curTotal = holdings.reduce((s, h) => s + h.currentValue, 0);
-    const newSnapshots = [...history];
-    for (const dateStr of missing) {
-      let nearest = null, bestDiff = Infinity;
-      for (const snap of history) {
-        const diff = Math.abs(new Date(snap.date) - new Date(dateStr));
-        if (diff < bestDiff) { bestDiff = diff; nearest = snap; }
-      }
-      let baseValue = nearest ? nearest.totalValueAUD : curTotal;
-      const monthsAgo = (new Date(now) - new Date(dateStr)) / (30 * 86400000);
-      const factor = 0.8 + 0.4 * Math.sin(monthsAgo * 0.5) + (Math.random() * 0.1);
-      let totalAUD = baseValue * factor;
-      totalAUD = Math.max(totalAUD, 1000);
-      let divAUD = 0;
+    const rebuildHistory = () => {
+      // Get all unique dates from transactions
+      const allTxDates = new Set();
       for (const h of portfolio) {
-        h.transactions.filter(t => t.type === "dividend" && t.date <= dateStr).forEach(t => {
-          divAUD += toAUD(t.totalAmount || 0, h.currency, rates);
-        });
+        for (const tx of h.transactions) {
+          allTxDates.add(tx.date);
+        }
       }
-      newSnapshots.push({ date: dateStr, totalValueAUD: totalAUD, totalDividendsAUD: divAUD });
-    }
-    newSnapshots.sort((a, b) => new Date(a.date) - new Date(b.date));
-    setHistory(newSnapshots);
-  }, [portfolio, prices, rates, holdings, history]);
+      const dates = Array.from(allTxDates).sort();
+      if (dates.length === 0) return;
+      
+      // Compute portfolio value at each date using FIFO
+      const computeValueAtDate = (dateStr) => {
+        let totalAUD = 0;
+        let divAUD = 0;
+        for (const h of portfolio) {
+          // Use FIFO to compute current holdings up to dateStr
+          let units = 0;
+          let lots = [];
+          for (const tx of h.transactions) {
+            if (tx.date > dateStr) continue;
+            if (tx.type === "buy") {
+              lots.push({ qty: tx.qty, price: tx.price });
+              units += tx.qty;
+            } else if (tx.type === "sell") {
+              let rem = tx.qty;
+              while (rem > 0 && lots.length) {
+                const lot = lots[0];
+                const used = Math.min(lot.qty, rem);
+                lot.qty -= used;
+                rem -= used;
+                if (lot.qty === 0) lots.shift();
+              }
+              units -= tx.qty;
+            } else if (tx.type === "dividend") {
+              divAUD += toAUD(tx.totalAmount || 0, h.currency, rates);
+            }
+          }
+          if (units <= 0) continue;
+          // Use current price (prices[h.ticker]) as the best approximation for that date
+          let price = prices[h.ticker] || 0;
+          // If price is zero, try to use the average purchase price from lots
+          if (price === 0 && lots.length) {
+            let totalCost = 0, totalQty = 0;
+            for (const lot of lots) {
+              totalCost += lot.qty * lot.price;
+              totalQty += lot.qty;
+            }
+            if (totalQty > 0) price = totalCost / totalQty;
+          }
+          if (price === 0) continue;
+          let valueAUD = units * price;
+          if (h.currency === "IDR") valueAUD /= rates.AUD_IDR;
+          else if (h.currency === "USD") valueAUD /= rates.AUD_USD;
+          totalAUD += valueAUD;
+        }
+        return { totalAUD, divAUD };
+      };
+      
+      const newHistory = [];
+      for (const date of dates) {
+        const { totalAUD, divAUD } = computeValueAtDate(date);
+        newHistory.push({ date, totalValueAUD: totalAUD, totalDividendsAUD: divAUD });
+      }
+      // Also add today's snapshot
+      const today = new Date().toISOString().slice(0,10);
+      if (!newHistory.some(h => h.date === today)) {
+        const { totalAUD, divAUD } = computeValueAtDate(today);
+        newHistory.push({ date: today, totalValueAUD: totalAUD, totalDividendsAUD: divAUD });
+      }
+      newHistory.sort((a,b) => new Date(a.date) - new Date(b.date));
+      setHistory(newHistory);
+    };
+    rebuildHistory();
+  }, [portfolio, prices, rates]);
 
   useEffect(()=>{const t=setTimeout(()=>autoRefresh(),800);return()=>clearTimeout(t);},[]);
 
@@ -1320,17 +1368,6 @@ function App(){
   const rects=tmSlider!=null&&sliderRects!=null&&sliderRects.length>0?sliderRects:(tmMode==="performance"?perfRects:tmMode==="day"?dayRects:divRects);
   const totalPortfolioDivs=useMemo(()=>holdings.reduce((s,h)=>s+h.totalDividends,0),[holdings]);
   const selH=holdings.find(h=>h.ticker===selected);
-
-  const periodCutoff = useCallback((period) => {
-    const now = new Date();
-    if (period === "1M") { const d = new Date(now); d.setMonth(d.getMonth() - 1); return d; }
-    if (period === "3M") { const d = new Date(now); d.setMonth(d.getMonth() - 3); return d; }
-    if (period === "6M") { const d = new Date(now); d.setMonth(d.getMonth() - 6); return d; }
-    if (period === "YTD") { return new Date(now.getFullYear(), 0, 1); }
-    if (period === "1Y") { const d = new Date(now); d.setFullYear(d.getFullYear() - 1); return d; }
-    if (period === "5Y") { const d = new Date(now); d.setFullYear(d.getFullYear() - 5); return d; }
-    return new Date(0);
-  }, []);
 
   // ─── Live Price Refresh ─────────────────────────────────────────────────────
   const autoRefresh = useCallback(async () => {
@@ -1463,19 +1500,10 @@ function App(){
     const periodSnaps = allSorted.filter(s => new Date(s.date) >= cutoff);
     const labels = periodSnaps.map(s => fmtMonShort(s.date));
     const vals = periodSnaps.map(s => fromAUD(s.totalValueAUD, displayCur, rates));
-    const divCumul = periodSnaps.map(s => {
-      let divAUD = 0;
-      portfolio.forEach(h => {
-        h.transactions.filter(t => t.type === "dividend" && t.date <= s.date).forEach(t => {
-          divAUD += toAUD(t.totalAmount || 0, h.currency, rates);
-        });
-      });
-      return fromAUD(divAUD, displayCur, rates);
-    });
-
+    const divCumul = periodSnaps.map(s => fromAUD(s.totalDividendsAUD, displayCur, rates));
     const baseSnap = allSorted.filter(s => new Date(s.date) < cutoff).slice(-1)[0];
 
-    // Monthly income
+    // Monthly income (stacked bar)
     const monthly = {};
     const monthlyByTicker = {};
     const palette = ["#6366f1","#22c55e","#06b6d4","#f59e0b","#ef4444","#8b5cf6","#ec4899","#14b8a6","#f97316","#84cc16","#3b82f6","#a78bfa"];
@@ -2226,8 +2254,138 @@ function App(){
           )}
         </main>
 
-        {/* ── MODALS ── (keep your existing modal code – I'm truncating here for brevity, but you can paste your original modal JSX) */}
-        {/* For the sake of space, I'm not repeating the full modal JSX, but you can copy it from your previous working version */}
+        {/* ── MODALS ── */}
+        {modal && (
+          <div onClick={closeModal} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.78)",backdropFilter:"blur(8px)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:12}}>
+            <div onClick={e=>e.stopPropagation()} style={{background:T.bg2,border:`1px solid ${T.border}`,borderRadius:14,padding:22,width:"100%",maxWidth:modal?.mode==="import"?720:520,maxHeight:"92vh",overflowY:"auto",boxShadow:T.shadow}}>
+
+              {/* ADD MODAL */}
+              {modal.mode==="add" && (
+                <>
+                  <h2 style={{fontFamily:"'Space Mono',monospace",fontSize:15,fontWeight:700,color:T.text,marginBottom:16}}>Add New Position</h2>
+                  <div className="modal-g2" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+                    <div><label style={lbl()}>Ticker *</label><input style={inp()} placeholder="e.g. PBS032" value={form.ticker||""} onChange={e=>setForm(f=>({...f,ticker:e.target.value,yahooSymbol:suggestYahoo(e.target.value,f.exchange,f.assetType)}))}/></div>
+                    <div><label style={lbl()}>Currency *</label><select style={{...inp(),background:T.bg}} value={form.currency||"AUD"} onChange={e=>setForm(f=>({...f,currency:e.target.value}))}>{CURRENCIES.map(c=><option key={c}>{c}</option>)}</select></div>
+                  </div>
+                  <div style={{marginBottom:10}}><label style={lbl()}>Name</label><input style={inp()} placeholder="e.g. PBS 032 – Sukuk Negara" value={form.name||""} onChange={e=>setForm(f=>({...f,name:e.target.value}))}/></div>
+                  <div className="modal-g2" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+                    <div><label style={lbl()}>Asset Type</label><select style={{...inp(),background:T.bg}} value={form.assetType||"Shares / Stocks"} onChange={e=>setForm(f=>({...f,assetType:e.target.value,isBondPct:e.target.value.includes("Bond")||e.target.value.includes("Sukuk"),faceValue:e.target.value.includes("Bond")||e.target.value.includes("Sukuk")?"1000000":f.faceValue}))}>{ASSET_TYPES.map(a=><option key={a}>{a}</option>)}</select></div>
+                    <div><label style={lbl()}>Exchange</label><input style={inp()} placeholder="IDX, ASX, Crypto…" value={form.exchange||""} onChange={e=>setForm(f=>({...f,exchange:e.target.value,yahooSymbol:suggestYahoo(f.ticker,e.target.value,f.assetType)}))}/></div>
+                  </div>
+                  {(form.isBondPct||(form.assetType||"").includes("Bond")||(form.assetType||"").includes("Sukuk"))&&(
+                    <div style={{background:dark?"#040e18":"#f0f9ff",border:`1px solid ${T.teal}44`,borderRadius:10,padding:12,marginBottom:10}}>
+                      <div style={{fontSize:9,color:T.teal,letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>🏦 Bond / Sukuk Settings</div>
+                      <div className="modal-g2" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                        <div><label style={lbl({color:T.teal})}>Face Value ({form.currency||"IDR"})</label><input style={inp()} type="number" placeholder="1000000" value={form.faceValue||""} onChange={e=>setForm(f=>({...f,faceValue:e.target.value}))}/><div style={{fontSize:9,color:T.text3,marginTop:3}}>Nominal per unit (e.g. Rp 1,000,000)</div></div>
+                        <div><label style={lbl({color:T.teal})}>Yahoo Symbol</label><input style={inp()} placeholder="PBS032.JK" value={form.yahooSymbol||""} onChange={e=>setForm(f=>({...f,yahooSymbol:e.target.value}))}/><div style={{fontSize:9,color:T.text3,marginTop:3}}>Price is % of face value on IDX</div></div>
+                      </div>
+                    </div>
+                  )}
+                  {!(form.isBondPct||(form.assetType||"").includes("Bond")||(form.assetType||"").includes("Sukuk"))&&(
+                    <div style={{marginBottom:10}}><label style={lbl()}>Yahoo Finance Symbol <span style={{color:T.text3,fontWeight:400,letterSpacing:0,textTransform:"none",fontSize:9}}>(auto-suggested · edit if needed)</span></label><input style={inp()} placeholder={suggestYahoo(form.ticker||"",form.exchange||"",form.assetType||"")||"e.g. BHP.AX"} value={form.yahooSymbol||""} onChange={e=>setForm(f=>({...f,yahooSymbol:e.target.value}))}/></div>
+                  )}
+                  <div className="modal-g3" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:12}}>
+                    <div><label style={lbl()}>Quantity *</label><input style={inp()} type="number" placeholder="Units" value={form.qty||""} onChange={e=>setForm(f=>({...f,qty:e.target.value}))}/></div>
+                    <div><label style={lbl()}>Price ({form.currency||"AUD"}) *</label><input style={inp()} type="number" placeholder="Per unit" value={form.price||""} onChange={e=>setForm(f=>({...f,price:e.target.value}))}/></div>
+                    <div><label style={lbl()}>Date</label><input style={inp()} type="date" value={form.date||""} onChange={e=>setForm(f=>({...f,date:e.target.value}))}/></div>
+                  </div>
+                  {form.qty&&form.price&&<div style={{background:T.bg4,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 12px",fontSize:12,color:T.text2,marginBottom:12}}>Total: <strong style={{color:T.text}}>{form.currency==="IDR"?`Rp ${fmtIDR(+form.qty*+form.price)}`:form.currency==="USD"?`US$${(+form.qty*+form.price).toFixed(2)}`:`A$${(+form.qty*+form.price).toFixed(2)}`}</strong></div>}
+                  <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}><button style={bO(T.text2)} onClick={closeModal}>Cancel</button><button style={bS(T.greenBtn,"#fff")} onClick={submitAdd}>Add Position</button></div>
+                </>
+              )}
+
+              {/* BUY / SELL MODAL */}
+              {modal.mode==="trade" && (
+                <>
+                  <h2 style={{fontFamily:"'Space Mono',monospace",fontSize:15,fontWeight:700,color:T.text,marginBottom:6}}>{modal.tradeType==="buy"?"Buy More —":"Sell —"} {modal.holding.ticker}</h2>
+                  <p style={{color:T.text3,fontSize:12,marginBottom:16}}>{modal.holding.name} · {modal.holding.assetType} · Held: {modal.holding.qty.toFixed(4)}</p>
+                  <div className="modal-g3" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:12}}>
+                    {[["Quantity","qty","number","Units"],["Price ("+modal.holding.currency+")","price","number","Per unit"],["Date","date","date",""]].map(([l,k,t,ph])=>(
+                      <div key={k}><label style={lbl()}>{l}</label><input style={inp()} type={t} placeholder={ph} value={form[k]||""} onChange={e=>setForm(f=>({...f,[k]:e.target.value}))}/></div>
+                    ))}
+                  </div>
+                  {form.qty&&form.price&&<div style={{background:T.bg4,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 12px",fontSize:12,color:T.text2,marginBottom:12}}>Total: <strong style={{color:T.text}}>{modal.holding.currency==="IDR"?`Rp ${fmtIDR(+form.qty*+form.price)}`:modal.holding.currency==="USD"?`US$${(+form.qty*+form.price).toFixed(2)}`:`A$${(+form.qty*+form.price).toFixed(2)}`}</strong></div>}
+                  <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}><button style={bO(T.text2)} onClick={closeModal}>Cancel</button><button style={bS(modal.tradeType==="buy"?T.greenBtn:T.redBtn,"#fff")} onClick={submitTrade}>Confirm {modal.tradeType==="buy"?"Purchase":"Sale"}</button></div>
+                </>
+              )}
+
+              {/* DIVIDEND / COUPON MODAL */}
+              {modal.mode==="dividend" && (
+                <>
+                  <h2 style={{fontFamily:"'Space Mono',monospace",fontSize:15,fontWeight:700,color:T.text,marginBottom:4}}>{modal.holding.isBondPct?"🏦 Record Coupon":"💰 Record Dividend"} — {modal.holding.ticker}</h2>
+                  <p style={{color:T.text3,fontSize:12,marginBottom:14}}>{modal.holding.name} · {modal.holding.currency}{modal.holding.isBondPct&&` · Face value: Rp ${fmtIDR(modal.holding.faceValue||1000000)}/unit`}</p>
+                  <div style={{background:dark?"#0f1120":"#f8f9ff",border:`1px solid ${T.border2}`,borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:11,color:T.text2,lineHeight:1.6}}><b style={{color:T.text}}>📅 Ex-Dividend Date tip:</b> If you bought shares <em>after</em> the ex-date, those shares do not qualify. Reduce the entitled units below accordingly. Total holding: <b style={{color:T.text,fontFamily:"'Space Mono',monospace"}}>{computeHolding(modal.holding,prices,prevPrices,rates).qty.toFixed(4)}</b> units.</div>
+                  <div className="modal-g3" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:10}}>
+                    <div><label style={lbl()}>{modal.holding.isBondPct?"Coupon / Unit":"Dividend / Unit"} ({modal.holding.currency})</label><input style={inp()} type="number" placeholder={modal.holding.isBondPct?"e.g. 33750":"e.g. 1.25"} value={form.amountPerShare||""} onChange={e=>setForm(f=>({...f,amountPerShare:e.target.value}))}/>{modal.holding.isBondPct&&<div style={{fontSize:9,color:T.text3,marginTop:3}}>Semi-annual coupon per unit</div>}</div>
+                    <div><label style={lbl()}>Entitled Units</label><input style={{...inp(),borderColor:form.entitledQty&&+form.entitledQty<computeHolding(modal.holding,prices,prevPrices,rates).qty?T.amber:T.border}} type="number" placeholder="Units entitled to div" value={form.entitledQty||""} onChange={e=>setForm(f=>({...f,entitledQty:e.target.value}))}/><div style={{fontSize:9,marginTop:3,color:form.entitledQty&&+form.entitledQty<computeHolding(modal.holding,prices,prevPrices,rates).qty?T.amber:T.text3}}>{form.entitledQty&&+form.entitledQty<computeHolding(modal.holding,prices,prevPrices,rates).qty ?`⚠️ ${(computeHolding(modal.holding,prices,prevPrices,rates).qty-+form.entitledQty).toFixed(4)} units excluded (post ex-date)`:"Defaults to full holding"}</div></div>
+                    <div><label style={lbl()}>Payment Date</label><input style={inp()} type="date" value={form.date||""} onChange={e=>setForm(f=>({...f,date:e.target.value}))}/></div>
+                  </div>
+                  {form.amountPerShare&&form.entitledQty&&(()=>{const total=+form.amountPerShare * +form.entitledQty;const cur=modal.holding.currency;const totalFmt=cur==="IDR"?`Rp ${fmtIDR(total)}`:cur==="USD"?`US$${total.toFixed(2)}`:`A$${total.toFixed(2)}`;const fullQty=computeHolding(modal.holding,prices,prevPrices,rates).qty;const isPartial=+form.entitledQty<fullQty;return(<div style={{background:dark?"#041824":"#e0f9f8",border:`1px solid ${T.teal}55`,borderRadius:8,padding:"10px 14px",marginBottom:14}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:6}}><div><span style={{fontSize:11,color:T.teal}}>Total {modal.holding.isBondPct?"coupon":"dividend"}: </span><strong style={{fontFamily:"'Space Mono',monospace",fontSize:14,color:T.teal}}>{totalFmt}</strong></div>{isPartial&&<div style={{fontSize:10,color:T.amber,background:dark?"#1a1000":"#fffbeb",border:`1px solid ${T.amber}44`,borderRadius:6,padding:"3px 8px"}}>✂️ Partial — {form.entitledQty} of {fullQty.toFixed(4)} units</div>}</div><div style={{fontSize:10,color:T.text3,marginTop:4}}>{form.amountPerShare} × {form.entitledQty} units = {totalFmt}</div></div>);})()}
+                  <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}><button style={bO(T.text2)} onClick={closeModal}>Cancel</button><button style={bS(T.tealBtn,"#fff")} onClick={submitDiv} disabled={!form.amountPerShare||!form.entitledQty} onMouseEnter={e=>e.currentTarget.style.opacity=".85"} onMouseLeave={e=>e.currentTarget.style.opacity="1"}>Record {modal.holding.isBondPct?"Coupon":"Dividend"}</button></div>
+                </>
+              )}
+
+              {/* MANUAL PRICE OVERRIDE */}
+              {modal.mode==="price" && (
+                <>
+                  <h2 style={{fontFamily:"'Space Mono',monospace",fontSize:15,fontWeight:700,color:T.text,marginBottom:4}}>✏️ Manual Price Override</h2>
+                  <p style={{color:T.text3,fontSize:11,marginBottom:12}}>Override prices or edit Yahoo symbols. Auto-fetch skips holdings with no Yahoo symbol.</p>
+                  <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}><div style={{background:dark?"#040e18":"#f0f9ff",border:`1px solid ${T.teal}44`,borderRadius:10,padding:"9px 14px",fontSize:11,color:T.teal}}><b>🏦 PBS032 / PBS033 (Sukuk Negara):</b> Auto-fetched from <b>DJPPR Kemenkeu</b>. If the fetch fails, enter the IDR price per unit manually (e.g. Rp 1,010,000 = 101% of face value).</div><div style={{background:dark?"#040e18":"#f0f9ff",border:`1px solid ${T.teal}44`,borderRadius:10,padding:"9px 14px",fontSize:11,color:T.teal}}><b>📊 NUL7270AU:</b> Fetched from <b>Morningstar AU</b> (security ID 46182). &nbsp;<b>NUL5339AU:</b> Fetched from <b>FE fundinfo</b> (moneymanagement.com.au). If either fails, enter the AUD unit price manually.</div><div style={{background:dark?"#14100a":"#fffbeb",border:`1px solid ${T.amber}44`,borderRadius:10,padding:"9px 14px",fontSize:11,color:T.amber}}><b>📌 Gold (GC=F):</b> Fetches USD spot price from COMEX futures. Enter price in AUD manually if needed.</div></div>
+                  <div style={{marginBottom:16}}><label style={lbl()}>Display Currency</label><select style={{...inp(),background:T.bg,width:"auto",minWidth:120}} value={form.displayCur||displayCur} onChange={e=>setForm(f=>({...f,displayCur:e.target.value}))}>{CURRENCIES.map(c=><option key={c}>{c}</option>)}</select></div>
+                  {holdings.map(h=>(<div key={h.ticker} style={{marginBottom:16,paddingBottom:16,borderBottom:`1px solid ${T.border}`}}><div style={{fontSize:11,color:T.text,fontWeight:700,fontFamily:"'Space Mono',monospace",marginBottom:8}}>{h.ticker}<span style={{fontFamily:"'Roboto',sans-serif",color:T.text3,fontWeight:400}}> — {h.name}</span>{h.isBondPct&&<span style={{marginLeft:6,fontSize:9,background:dark?"#041020":"#e0f9ff",color:T.teal,padding:"2px 6px",borderRadius:4,border:`1px solid ${T.teal}44`}}>BOND</span>}{!h.yahooSymbol&&<span style={{marginLeft:6,fontSize:9,background:dark?"#1a100a":"#fff7ed",color:T.amber,padding:"2px 6px",borderRadius:4,border:`1px solid ${T.amber}44`}}>✏️ Manual only</span>}<span style={{marginLeft:6,fontSize:9,color:T.text3}}>({h.currency})</span></div><div className="modal-g3" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}><div><label style={lbl()}>Current Price</label><input style={inp()} type="number" placeholder={String(prices[h.ticker]||"")} value={form["c_"+h.ticker]||""} onChange={e=>setForm(f=>({...f,["c_"+h.ticker]:e.target.value}))}/></div><div><label style={lbl()}>Prev Close</label><input style={inp()} type="number" placeholder={String(prevPrices[h.ticker]||"")} value={form["p_"+h.ticker]||""} onChange={e=>setForm(f=>({...f,["p_"+h.ticker]:e.target.value}))}/></div><div><label style={lbl()}>Yahoo Symbol</label><input style={{...inp(),fontFamily:"'Space Mono',monospace",fontSize:11}} placeholder={suggestYahoo(h.ticker,h.exchange,h.assetType)} value={form["ys_"+h.ticker]??h.yahooSymbol??""} onChange={e=>setForm(f=>({...f,["ys_"+h.ticker]:e.target.value}))}/></div></div>{fetchSt.errors[h.ticker]&&<div style={{fontSize:10,color:T.amber,marginTop:4}}>⚠️ Last auto-fetch: {fetchSt.errors[h.ticker]}</div>}</div>))}
+                  <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:4}}><button style={bO(T.text2)} onClick={closeModal}>Cancel</button><button style={bS(T.greenBtn,"#fff")} onClick={submitManualPrice}>💾 Save & Snapshot</button></div>
+                </>
+              )}
+
+              {/* HISTORY MODAL */}
+              {modal.mode==="history" && histH && histC && (
+                <>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14,gap:10}}><div><h2 style={{fontFamily:"'Space Mono',monospace",fontSize:15,fontWeight:700,color:T.text,marginBottom:4}}>📋 Transaction History</h2><p style={{fontSize:11,color:T.text3}}>{modal.holding.ticker} — {modal.holding.name}</p></div></div>
+                  <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>{[["Market Value",FC(histC.currentValue),T.text],["Total G/L",`${FG(histC.totalGain)} (${fmtPct(histC.gainPct)})`,pColor(histC.totalGain)],["Div/Coupons",FC(histC.totalDividends),T.teal]].map(([l,v,c])=>(<div key={l} style={{background:T.bg4,border:`1px solid ${T.border}`,borderRadius:8,padding:"7px 12px",flex:"1 1 100px"}}><div style={{fontSize:8,color:T.text3,letterSpacing:1.2,textTransform:"uppercase"}}>{l}</div><div style={{fontFamily:"'Space Mono',monospace",fontSize:11,fontWeight:700,color:c,marginTop:3}}>{v}</div></div>))}</div>
+                  <div style={{overflowX:"auto",borderRadius:8,border:`1px solid ${T.border}`}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr>{["Date","Type","Units / Div","Price / Div","Total",""].map(c=>(<th key={c} style={{padding:"8px 10px",textAlign:"left",fontSize:8,letterSpacing:1.5,color:T.text3,textTransform:"uppercase",background:T.bg,borderBottom:`1px solid ${T.border}`,whiteSpace:"nowrap"}}>{c}</th>))}</tr></thead><tbody>{[...histH.transactions].sort((a,b)=>new Date(b.date)-new Date(a.date)).map((tx,i)=>{const origIdx=histH.transactions.indexOf(tx);const tmap={buy:{l:"BUY",c:T.green,bg:dark?"#0d3d2833":"#dcfce7"},sell:{l:"SELL",c:T.red,bg:dark?"#3d0a0a33":"#fee2e2"},dividend:{l:histH.isBondPct?"COUPON":"DIV",c:T.teal,bg:dark?"#04182833":"#cffafe"}};const t=tmap[tx.type]||tmap.buy;const cur=histH.currency;const fL=(v)=>cur==="IDR"?`Rp ${fmtIDR(v)}`:cur==="USD"?`US$${v.toFixed(2)}`:`A$${v.toFixed(2)}`;const units=tx.type==="dividend"?`${(tx.amountPerShare||0).toFixed(tx.amountPerShare>1?2:4)}/unit${tx.entitledQty!=null?` · ${tx.entitledQty} entitled`:""}`:String(tx.qty||"—");const price=fL(tx.type==="dividend"?(tx.amountPerShare||0):(tx.price||0));const total=fL(tx.type==="dividend"?(tx.totalAmount||0):((tx.qty||0)*(tx.price||0)));return(<tr key={i} style={{background:i%2===0?T.bg3:T.bg2}}><td style={{padding:"8px 10px",fontFamily:"'Space Mono',monospace",fontSize:10,color:T.text2,borderBottom:`1px solid ${T.border}`,whiteSpace:"nowrap"}}>{fmtDate(tx.date)}</td><td style={{padding:"8px 10px",borderBottom:`1px solid ${T.border}`}}><span style={{padding:"2px 7px",borderRadius:4,background:t.bg,color:t.c,fontFamily:"'Space Mono',monospace",fontSize:9,fontWeight:700}}>{t.l}</span></td><td style={{padding:"8px 10px",fontFamily:"'Space Mono',monospace",fontSize:10,color:T.text2,borderBottom:`1px solid ${T.border}`}}>{units}</td><td style={{padding:"8px 10px",fontFamily:"'Space Mono',monospace",fontSize:10,color:T.text2,borderBottom:`1px solid ${T.border}`}}>{price}</td><td style={{padding:"8px 10px",fontFamily:"'Space Mono',monospace",fontSize:11,fontWeight:700,color:t.c,borderBottom:`1px solid ${T.border}`}}>{total}</td><td style={{padding:"4px 8px",borderBottom:`1px solid ${T.border}`}}><div style={{display:"flex",gap:4}}><button onClick={()=>setEditTx({holdingId:histH.id,txIndex:origIdx,tx:{...tx}})} style={{fontSize:10,padding:"2px 7px",borderRadius:4,border:`1px solid ${T.border}`,background:T.bg4,color:T.text2,cursor:"pointer"}}>✏️</button><button onClick={()=>{if(!confirm("Delete this transaction?"))return;setPortfolio(p=>p.map(h=>h.id===histH.id?{...h,transactions:h.transactions.filter((_,j)=>j!==origIdx)}:h));}} style={{fontSize:10,padding:"2px 7px",borderRadius:4,border:`1px solid ${T.red}44`,background:T.bg4,color:T.red,cursor:"pointer"}}>🗑️</button></div></td></tr>);})}</tbody></table></div>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:12}}><span style={{fontSize:10,color:T.text3}}>{histH.transactions.length} transactions total</span><button style={bO(T.text2)} onClick={closeModal}>Close</button></div>
+                </>
+              )}
+
+              {/* IMPORT MODAL */}
+              {modal.mode==="import" && (()=>{
+                const IS=importSt;
+                const valid=IS.parsed.filter(r=>!r._errors.length);
+                const invalid=IS.parsed.filter(r=>r._errors.length);
+                const tickers=[...new Set(valid.map(r=>r.ticker))];
+                const dropZoneStyle={border:`2px dashed ${IS.dragOver?T.greenBtn:T.border2}`,borderRadius:12,padding:"32px 20px",textAlign:"center",background:IS.dragOver?(dark?"#0d2a18":"#f0fff4"):T.bg4,transition:"all .2s",cursor:"pointer"};
+                return(<>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}><h2 style={{fontFamily:"'Space Mono',monospace",fontSize:15,fontWeight:700,color:T.text}}>📥 Import Transactions</h2>{IS.step==="preview"&&<span style={{fontSize:11,color:T.text3}}>{IS.fileName}</span>}</div>
+                  <p style={{fontSize:11,color:T.text3,marginBottom:16,lineHeight:1.6}}>Upload a CSV or Excel file with your buy, sell and dividend history. Download a template below to see the exact format.</p>
+                  <div style={{display:"flex",gap:8,marginBottom:18,flexWrap:"wrap"}}><button onClick={downloadTemplateCSV} style={{...bO(T.teal,{fontSize:11,padding:"6px 12px"})}}>⬇ Template CSV</button><button onClick={downloadTemplateXLSX} style={{...bO(T.teal,{fontSize:11,padding:"6px 12px"})}}>⬇ Template Excel (.xlsx)</button><span style={{fontSize:10,color:T.text3,alignSelf:"center",marginLeft:4}}>See "Field Reference" tab in Excel</span></div>
+                  <input ref={importFileRef} type="file" accept=".csv,.xlsx,.xls,.ods,.txt" style={{display:"none"}} onChange={e=>{if(e.target.files[0])handleImportFile(e.target.files[0]);e.target.value="";}}/>
+                  {(IS.step==="idle"||IS.step==="parsing")&&(<div style={dropZoneStyle} onDragOver={e=>{e.preventDefault();setImportSt(s=>({...s,dragOver:true}));}} onDragLeave={()=>setImportSt(s=>({...s,dragOver:false}))} onDrop={e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f)handleImportFile(f);}} onClick={()=>importFileRef.current&&importFileRef.current.click()}><div style={{fontSize:36,marginBottom:10,opacity:.5}}>📂</div><div style={{fontSize:14,fontWeight:600,color:T.text,marginBottom:4}}>{IS.step==="parsing"?"⟳ Parsing file…":"Drag & drop your file here"}</div><div style={{fontSize:12,color:T.text3,marginBottom:16}}>or click to browse · CSV, XLSX, XLS supported</div>{IS.step!=="parsing"&&(<button style={{...bS(T.greenBtn,"#fff",{fontSize:12,padding:"8px 20px"})}} onClick={e=>{e.stopPropagation();importFileRef.current&&importFileRef.current.click();}}>Choose File</button>)}</div>)}
+                  {IS.step==="error"&&(<div style={{background:dark?"#2d0a0a":"#fee2e2",border:`1px solid ${T.redBtn}55`,borderRadius:10,padding:"14px 16px",color:T.red}}><div style={{fontWeight:700,marginBottom:4}}>Could not read file</div><div style={{fontSize:12}}>{IS.errorMsg}</div><button style={{...bO(T.red,{fontSize:11,marginTop:10})}} onClick={()=>setImportSt(s=>({...s,step:"idle"}))}>Try again</button></div>)}
+                  {IS.step==="preview"&&(<div>{IS.fieldMap&&Object.keys(IS.fieldMap).length>0&&(<div style={{background:T.bg4,border:`1px solid ${T.border}`,borderRadius:10,padding:"10px 14px",marginBottom:14}}><div style={{fontSize:10,fontWeight:700,color:T.text2,letterSpacing:1.2,textTransform:"uppercase",marginBottom:7}}>Detected Column Mapping</div><div style={{display:"flex",flexWrap:"wrap",gap:6}}>{Object.entries(IS.fieldMap).map(([field,col])=>(<span key={field} style={{fontSize:10,background:T.bg2,border:`1px solid ${T.border2}`,borderRadius:5,padding:"2px 8px",color:T.text2}}><span style={{color:T.text3}}>{col}</span><span style={{color:T.border2,margin:"0 4px"}}>→</span><span style={{color:T.teal,fontWeight:600}}>{field}</span></span>))}</div>{!IS.fieldMap.ticker&&(<div style={{marginTop:8,fontSize:11,color:T.amber}}>⚠️ No <b>ticker</b> column detected — rename your ticker column to exactly <code style={{background:T.bg3,padding:"1px 4px",borderRadius:3}}>ticker</code></div>)}{!IS.fieldMap.type&&(<div style={{marginTop:4,fontSize:11,color:T.amber}}>⚠️ No <b>type</b> column detected — rename your transaction type column to <code style={{background:T.bg3,padding:"1px 4px",borderRadius:3}}>type</code> with values: buy, sell, dividend</div>)}</div>)}<div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>{[[IS.parsed.length+" rows",T.text],[valid.length+" valid",T.green],...(invalid.length?[[invalid.length+" errors",T.amber]]:[]),[tickers.length+" tickers",T.teal],[valid.filter(r=>r.type==="buy").length+" buys",T.text2],[valid.filter(r=>r.type==="sell").length+" sells",T.text2],[valid.filter(r=>r.type==="dividend").length+" dividends",T.teal]].map(([l,c])=>(<span key={l} style={{fontSize:11,fontWeight:600,color:c,background:T.bg4,border:`1px solid ${T.border}`,borderRadius:6,padding:"3px 10px"}}>{l}</span>))}</div><div style={{display:"flex",alignItems:"center",gap:10,background:T.bg4,border:`1px solid ${T.border}`,borderRadius:10,padding:"10px 14px",marginBottom:14,flexWrap:"wrap"}}><span style={{fontSize:12,fontWeight:600,color:T.text}}>Import mode:</span>{[["merge","Merge with existing"],["replace","Replace all data"]].map(([v,l])=>(<button key={v} onClick={()=>setImportSt(s=>({...s,mergeMode:v}))} style={{padding:"5px 14px",borderRadius:7,border:`1px solid ${IS.mergeMode===v?T.greenBtn:T.border}`,background:IS.mergeMode===v?(dark?"#0a2e1e":"#dcfce7"):"transparent",color:IS.mergeMode===v?T.greenBtn:T.text3,fontSize:12,fontWeight:IS.mergeMode===v?700:400}}>{l}</button>))}<span style={{fontSize:10,color:IS.mergeMode==="replace"?T.amber:T.text3}}>{IS.mergeMode==="merge"?"Adds new tickers, appends transactions to existing":"Clears ALL current portfolio data first"}</span></div>{IS.errors.length>0&&(<div style={{background:dark?"#1a1200":"#fffbeb",border:`1px solid ${T.amber}55`,borderRadius:10,padding:"10px 14px",marginBottom:14}}><div style={{fontSize:12,fontWeight:700,color:T.amber,marginBottom:6}}>{IS.errors.length} rows will be skipped</div><div style={{maxHeight:80,overflowY:"auto"}}>{IS.errors.map(e=>(<div key={e.rowNum} style={{fontSize:10,color:T.amber,marginBottom:2}}>Row {e.rowNum}{e.ticker?" ["+e.ticker+"]":""}: {e.errs.join(" · ")}</div>))}</div></div>)}<div style={{overflowX:"auto",borderRadius:8,border:`1px solid ${T.border}`,marginBottom:14,maxHeight:260,overflowY:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}><thead style={{position:"sticky",top:0}}><tr>{["","Row","Ticker","Type","Date","Qty","Price","Ccy","Div/Unit","Entitled"].map(c=>(<th key={c} style={{padding:"7px 10px",textAlign:"left",fontSize:8,letterSpacing:1.2,color:T.text3,textTransform:"uppercase",background:T.bg2,borderBottom:`1px solid ${T.border}`,whiteSpace:"nowrap"}}>{c}</th>))}</tr></thead><tbody>{IS.parsed.map((r,i)=>{const ok=!r._errors.length;const bg=ok?(i%2===0?T.bg3:T.bg2):(dark?"#2a1500":"#fff7ed");const typeColor=r.type==="buy"?T.green:r.type==="sell"?T.red:T.teal;const typeBg=r.type==="buy"?(dark?"#0a2e1e":"#dcfce7"):r.type==="sell"?(dark?"#2d0a0a":"#fee2e2"):(dark?"#041824":"#cffafe");return(<tr key={i} style={{background:bg}}><td style={{padding:"6px 8px",borderBottom:`1px solid ${T.border}`}}>{ok?"✅":"⚠️"}</td><td style={{padding:"6px 8px",color:T.text3,fontSize:9,borderBottom:`1px solid ${T.border}`}}>{r._rowNum}</td><td style={{padding:"6px 8px",fontFamily:"'Space Mono',monospace",fontWeight:700,color:T.text,borderBottom:`1px solid ${T.border}`}}>{r.ticker}</td><td style={{padding:"6px 8px",borderBottom:`1px solid ${T.border}`}}>{r.type&&<span style={{padding:"1px 6px",borderRadius:4,fontSize:9,fontWeight:700,background:typeBg,color:typeColor}}>{r.type.toUpperCase()}</span>}</td><td style={{padding:"6px 8px",color:T.text2,borderBottom:`1px solid ${T.border}`,whiteSpace:"nowrap"}}>{r.date}</td><td style={{padding:"6px 8px",fontFamily:"'Space Mono',monospace",color:T.text2,borderBottom:`1px solid ${T.border}`}}>{r.qty||"—"}</td><td style={{padding:"6px 8px",fontFamily:"'Space Mono',monospace",color:T.text2,borderBottom:`1px solid ${T.border}`}}>{r.price||"—"}</td><td style={{padding:"6px 8px",color:T.text3,borderBottom:`1px solid ${T.border}`}}>{r.currency}</td><td style={{padding:"6px 8px",fontFamily:"'Space Mono',monospace",color:T.teal,borderBottom:`1px solid ${T.border}`}}>{r.amountPerShare||"—"}</td><td style={{padding:"6px 8px",color:T.text2,borderBottom:`1px solid ${T.border}`}}>{r.entitledQty||"—"}</td></tr>);})}</tbody></tr></div>{valid.length===0&&(<div style={{textAlign:"center",padding:"8px 0",color:T.red,fontSize:12,marginBottom:12}}>No valid rows found. Fix the errors and re-upload.</div>)}<div style={{display:"flex",gap:8,justifyContent:"space-between",alignItems:"center",flexWrap:"wrap"}}><button style={bO(T.text2,{fontSize:11})} onClick={()=>setImportSt(s=>({...s,step:"idle",parsed:[],rows:[],errors:[]}))}>Upload different file</button><div style={{display:"flex",gap:8}}><button style={bO(T.text2)} onClick={closeModal}>Cancel</button><button style={{...bS(T.greenBtn,"#fff"),opacity:valid.length?1:.4,cursor:valid.length?"pointer":"not-allowed"}} disabled={!valid.length} onClick={confirmImport}>Import {valid.length} rows {IS.mergeMode==="replace"?"(replace all)":"(merge)"}</button></div></div></div>)}
+                  {IS.step==="done"&&(<div style={{textAlign:"center",padding:"24px 0"}}><div style={{fontSize:48,marginBottom:12}}>🎉</div><div style={{fontSize:18,fontWeight:700,color:T.green,marginBottom:8}}>Import complete!</div><div style={{fontSize:13,color:T.text2,marginBottom:8}}>{IS.importedCount} transactions imported.</div><div style={{fontSize:11,color:T.text3,marginBottom:24}}>Click the 🔄 Live Prices button to fetch current prices for new holdings.</div><button style={bS(T.greenBtn,"#fff",{padding:"9px 28px",fontSize:13})} onClick={closeModal}>Done</button></div>)}
+                </>);
+              })()}
+
+              {/* FIREBASE SETUP MODAL */}
+              {modal.mode==="firebaseSetup" && (()=>{
+                const [cfg,setCfg]=React.useState({apiKey:"",authDomain:"",projectId:"",storageBucket:"",messagingSenderId:"",appId:""});
+                const fields=[["apiKey","API Key","AIzaSy..."],["authDomain","Auth Domain","your-project.firebaseapp.com"],["projectId","Project ID","your-project-id"],["storageBucket","Storage Bucket","your-project.appspot.com"],["messagingSenderId","Messaging Sender ID","123456789"],["appId","App ID","1:123456789:web:abc123"]];
+                return(<div style={{maxWidth:500,width:"100%",...card({padding:24})}}><h2 style={{fontFamily:"'Space Mono',monospace",fontSize:15,fontWeight:700,color:T.text,marginBottom:4}}>☁️ Set Up Cloud Sync</h2><p style={{fontSize:11,color:T.text3,marginBottom:16,lineHeight:1.6}}>Enter your Firebase project credentials below. These are saved only in your browser's localStorage — never sent anywhere except Firebase itself.</p><div style={{background:T.bg4,border:`1px solid ${T.border}`,borderRadius:8,padding:12,marginBottom:16,fontSize:11,color:T.text2,lineHeight:1.7}}><b style={{color:T.teal}}>Don't have a Firebase project yet?</b><br/>1. Go to <b>console.firebase.google.com</b><br/>2. Click <b>Add project</b> → name it (e.g. "folio-sync") → Continue<br/>3. Go to <b>Project Settings</b> (⚙️) → <b>Your apps</b> → click <b>&lt;/&gt;</b> (web)<br/>4. Register app → copy the config values below<br/>5. In Firebase console → <b>Authentication</b> → Sign-in method → enable <b>Google</b><br/>6. In Firebase console → <b>Firestore Database</b> → Create database → Start in test mode</div><div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>{fields.map(([key,label,ph])=>(<div key={key}><label style={{fontSize:10,color:T.text3,letterSpacing:1,textTransform:"uppercase"}}>{label}</label><input style={{...inp(),marginTop:2}} placeholder={ph} value={cfg[key]} onChange={e=>setCfg(c=>({...c,[key]:e.target.value}))}/></div>))}</div><div style={{fontSize:10,color:T.amber,marginBottom:12}}>⚠️ After saving, you need to <b>reload the page</b> for Firebase to initialise.</div><div style={{display:"flex",gap:8,justifyContent:"flex-end"}}><button style={bO(T.text2)} onClick={closeModal}>Cancel</button><button style={bS(T.teal,"#fff")} onClick={()=>{try{localStorage.setItem("f6_fbcfg",JSON.stringify(cfg));const src=document.documentElement.outerHTML;const updated=src.replace(/"YOUR_API_KEY"/,`"${cfg.apiKey}"`).replace(/"YOUR_PROJECT_ID\.firebaseapp\.com"/,`"${cfg.authDomain}"`).replace(/("YOUR_PROJECT_ID")/g,`"${cfg.projectId}"`).replace(/"YOUR_PROJECT_ID\.appspot\.com"/,`"${cfg.storageBucket}"`).replace(/"YOUR_MESSAGING_SENDER_ID"/,`"${cfg.messagingSenderId}"`).replace(/"YOUR_APP_ID"/,`"${cfg.appId}"`);const blob=new Blob([updated],{type:"text/html"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="folio-dashboard.html";a.click();alert("✅ New file downloaded with your Firebase config!\n\nOpen the downloaded file — cloud sync will be ready.");closeModal();}catch(e){alert("Error: "+e.message);}}}>💾 Save & Download</button></div></div>);})()}
+
+            </div>
+          </div>
+        )}
+
+        {/* EDIT TRANSACTION OVERLAY */}
+        {editTx && (()=>{
+          const h=portfolio.find(p=>p.id===editTx.holdingId);
+          if(!h)return null;
+          const tx=editTx.tx;
+          const cur=h.currency||"AUD";
+          const save=()=>{setPortfolio(p=>p.map(holding=>holding.id===editTx.holdingId?{...holding,transactions:holding.transactions.map((t,j)=>j===editTx.txIndex?{...editTx.tx}:t)}:holding));setEditTx(null);};
+          const fi=(field,label,type="text",placeholder="")=>(<div key={field}><label style={{fontSize:10,color:T.text3,letterSpacing:1,textTransform:"uppercase"}}>{label}</label><input type={type} style={{...inp(),marginTop:2}} value={tx[field]??""} placeholder={placeholder} onChange={e=>{const v=type==="number"?(parseFloat(e.target.value)||0):e.target.value;setEditTx(s=>({...s,tx:{...s.tx,[field]:v}}));}}/></div>);
+          return(<div onClick={()=>setEditTx(null)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.82)",backdropFilter:"blur(8px)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:12}}><div onClick={e=>e.stopPropagation()} style={{background:T.bg2,border:`1px solid ${T.border}`,borderRadius:14,padding:22,width:"100%",maxWidth:400,boxShadow:T.shadow}}><h2 style={{fontFamily:"'Space Mono',monospace",fontSize:14,fontWeight:700,color:T.text,marginBottom:4}}>✏️ Edit Transaction</h2><p style={{fontSize:11,color:T.text3,marginBottom:16}}>{h.ticker} — {tx.type?.toUpperCase()}</p><div style={{display:"flex",flexDirection:"column",gap:10}}>{fi("date","Date","date")}{tx.type!=="dividend"&&fi("qty","Units / Quantity","number","0")}{tx.type!=="dividend"&&fi("price",`Price (${cur})`,"number","0")}{tx.type==="dividend"&&fi("amountPerShare",`Amount per Unit (${cur})`,"number","0")}{tx.type==="dividend"&&fi("entitledQty","Entitled Units","number","0")}{tx.type==="dividend"&&fi("totalAmount",`Total Amount (${cur})`,"number","0")}</div><div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:16}}><button style={bO(T.text2)} onClick={()=>setEditTx(null)}>Cancel</button><button style={bS(T.greenBtn,"#fff")} onClick={save}>Save Changes</button></div></div></div>);
+        })()}
       </div>
     </ErrorBoundary>
   );
