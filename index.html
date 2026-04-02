@@ -1,44 +1,69 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>FOLIO — Investment Dashboard</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/react@18.2.0/umd/react.development.js"></script>
-  <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Roboto', sans-serif; background: #0b0e14; color: #eef2ff; transition: background 0.2s, color 0.2s; }
-    button { cursor: pointer; font-family: inherit; }
-    input, select, textarea { font-family: inherit; }
-    .spin { animation: spin 0.9s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .pulse { animation: pulse 1.5s ease-in-out infinite; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-    ::-webkit-scrollbar { width: 5px; height: 5px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #2a3a5a; border-radius: 4px; }
-    @media (max-width: 768px) { .desktop-only { display: none; } .mobile-flex { display: flex; } }
-    @media (min-width: 769px) { .mobile-only { display: none; } }
-    #root-error { padding: 20px; background: #ffebee; color: #c62828; font-family: monospace; white-space: pre-wrap; margin: 20px; border-radius: 8px; }
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FOLIO — Investment Dashboard</title>
+<script>
+// Load fonts via FontFace API — works on file:// pages where <link> is blocked
+(function(){
+  const fonts=[
+    {family:"Roboto",     weight:"400", url:"https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2"},
+    {family:"Roboto",     weight:"500", url:"https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmEU9fBBc4.woff2"},
+    {family:"Roboto",     weight:"700", url:"https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc4.woff2"},
+    {family:"Space Mono", weight:"400", url:"https://fonts.gstatic.com/s/spacemono/v13/i7dPIFZifjKcF5UAWdDRUEZ2RFq7AwU.woff2"},
+    {family:"Space Mono", weight:"700", url:"https://fonts.gstatic.com/s/spacemono/v13/i7dMIFZifjKcF5UAWdDRaPpZYFKQHwyVd3U.woff2"},
+  ];
+  fonts.forEach(({family,weight,url})=>{
+    try{
+      const f=new FontFace(family,`url(${url}) format('woff2')`,{weight,style:"normal",display:"swap"});
+      f.load().then(loaded=>{document.fonts.add(loaded);}).catch(()=>{});
+    }catch(e){}
+  });
+})();
+</script>
+<!-- Development React for better error messages -->
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{min-height:100vh;font-family:'Roboto',sans-serif;font-size:14px;-webkit-font-smoothing:antialiased}
+input,select{font-family:'Roboto',sans-serif}
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
+input[type=number]{-moz-appearance:textfield}
+button{cursor:pointer;font-family:inherit;transition:opacity .15s,transform .1s}
+button:active{transform:scale(.97)}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{border-radius:3px;background:#444}
+.light ::-webkit-scrollbar-thumb{background:#ccc}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{display:inline-block;animation:spin .9s linear infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.pulse{animation:pulse 1.5s ease-in-out infinite}
+@media(max-width:768px){
+  .hdr-desktop{display:none!important}.hdr-mobile{display:flex!important}
+  .tm-wrap{flex-direction:column!important}.detail-panel{width:100%!important;min-width:unset!important}
+  .chart-row{flex-direction:column!important}.modal-g2{grid-template-columns:1fr!important}
+  .modal-g3{grid-template-columns:1fr 1fr!important}
+}
+@media(min-width:769px){.hdr-mobile{display:none!important}}
+</style>
 </head>
 <body>
 <div id="root"></div>
 
 <script>
-// ----------------------------------------------------------------------
-//  CONFIGURATION & CONSTANTS
-// ----------------------------------------------------------------------
+// Firebase config (unchanged)
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyBp20SC2Yt9IWkevpLgU6-nXZtA7HuNbN0",
   authDomain: "folio-sync.firebaseapp.com",
@@ -48,383 +73,304 @@ const FIREBASE_CONFIG = {
   appId: "1:763988334867:web:f5984340db588992e9a2e6",
   measurementId: "G-YDQLTZ8SP4"
 };
-const ASSET_TYPES = ["Shares / Stocks","ETF","Mutual Fund","Index Fund","Superannuation",
-  "Bond – Government","Bond – Corporate","Bond – Indonesia (SBN)","Bond – Sharia (Sukuk)",
-  "Commodity","Cryptocurrency","Forex","REIT / Property","Cash / Term Deposit","Other"];
-const CURRENCIES = ["AUD","IDR","USD"];
-
-const DARK = {
-  bg: "#0a0c12", bg2: "#0f111a", bg3: "#141824", bg4: "#1a1f2e", bg5: "#202538",
-  border: "#252b3c", border2: "#30364c", text: "#edf2ff", text2: "#9aa4c0", text3: "#5f6a84", text4: "#2a2f44",
-  green: "#4ade80", greenBtn: "#22c55e", red: "#f87171", redBtn: "#ef4444", teal: "#2dd4bf", tealBtn: "#0d9488", amber: "#fbbf24", amberBg: "#1f1a0a",
-  shadow: "0 8px 24px rgba(0,0,0,0.5)"
-};
-const LIGHT = {
-  bg: "#f1f5f9", bg2: "#ffffff", bg3: "#f8fafc", bg4: "#f0f2f5", bg5: "#e6edf4",
-  border: "#dce3ec", border2: "#cbd5e1", text: "#0f172a", text2: "#334155", text3: "#64748b", text4: "#cbd5e1",
-  green: "#15803d", greenBtn: "#16a34a", red: "#b91c1c", redBtn: "#dc2626", teal: "#0e7490", tealBtn: "#0891b2", amber: "#d97706", amberBg: "#fffbeb",
-  shadow: "0 4px 20px rgba(0,0,0,0.08)"
-};
-
-function toAUD(amount, currency, rates) {
-  if (currency === "IDR") return amount / rates.AUD_IDR;
-  if (currency === "USD") return amount / rates.AUD_USD;
-  return amount;
+const FB_CONFIGURED = !FIREBASE_CONFIG.apiKey.startsWith("YOUR_");
+let fbApp=null, fbAuth=null, fbDb=null;
+if(FB_CONFIGURED){
+  try{
+    fbApp  = firebase.initializeApp(FIREBASE_CONFIG);
+    fbAuth = firebase.auth();
+    fbDb   = firebase.firestore();
+    fbDb.enablePersistence({synchronizeTabs:true}).catch(()=>{});
+  }catch(e){ console.warn("Firebase init failed:",e); }
 }
-function fromAUD(amount, currency, rates) {
-  if (currency === "IDR") return amount * rates.AUD_IDR;
-  if (currency === "USD") return amount * rates.AUD_USD;
-  return amount;
+async function cloudSave(uid, data){
+  if(!fbDb)throw new Error("Firebase not configured");
+  await fbDb.collection("users").doc(uid).set(data, {merge:true});
 }
-function fmtIDR(n) { return Math.round(n).toLocaleString("id-ID"); }
-function fmtAUD(n) { return n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
-function fmtCurrency(audAmount, displayCur, rates, compact = false) {
-  const val = fromAUD(audAmount, displayCur, rates);
-  if (displayCur === "IDR") {
-    const abs = Math.abs(val);
-    if (compact && abs >= 1e9) return `Rp${(val/1e9).toFixed(1)}M`;
-    if (compact && abs >= 1e6) return `Rp${(val/1e6).toFixed(1)}Jt`;
-    if (compact && abs >= 1e3) return `Rp${(val/1e3).toFixed(0)}Rb`;
-    return `Rp ${fmtIDR(val)}`;
-  }
-  if (displayCur === "USD") {
-    const abs = Math.abs(val);
-    if (compact && abs >= 1e6) return `$${(val/1e6).toFixed(2)}M`;
-    if (compact && abs >= 1e3) return `$${(val/1e3).toFixed(1)}K`;
-    return `$${fmtAUD(val)}`;
-  }
-  const abs = Math.abs(val);
-  if (compact && abs >= 1e6) return `A$${(val/1e6).toFixed(2)}M`;
-  if (compact && abs >= 1e3) return `A$${(val/1e3).toFixed(1)}K`;
-  return `A$${fmtAUD(val)}`;
+async function cloudLoad(uid){
+  if(!fbDb)throw new Error("Firebase not configured");
+  const doc = await fbDb.collection("users").doc(uid).get();
+  return doc.exists ? doc.data() : null;
 }
-function fmtGain(audAmount, displayCur, rates) {
-  const val = fromAUD(audAmount, displayCur, rates);
-  const sign = val >= 0 ? "+" : "-";
-  if (displayCur === "IDR") return `${sign}Rp ${fmtIDR(Math.abs(val))}`;
-  if (displayCur === "USD") return `${sign}$${fmtAUD(Math.abs(val))}`;
-  return `${sign}A$${fmtAUD(Math.abs(val))}`;
+async function signInGoogle(){
+  if(!fbAuth)throw new Error("Firebase not configured");
+  const provider = new firebase.auth.GoogleAuthProvider();
+  const result   = await fbAuth.signInWithPopup(provider);
+  return result.user;
 }
-const fmtPct = (n) => `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`;
-const fmtDate = (d) => { try { return new Date(d+"T12:00:00").toLocaleDateString("en-AU", {day:"2-digit", month:"short", year:"numeric"}); } catch { return d; } };
-
-const INIT_RATES = { AUD_IDR: 10550, AUD_USD: 0.645 };
-const SEED_HOLDINGS = [
-  { id: 1, ticker: "BHP", name: "BHP Group Ltd", currency: "AUD", assetType: "Shares / Stocks", exchange: "ASX", yahooSymbol: "BHP.AX", transactions: [
-      { type: "buy", qty: 50, price: 42, date: "2022-06-10" }, { type: "buy", qty: 30, price: 44, date: "2023-01-15" }, { type: "dividend", amountPerShare: 1.30, totalAmount: 104, date: "2022-09-20" }
-    ] },
-  { id: 2, ticker: "CBA", name: "Commonwealth Bank", currency: "AUD", assetType: "Shares / Stocks", exchange: "ASX", yahooSymbol: "CBA.AX", transactions: [
-      { type: "buy", qty: 20, price: 98, date: "2022-08-01" }, { type: "dividend", amountPerShare: 2.40, totalAmount: 48, date: "2022-09-30" }
-    ] },
-  { id: 3, ticker: "VAS", name: "Vanguard Aus Shares ETF", currency: "AUD", assetType: "ETF", exchange: "ASX", yahooSymbol: "VAS.AX", transactions: [
-      { type: "buy", qty: 100, price: 88, date: "2022-07-20" }
-    ] },
-  { id: 4, ticker: "BBCA", name: "Bank Central Asia", currency: "IDR", assetType: "Shares / Stocks", exchange: "IDX", yahooSymbol: "BBCA.JK", transactions: [
-      { type: "buy", qty: 10000, price: 8500, date: "2022-09-01" }
-    ] }
-];
-const INIT_PRICES = { BHP: 46.5, CBA: 128, VAS: 98, BBCA: 10050 };
-const INIT_PREV = { BHP: 45.8, CBA: 126.5, VAS: 97.2, BBCA: 9950 };
-
-function computeHolding(holding, prices, prevPrices, rates) {
-  let qty = 0, costBasisLocal = 0, realizedLocal = 0;
-  let lots = [];
-  const txs = [...holding.transactions].sort((a,b)=>new Date(a.date)-new Date(b.date));
-  for (const tx of txs) {
-    if (tx.type === "buy") {
-      lots.push({ qty: tx.qty, price: tx.price });
-      qty += tx.qty;
-      costBasisLocal += tx.qty * tx.price;
-    } else if (tx.type === "sell") {
-      let rem = tx.qty;
-      qty -= tx.qty;
-      while (rem > 0 && lots.length) {
-        const lot = lots[0];
-        const used = Math.min(lot.qty, rem);
-        realizedLocal += used * (tx.price - lot.price);
-        costBasisLocal -= used * lot.price;
-        lot.qty -= used;
-        rem -= used;
-        if (lot.qty === 0) lots.shift();
-      }
-    }
-  }
-  const divsLocal = txs.filter(t=>t.type==="dividend").reduce((s,t)=>s+(t.totalAmount||0),0);
-  const currentPrice = prices[holding.ticker] || 0;
-  const prevClose = prevPrices[holding.ticker] || currentPrice;
-  const currentValueLocal = qty * currentPrice;
-  const unrealizedLocal = currentValueLocal - costBasisLocal;
-  const dayGainLocal = (currentPrice - prevClose) * qty;
-  const dayPct = prevClose ? ((currentPrice - prevClose) / prevClose) * 100 : 0;
-  
-  const currentValueAUD = toAUD(currentValueLocal, holding.currency, rates);
-  const costBasisAUD = toAUD(costBasisLocal, holding.currency, rates);
-  const unrealizedAUD = toAUD(unrealizedLocal, holding.currency, rates);
-  const realizedAUD = toAUD(realizedLocal, holding.currency, rates);
-  const dividendsAUD = toAUD(divsLocal, holding.currency, rates);
-  const totalGainAUD = unrealizedAUD + realizedAUD + dividendsAUD;
-  const totalInvestedAUD = toAUD(costBasisLocal, holding.currency, rates);
-  const gainPct = totalInvestedAUD > 0 ? (totalGainAUD / totalInvestedAUD) * 100 : 0;
-  const dayGainAUD = toAUD(dayGainLocal, holding.currency, rates);
-  const divYieldOnCost = totalInvestedAUD > 0 ? (dividendsAUD / totalInvestedAUD) * 100 : 0;
-  
-  return { ...holding, qty, costBasis: costBasisAUD, currentPrice, prevClose, currentValue: currentValueAUD,
-    unrealizedGain: unrealizedAUD, realizedGain: realizedAUD, totalDividends: dividendsAUD, totalGain: totalGainAUD,
-    gainPct, dayGain: dayGainAUD, dayGainPct: dayPct, divYieldOnCost, totalInvested: totalInvestedAUD };
+async function signOut(){
+  if(!fbAuth)return;
+  await fbAuth.signOut();
 }
+</script>
 
-function gainColor(pct, dark) {
-  if (dark) {
-    if (pct >= 3) return { bg: "#166534", text: "#bbf7d0", border: "#4ade80" };
-    if (pct >= 1) return { bg: "#14532d", text: "#86efac", border: "#22c55e" };
-    if (pct > 0) return { bg: "#0f3d22", text: "#4ade80", border: "#16a34a" };
-    if (pct === 0) return { bg: "#1e2235", text: "#9ca3af", border: "#374151" };
-    if (pct > -1) return { bg: "#7f1d1d", text: "#fecaca", border: "#f87171" };
-    if (pct > -3) return { bg: "#991b1b", text: "#fca5a5", border: "#ef4444" };
-    return { bg: "#b91c1c", text: "#fef2f2", border: "#fca5a5" };
-  } else {
-    if (pct >= 3) return { bg: "#bbf7d0", text: "#14532d", border: "#4ade80" };
-    if (pct >= 1) return { bg: "#dcfce7", text: "#15803d", border: "#86efac" };
-    if (pct > 0) return { bg: "#f0fdf4", text: "#16a34a", border: "#bbf7d0" };
-    if (pct === 0) return { bg: "#f3f4f6", text: "#6b7280", border: "#d1d5db" };
-    if (pct > -1) return { bg: "#fef2f2", text: "#b91c1c", border: "#fecaca" };
-    if (pct > -3) return { bg: "#fee2e2", text: "#dc2626", border: "#fca5a5" };
-    return { bg: "#fecaca", text: "#991b1b", border: "#f87171" };
-  }
-}
+<script type="text/babel">
+const {useState,useMemo,useCallback,useEffect,useRef}=React;
 
-// ----------------------------------------------------------------------
-//  REACT APP (using createElement, no JSX)
-// ----------------------------------------------------------------------
-const { useState, useEffect, useMemo } = React;
-
+// ========== ERROR BOUNDARY ==========
 class ErrorBoundary extends React.Component {
-  constructor(props) { super(props); this.state = { hasError: false, error: null }; }
-  static getDerivedStateFromError(error) { return { hasError: true, error }; }
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, info) {
+    console.error("React error boundary caught:", error, info);
+  }
   render() {
     if (this.state.hasError) {
-      return React.createElement("div", { style: { padding: 20, color: "red", background: "#fff", margin: 20, borderRadius: 8 } },
-        React.createElement("h2", {}, "Something went wrong"),
-        React.createElement("pre", {}, this.state.error?.stack),
-        React.createElement("button", { onClick: () => window.location.reload() }, "Reload")
+      return (
+        <div style={{ padding: 20, color: "red", background: "#fff", fontFamily: "monospace" }}>
+          <h2>Something went wrong.</h2>
+          <pre>{this.state.error?.stack}</pre>
+          <button onClick={() => window.location.reload()}>Reload</button>
+        </div>
       );
     }
     return this.props.children;
   }
 }
 
-function App() {
-  const loadState = (key, def) => { try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : def; } catch { return def; } };
-  const [portfolio, setPortfolio] = useState(() => loadState("folio_portfolio", SEED_HOLDINGS));
-  const [prices, setPrices] = useState(() => loadState("folio_prices", INIT_PRICES));
-  const [prevPrices, setPrevPrices] = useState(() => loadState("folio_prev", INIT_PREV));
-  const [rates, setRates] = useState(() => loadState("folio_rates", INIT_RATES));
-  const [displayCur, setDisplayCur] = useState(() => loadState("folio_cur", "AUD"));
-  const [darkMode, setDarkMode] = useState(() => loadState("folio_dark", true));
-  const [view, setView] = useState("table");
-  const [modal, setModal] = useState(null);
-  const [formData, setFormData] = useState({});
-  const [valuesHidden, setValuesHidden] = useState(false);
-  const theme = darkMode ? DARK : LIGHT;
+// ─── Constants ────────────────────────────────────────────────────────────────
+const ASSET_TYPES=["Shares / Stocks","ETF","Mutual Fund","Index Fund","Superannuation",
+  "Bond – Government","Bond – Corporate","Bond – Indonesia (SBN)","Bond – Sharia (Sukuk)",
+  "Commodity","Cryptocurrency","Forex","REIT / Property","Cash / Term Deposit","Other"];
+const CURRENCIES=["AUD","IDR","USD"];
 
-  useEffect(() => {
-    localStorage.setItem("folio_portfolio", JSON.stringify(portfolio));
-    localStorage.setItem("folio_prices", JSON.stringify(prices));
-    localStorage.setItem("folio_prev", JSON.stringify(prevPrices));
-    localStorage.setItem("folio_rates", JSON.stringify(rates));
-    localStorage.setItem("folio_cur", JSON.stringify(displayCur));
-    localStorage.setItem("folio_dark", JSON.stringify(darkMode));
-  }, [portfolio, prices, prevPrices, rates, displayCur, darkMode]);
-  useEffect(() => { document.body.style.backgroundColor = theme.bg; document.body.style.color = theme.text; }, [theme]);
+// ─── Themes ───────────────────────────────────────────────────────────────────
+const DARK={
+  bg:"#070910",bg2:"#0b0d16",bg3:"#0f1120",bg4:"#141828",bg5:"#1a1f30",
+  border:"#1e2438",border2:"#2a3048",
+  text:"#e8ecff",text2:"#9098b8",text3:"#555e78",text4:"#1e2438",
+  green:"#3ddc84",greenBtn:"#22c55e",red:"#f04060",redBtn:"#ef4444",
+  teal:"#38e8d8",tealBtn:"#0d9488",amber:"#fbbf24",amberBg:"#1a1200",
+  shadow:"0 8px 32px rgba(0,0,0,.6)",chartGrid:"rgba(255,255,255,.04)",chartTick:"#3a4060",
+};
+const LIGHT={
+  bg:"#f0f3fc",bg2:"#ffffff",bg3:"#f7f9ff",bg4:"#edf0fa",bg5:"#e4e8f5",
+  border:"#d8dff0",border2:"#c0c8e0",
+  text:"#111827",text2:"#4b5680",text3:"#9ca3c0",text4:"#d1d8ee",
+  green:"#15803d",greenBtn:"#16a34a",red:"#b91c1c",redBtn:"#dc2626",
+  teal:"#0e7490",tealBtn:"#0891b2",amber:"#d97706",amberBg:"#fffbeb",
+  shadow:"0 4px 20px rgba(30,40,100,.1)",chartGrid:"rgba(0,0,0,.05)",chartTick:"#c0c8e0",
+};
 
-  const holdings = useMemo(() => portfolio.map(h => computeHolding(h, prices, prevPrices, rates)).filter(h => h.qty > 0), [portfolio, prices, prevPrices, rates]);
-  const totalValue = holdings.reduce((s, h) => s + h.currentValue, 0);
-  const totalGain = holdings.reduce((s, h) => s + h.totalGain, 0);
-  const totalInvested = holdings.reduce((s, h) => s + h.totalInvested, 0);
-  const totalGainPct = totalInvested > 0 ? (totalGain / totalInvested) * 100 : 0;
-  const totalDividends = holdings.reduce((s, h) => s + h.totalDividends, 0);
-  const dayGainTotal = holdings.reduce((s, h) => s + h.dayGain, 0);
-  const dayPctTotal = (totalValue - dayGainTotal) > 0 ? (dayGainTotal / (totalValue - dayGainTotal)) * 100 : 0;
-  const divYield = totalInvested > 0 ? (totalDividends / totalInvested) * 100 : 0;
-
-  const fmtVal = (audAmt, compact = false) => valuesHidden ? "••••••" : fmtCurrency(audAmt, displayCur, rates, compact);
-  const fmtGainStr = (audAmt) => valuesHidden ? "••••••" : fmtGain(audAmt, displayCur, rates);
-
-  const closeModal = () => { setModal(null); setFormData({}); };
-  const openAddHolding = () => {
-    setModal("add");
-    setFormData({ ticker: "", name: "", qty: "", price: "", date: new Date().toISOString().slice(0,10), currency: "AUD", assetType: "Shares / Stocks", exchange: "", yahooSymbol: "" });
-  };
-  const submitAddHolding = () => {
-    const { ticker, name, qty, price, date, currency, assetType, exchange, yahooSymbol } = formData;
-    if (!ticker || !qty || !price) return;
-    const newTicker = ticker.toUpperCase();
-    const existing = portfolio.find(h => h.ticker === newTicker);
-    if (existing) {
-      setPortfolio(prev => prev.map(h => h.ticker === newTicker ? { ...h, transactions: [...h.transactions, { type: "buy", qty: parseFloat(qty), price: parseFloat(price), date }] } : h));
-    } else {
-      const newHolding = { id: Date.now(), ticker: newTicker, name: name || newTicker, currency, assetType, exchange, yahooSymbol: yahooSymbol || "", transactions: [{ type: "buy", qty: parseFloat(qty), price: parseFloat(price), date }] };
-      setPortfolio(prev => [...prev, newHolding]);
-      setPrices(prev => ({ ...prev, [newTicker]: parseFloat(price) }));
-      setPrevPrices(prev => ({ ...prev, [newTicker]: parseFloat(price) }));
-    }
-    closeModal();
-  };
-  const openTrade = (holding, type) => { setModal("trade"); setFormData({ holding, tradeType: type, qty: "", price: holding.currentPrice, date: new Date().toISOString().slice(0,10) }); };
-  const submitTrade = () => { const { holding, tradeType, qty, price, date } = formData; if (!qty || !price) return; setPortfolio(prev => prev.map(h => h.id === holding.id ? { ...h, transactions: [...h.transactions, { type: tradeType, qty: parseFloat(qty), price: parseFloat(price), date }] } : h)); closeModal(); };
-  const openDividend = (holding) => { setModal("dividend"); setFormData({ holding, amountPerShare: "", entitledQty: holding.qty.toString(), date: new Date().toISOString().slice(0,10) }); };
-  const submitDividend = () => { const { holding, amountPerShare, entitledQty, date } = formData; if (!amountPerShare || !entitledQty) return; const total = parseFloat(amountPerShare) * parseFloat(entitledQty); setPortfolio(prev => prev.map(h => h.id === holding.id ? { ...h, transactions: [...h.transactions, { type: "dividend", amountPerShare: parseFloat(amountPerShare), totalAmount: total, entitledQty: parseFloat(entitledQty), date }] } : h)); closeModal(); };
-  const openManualPrice = () => { const manual = {}; holdings.forEach(h => { manual[`c_${h.ticker}`] = prices[h.ticker] || ""; manual[`p_${h.ticker}`] = prevPrices[h.ticker] || ""; }); setModal("price"); setFormData(manual); };
-  const submitManualPrice = () => { const newPrices = { ...prices }; const newPrev = { ...prevPrices }; Object.entries(formData).forEach(([key, val]) => { if (key.startsWith("c_") && val !== "") newPrices[key.slice(2)] = parseFloat(val); if (key.startsWith("p_") && val !== "") newPrev[key.slice(2)] = parseFloat(val); }); setPrices(newPrices); setPrevPrices(newPrev); closeModal(); };
-
-  const TableView = () => React.createElement("div", { style: { overflowX: "auto", background: theme.bg2, borderRadius: 12, border: `1px solid ${theme.border}`, padding: "0 0 1px 0" } },
-    React.createElement("table", { style: { width: "100%", borderCollapse: "collapse", fontSize: 12 } },
-      React.createElement("thead", {}, React.createElement("tr", {}, ["Ticker","Name","Type","CCY","Units","Avg Cost","Current","Day G/L","Value","Total G/L","G/L%","Div/Coupon","Div Yld","Actions"].map(h => React.createElement("th", { key: h, style: { textAlign: "left", padding: "12px 10px", fontSize: 9, letterSpacing: 1, color: theme.text3, borderBottom: `1px solid ${theme.border}`, background: theme.bg3, whiteSpace: "nowrap" } }, h)))),
-      React.createElement("tbody", {}, holdings.map((h, idx) => {
-        const gc = gainColor(h.gainPct, darkMode);
-        const rowBg = idx % 2 === 0 ? theme.bg : theme.bg2;
-        return React.createElement("tr", { key: h.ticker, style: { background: rowBg }, onMouseEnter: e=>e.currentTarget.style.background=theme.bg4, onMouseLeave: e=>e.currentTarget.style.background=rowBg },
-          React.createElement("td", { style: { padding: "10px 10px", fontFamily: "'Space Mono', monospace", fontWeight: 700, borderBottom: `1px solid ${theme.border}` } }, h.ticker),
-          React.createElement("td", { style: { padding: "10px 10px", color: theme.text2, borderBottom: `1px solid ${theme.border}`, maxWidth: 150, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, h.name),
-          React.createElement("td", { style: { padding: "10px 10px", color: theme.text3, borderBottom: `1px solid ${theme.border}` } }, h.assetType?.slice(0,12)),
-          React.createElement("td", { style: { padding: "10px 10px", fontFamily: "'Space Mono', monospace", borderBottom: `1px solid ${theme.border}` } }, h.currency),
-          React.createElement("td", { style: { padding: "10px 10px", fontFamily: "'Space Mono', monospace", borderBottom: `1px solid ${theme.border}` } }, h.qty.toFixed(4)),
-          React.createElement("td", { style: { padding: "10px 10px", fontFamily: "'Space Mono', monospace", borderBottom: `1px solid ${theme.border}` } }, fmtVal(h.costBasis / Math.max(h.qty,0.001), true)),
-          React.createElement("td", { style: { padding: "10px 10px", fontFamily: "'Space Mono', monospace", borderBottom: `1px solid ${theme.border}` } }, h.currency==="IDR"?`Rp ${fmtIDR(h.currentPrice)}`:(h.currency==="USD"?`$${h.currentPrice.toFixed(2)}`: `A$${h.currentPrice.toFixed(2)}`)),
-          React.createElement("td", { style: { padding: "10px 10px", fontFamily: "'Space Mono', monospace", color: h.dayGain>=0?theme.green:theme.red, borderBottom: `1px solid ${theme.border}` } }, `${fmtGainStr(h.dayGain)} (${fmtPct(h.dayGainPct)})`),
-          React.createElement("td", { style: { padding: "10px 10px", fontFamily: "'Space Mono', monospace", fontWeight: 600, borderBottom: `1px solid ${theme.border}` } }, fmtVal(h.currentValue, true)),
-          React.createElement("td", { style: { padding: "10px 10px", fontFamily: "'Space Mono', monospace", color: h.totalGain>=0?theme.green:theme.red, borderBottom: `1px solid ${theme.border}` } }, fmtGainStr(h.totalGain)),
-          React.createElement("td", { style: { padding: "10px 10px", borderBottom: `1px solid ${theme.border}` } }, React.createElement("span", { style: { background: gc.bg, color: gc.text, padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 700 } }, fmtPct(h.gainPct))),
-          React.createElement("td", { style: { padding: "10px 10px", fontFamily: "'Space Mono', monospace", color: theme.teal, borderBottom: `1px solid ${theme.border}` } }, fmtVal(h.totalDividends, true)),
-          React.createElement("td", { style: { padding: "10px 10px", fontFamily: "'Space Mono', monospace", color: theme.teal, borderBottom: `1px solid ${theme.border}` } }, fmtPct(h.divYieldOnCost)),
-          React.createElement("td", { style: { padding: "10px 10px", borderBottom: `1px solid ${theme.border}` } }, React.createElement("div", { style: { display: "flex", gap: 5 } },
-            React.createElement("button", { onClick: ()=>openTrade(h,"buy"), style: { background: theme.greenBtn, border: "none", color: "white", padding: "4px 8px", borderRadius: 5, fontSize: 10, fontWeight: 700 } }, "B"),
-            React.createElement("button", { onClick: ()=>openTrade(h,"sell"), style: { background: theme.redBtn, border: "none", color: "white", padding: "4px 8px", borderRadius: 5, fontSize: 10, fontWeight: 700 } }, "S"),
-            React.createElement("button", { onClick: ()=>openDividend(h), style: { background: theme.tealBtn, border: "none", color: "white", padding: "4px 8px", borderRadius: 5, fontSize: 10, fontWeight: 700 } }, "D")
-          ))
-        );
-      }))
-    )
-  );
-
-  const ChartView = () => React.createElement("div", { style: { background: theme.bg2, borderRadius: 12, border: `1px solid ${theme.border}`, padding: 20, textAlign: "center" } },
-    React.createElement("div", { style: { fontSize: 14, fontWeight: 500, marginBottom: 10 } }, "Portfolio Analytics"),
-    React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px,1fr))", gap: 16, marginTop: 16 } },
-      React.createElement("div", { style: { background: theme.bg3, padding: 14, borderRadius: 10 } }, React.createElement("div", { style: { fontSize: 11, color: theme.text3 } }, "Total Value"), React.createElement("div", { style: { fontSize: 18, fontWeight: 700, fontFamily: "'Space Mono', monospace" } }, fmtVal(totalValue))),
-      React.createElement("div", { style: { background: theme.bg3, padding: 14, borderRadius: 10 } }, React.createElement("div", { style: { fontSize: 11, color: theme.text3 } }, "Total Gain/Loss"), React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: totalGain>=0?theme.green:theme.red, fontFamily: "'Space Mono', monospace" } }, fmtGainStr(totalGain))),
-      React.createElement("div", { style: { background: theme.bg3, padding: 14, borderRadius: 10 } }, React.createElement("div", { style: { fontSize: 11, color: theme.text3 } }, "Dividends Received"), React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: theme.teal, fontFamily: "'Space Mono', monospace" } }, fmtVal(totalDividends))),
-      React.createElement("div", { style: { background: theme.bg3, padding: 14, borderRadius: 10 } }, React.createElement("div", { style: { fontSize: 11, color: theme.text3 } }, "Total ROI"), React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: totalGain>=0?theme.green:theme.red, fontFamily: "'Space Mono', monospace" } }, fmtPct(totalGainPct)))
-    )
-  );
-
-  const Header = () => React.createElement("header", { style: { background: theme.bg2, borderBottom: `1px solid ${theme.border}`, padding: "12px 16px", position: "sticky", top: 0, zIndex: 10, boxShadow: theme.shadow } },
-    React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 } },
-      React.createElement("div", { style: { fontFamily: "'Space Mono', monospace", fontSize: 20, fontWeight: 700, letterSpacing: 2, background: "linear-gradient(135deg, #22c55e, #06b6d4)", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" } }, "FOLIO"),
-      React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" } },
-        React.createElement("button", { onClick: () => setDarkMode(!darkMode), style: { background: theme.bg4, border: `1px solid ${theme.border}`, borderRadius: 8, padding: "6px 12px", fontSize: 13, color: theme.text } }, darkMode ? "☀️ Light" : "🌙 Dark"),
-        React.createElement("button", { onClick: () => setValuesHidden(!valuesHidden), style: { background: theme.bg4, border: `1px solid ${theme.border}`, borderRadius: 8, padding: "6px 12px", fontSize: 13, color: theme.text } }, valuesHidden ? "👁️ Show" : "🙈 Hide"),
-        React.createElement("button", { onClick: openManualPrice, style: { background: theme.bg4, border: `1px solid ${theme.border}`, borderRadius: 8, padding: "6px 12px", fontSize: 13, color: theme.text } }, "✏️ Prices"),
-        React.createElement("button", { onClick: openAddHolding, style: { background: theme.greenBtn, border: "none", borderRadius: 8, padding: "6px 16px", fontSize: 13, fontWeight: 700, color: "white" } }, "+ Add Holding")
-      )
-    ),
-    React.createElement("div", { style: { display: "flex", gap: 12, marginTop: 12, flexWrap: "wrap", justifyContent: "space-between", alignItems: "center" } },
-      React.createElement("div", { style: { display: "flex", gap: 20, flexWrap: "wrap" } },
-        React.createElement("div", {}, React.createElement("div", { style: { fontSize: 9, color: theme.text3, letterSpacing: 1 } }, "TOTAL VALUE"), React.createElement("div", { style: { fontFamily: "'Space Mono', monospace", fontSize: 16, fontWeight: 700 } }, fmtVal(totalValue))),
-        React.createElement("div", {}, React.createElement("div", { style: { fontSize: 9, color: theme.text3 } }, "TOTAL G/L"), React.createElement("div", { style: { fontFamily: "'Space Mono', monospace", fontSize: 14, fontWeight: 700, color: totalGain>=0?theme.green:theme.red } }, `${fmtGainStr(totalGain)} (${fmtPct(totalGainPct)})`)),
-        React.createElement("div", {}, React.createElement("div", { style: { fontSize: 9, color: theme.text3 } }, "DAY G/L"), React.createElement("div", { style: { fontFamily: "'Space Mono', monospace", fontSize: 14, fontWeight: 700, color: dayGainTotal>=0?theme.green:theme.red } }, `${fmtGainStr(dayGainTotal)} (${fmtPct(dayPctTotal)})`)),
-        React.createElement("div", {}, React.createElement("div", { style: { fontSize: 9, color: theme.text3 } }, "DIV YIELD"), React.createElement("div", { style: { fontFamily: "'Space Mono', monospace", fontSize: 14, fontWeight: 700, color: theme.teal } }, fmtPct(divYield)))
-      ),
-      React.createElement("div", { style: { display: "flex", gap: 6, background: theme.bg4, borderRadius: 8, padding: 3 } },
-        React.createElement("button", { onClick: () => setView("table"), style: { padding: "5px 12px", borderRadius: 6, border: "none", background: view==="table"?theme.bg2:"transparent", color: view==="table"?theme.text:theme.text3, fontWeight: view==="table"?700:400, fontSize: 12 } }, "Table"),
-        React.createElement("button", { onClick: () => setView("chart"), style: { padding: "5px 12px", borderRadius: 6, border: "none", background: view==="chart"?theme.bg2:"transparent", color: view==="chart"?theme.text:theme.text3, fontWeight: view==="chart"?700:400, fontSize: 12 } }, "Charts")
-      )
-    )
-  );
-
-  const ModalOverlay = () => {
-    if (!modal) return null;
-    let content = null;
-    if (modal === "add") {
-      content = React.createElement("div", { style: { background: theme.bg2, borderRadius: 16, padding: 24, maxWidth: 500, width: "100%" } },
-        React.createElement("h3", { style: { marginBottom: 16, fontFamily: "'Space Mono', monospace" } }, "Add New Holding"),
-        React.createElement("div", { style: { display: "grid", gap: 12 } },
-          React.createElement("input", { placeholder: "Ticker *", style: { background: theme.bg, border: `1px solid ${theme.border}`, padding: 10, borderRadius: 8, color: theme.text }, value: formData.ticker || "", onChange: e => setFormData({...formData, ticker: e.target.value.toUpperCase() }) }),
-          React.createElement("input", { placeholder: "Name", style: { background: theme.bg, border: `1px solid ${theme.border}`, padding: 10, borderRadius: 8, color: theme.text }, value: formData.name || "", onChange: e => setFormData({...formData, name: e.target.value }) }),
-          React.createElement("select", { style: { background: theme.bg, border: `1px solid ${theme.border}`, padding: 10, borderRadius: 8, color: theme.text }, value: formData.currency || "AUD", onChange: e => setFormData({...formData, currency: e.target.value }) }, CURRENCIES.map(c => React.createElement("option", { key: c }, c))),
-          React.createElement("input", { type: "number", placeholder: "Quantity *", style: { background: theme.bg, border: `1px solid ${theme.border}`, padding: 10, borderRadius: 8, color: theme.text }, value: formData.qty || "", onChange: e => setFormData({...formData, qty: e.target.value }) }),
-          React.createElement("input", { type: "number", placeholder: "Price per unit *", style: { background: theme.bg, border: `1px solid ${theme.border}`, padding: 10, borderRadius: 8, color: theme.text }, value: formData.price || "", onChange: e => setFormData({...formData, price: e.target.value }) }),
-          React.createElement("input", { type: "date", style: { background: theme.bg, border: `1px solid ${theme.border}`, padding: 10, borderRadius: 8, color: theme.text }, value: formData.date || "", onChange: e => setFormData({...formData, date: e.target.value }) })
-        ),
-        React.createElement("div", { style: { display: "flex", gap: 12, justifyContent: "flex-end", marginTop: 20 } },
-          React.createElement("button", { onClick: closeModal, style: { background: "transparent", border: `1px solid ${theme.border}`, padding: "8px 16px", borderRadius: 8, color: theme.text } }, "Cancel"),
-          React.createElement("button", { onClick: submitAddHolding, style: { background: theme.greenBtn, border: "none", padding: "8px 16px", borderRadius: 8, color: "white", fontWeight: 700 } }, "Add")
-        )
-      );
-    } else if (modal === "trade") {
-      const { holding, tradeType, qty, price, date } = formData;
-      content = React.createElement("div", { style: { background: theme.bg2, borderRadius: 16, padding: 24, maxWidth: 400, width: "100%" } },
-        React.createElement("h3", { style: { marginBottom: 8 } }, `${tradeType === "buy" ? "Buy" : "Sell"} ${holding.ticker}`),
-        React.createElement("p", { style: { fontSize: 12, color: theme.text3, marginBottom: 16 } }, `Current price: ${holding.currency==="IDR"?`Rp ${fmtIDR(holding.currentPrice)}`:`$${holding.currentPrice.toFixed(2)}`}`),
-        React.createElement("div", { style: { display: "grid", gap: 12 } },
-          React.createElement("input", { type: "number", placeholder: "Quantity", style: { background: theme.bg, border: `1px solid ${theme.border}`, padding: 10, borderRadius: 8 }, value: qty || "", onChange: e => setFormData({...formData, qty: e.target.value }) }),
-          React.createElement("input", { type: "number", placeholder: "Price", style: { background: theme.bg, border: `1px solid ${theme.border}`, padding: 10, borderRadius: 8 }, value: price || "", onChange: e => setFormData({...formData, price: e.target.value }) }),
-          React.createElement("input", { type: "date", style: { background: theme.bg, border: `1px solid ${theme.border}`, padding: 10, borderRadius: 8 }, value: date || "", onChange: e => setFormData({...formData, date: e.target.value }) })
-        ),
-        React.createElement("div", { style: { display: "flex", gap: 12, justifyContent: "flex-end", marginTop: 20 } },
-          React.createElement("button", { onClick: closeModal, style: { background: "transparent", border: `1px solid ${theme.border}`, padding: "8px 16px", borderRadius: 8 } }, "Cancel"),
-          React.createElement("button", { onClick: submitTrade, style: { background: tradeType==="buy"?theme.greenBtn:theme.redBtn, border: "none", padding: "8px 16px", borderRadius: 8, color: "white", fontWeight: 700 } }, `Confirm ${tradeType}`)
-        )
-      );
-    } else if (modal === "dividend") {
-      const { holding, amountPerShare, entitledQty, date } = formData;
-      content = React.createElement("div", { style: { background: theme.bg2, borderRadius: 16, padding: 24, maxWidth: 400, width: "100%" } },
-        React.createElement("h3", { style: { marginBottom: 8 } }, `Record ${holding.isBondPct ? "Coupon" : "Dividend"} - ${holding.ticker}`),
-        React.createElement("div", { style: { display: "grid", gap: 12, marginTop: 16 } },
-          React.createElement("input", { type: "number", placeholder: `${holding.isBondPct ? "Coupon" : "Dividend"} per unit`, style: { background: theme.bg, border: `1px solid ${theme.border}`, padding: 10, borderRadius: 8 }, value: amountPerShare || "", onChange: e => setFormData({...formData, amountPerShare: e.target.value }) }),
-          React.createElement("input", { type: "number", placeholder: "Entitled units", style: { background: theme.bg, border: `1px solid ${theme.border}`, padding: 10, borderRadius: 8 }, value: entitledQty || "", onChange: e => setFormData({...formData, entitledQty: e.target.value }) }),
-          React.createElement("input", { type: "date", style: { background: theme.bg, border: `1px solid ${theme.border}`, padding: 10, borderRadius: 8 }, value: date || "", onChange: e => setFormData({...formData, date: e.target.value }) })
-        ),
-        React.createElement("div", { style: { display: "flex", gap: 12, justifyContent: "flex-end", marginTop: 20 } },
-          React.createElement("button", { onClick: closeModal, style: { background: "transparent", border: `1px solid ${theme.border}`, padding: "8px 16px", borderRadius: 8 } }, "Cancel"),
-          React.createElement("button", { onClick: submitDividend, style: { background: theme.tealBtn, border: "none", padding: "8px 16px", borderRadius: 8, color: "white", fontWeight: 700 } }, "Record")
-        )
-      );
-    } else if (modal === "price") {
-      content = React.createElement("div", { style: { background: theme.bg2, borderRadius: 16, padding: 24, maxWidth: 500, width: "100%", maxHeight: "80vh", overflowY: "auto" } },
-        React.createElement("h3", { style: { marginBottom: 16 } }, "Manual Price Override"),
-        holdings.map(h => React.createElement("div", { key: h.ticker, style: { marginBottom: 16, paddingBottom: 12, borderBottom: `1px solid ${theme.border}` } },
-          React.createElement("div", { style: { fontWeight: 700, marginBottom: 6 } }, h.ticker),
-          React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 } },
-            React.createElement("input", { type: "number", placeholder: "Current price", style: { background: theme.bg, border: `1px solid ${theme.border}`, padding: 8, borderRadius: 6 }, value: formData[`c_${h.ticker}`] || "", onChange: e => setFormData({...formData, [`c_${h.ticker}`]: e.target.value }) }),
-            React.createElement("input", { type: "number", placeholder: "Prev close", style: { background: theme.bg, border: `1px solid ${theme.border}`, padding: 8, borderRadius: 6 }, value: formData[`p_${h.ticker}`] || "", onChange: e => setFormData({...formData, [`p_${h.ticker}`]: e.target.value }) })
-          )
-        )),
-        React.createElement("div", { style: { display: "flex", gap: 12, justifyContent: "flex-end", marginTop: 20 } },
-          React.createElement("button", { onClick: closeModal, style: { background: "transparent", border: `1px solid ${theme.border}`, padding: "8px 16px", borderRadius: 8 } }, "Cancel"),
-          React.createElement("button", { onClick: submitManualPrice, style: { background: theme.greenBtn, border: "none", padding: "8px 16px", borderRadius: 8, color: "white", fontWeight: 700 } }, "Save Prices")
-        )
-      );
-    }
-    return React.createElement("div", { onClick: closeModal, style: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 } }, React.createElement("div", { onClick: e => e.stopPropagation() }, content));
-  };
-
-  return React.createElement(ErrorBoundary, null,
-    React.createElement("div", { style: { minHeight: "100vh", background: theme.bg, color: theme.text } },
-      React.createElement(Header, null),
-      React.createElement("main", { style: { padding: "16px" } }, view === "table" ? React.createElement(TableView, null) : React.createElement(ChartView, null)),
-      React.createElement(ModalOverlay, null)
-    )
-  );
+// ─── Treemap ──────────────────────────────────────────────────────────────────
+function squarify(items,x,y,w,h){
+  if(!items.length)return[];
+  const r=[];_layout(items,x,y,w,h,items.reduce((s,i)=>s+i.value,0),r);return r;
+}
+function _layout(it,x,y,w,h,tot,r){
+  if(!it.length)return;
+  if(it.length===1){r.push({...it[0],x,y,w,h});return;}
+  const hz=w>=h,dim=hz?w:h;let row=[],rt=0,best=Infinity;
+  for(let i=0;i<it.length;i++){
+    row.push(it[i]);rt+=it[i].value;
+    const rd=(rt/tot)*dim;let worst=0;
+    for(const ri of row){const od=(ri.value/rt)*(hz?h:w);const ra=Math.max(rd/od,od/rd);if(ra>worst)worst=ra;}
+    if(worst>best){row.pop();rt-=it[i].value;break;}best=worst;
+  }
+  const rd=(rt/tot)*dim;let cur=hz?y:x;
+  for(const ri of row){const sz=(ri.value/rt)*(hz?h:w);hz?r.push({...ri,x,y:cur,w:rd,h:sz}):r.push({...ri,x:cur,y,w:sz,h:rd});cur+=sz;}
+  const rem=it.slice(row.length);if(!rem.length)return;
+  const remT=tot-rt;hz?_layout(rem,x+rd,y,w-rd,h,remT,r):_layout(rem,x,y+rd,w,h-rd,remT,r);
 }
 
-// Render with error handling
-try {
-  const root = ReactDOM.createRoot(document.getElementById("root"));
-  root.render(React.createElement(App, null));
-} catch (err) {
-  console.error("Render error:", err);
-  document.getElementById("root").innerHTML = `<div id="root-error"><strong>Failed to load dashboard:</strong><br>${err.message}<br><br>Check console for details. Try refreshing.</div>`;
+// ─── Colors ───────────────────────────────────────────────────────────────────
+function gainColor(p,d){if(d){if(p>=3)return{bg:"#166534",text:"#bbf7d0",border:"#4ade80"};if(p>=1)return{bg:"#14532d",text:"#86efac",border:"#22c55e"};if(p>0)return{bg:"#0f3d22",text:"#4ade80",border:"#16a34a"};if(p===0)return{bg:"#1e2235",text:"#9ca3af",border:"#374151"};if(p>-1)return{bg:"#7f1d1d",text:"#fecaca",border:"#f87171"};if(p>-3)return{bg:"#991b1b",text:"#fca5a5",border:"#ef4444"};return{bg:"#b91c1c",text:"#fef2f2",border:"#fca5a5"};}else{if(p>=3)return{bg:"#bbf7d0",text:"#14532d",border:"#4ade80"};if(p>=1)return{bg:"#dcfce7",text:"#15803d",border:"#86efac"};if(p>0)return{bg:"#f0fdf4",text:"#16a34a",border:"#bbf7d0"};if(p===0)return{bg:"#f3f4f6",text:"#6b7280",border:"#d1d5db"};if(p>-1)return{bg:"#fef2f2",text:"#b91c1c",border:"#fecaca"};if(p>-3)return{bg:"#fee2e2",text:"#dc2626",border:"#fca5a5"};return{bg:"#fecaca",text:"#991b1b",border:"#f87171"};}}
+function dayColor(p,d){if(d){if(p>=2)return{bg:"#166534",text:"#bbf7d0",border:"#4ade80"};if(p>=0.5)return{bg:"#14532d",text:"#86efac",border:"#22c55e"};if(p>0)return{bg:"#0f3d22",text:"#4ade80",border:"#16a34a"};if(p===0)return{bg:"#1e2235",text:"#9ca3af",border:"#374151"};if(p>-0.5)return{bg:"#7f1d1d",text:"#fecaca",border:"#f87171"};if(p>-2)return{bg:"#991b1b",text:"#fca5a5",border:"#ef4444"};return{bg:"#b91c1c",text:"#fef2f2",border:"#fca5a5"};}else{if(p>=2)return{bg:"#bbf7d0",text:"#14532d",border:"#4ade80"};if(p>=0.5)return{bg:"#dcfce7",text:"#15803d",border:"#86efac"};if(p>0)return{bg:"#f0fdf4",text:"#16a34a",border:"#bbf7d0"};if(p===0)return{bg:"#f3f4f6",text:"#6b7280",border:"#d1d5db"};if(p>-0.5)return{bg:"#fef2f2",text:"#b91c1c",border:"#fecaca"};if(p>-2)return{bg:"#fee2e2",text:"#dc2626",border:"#fca5a5"};return{bg:"#fecaca",text:"#991b1b",border:"#f87171"};}}
+function divColor(y,d){if(d){if(y>=6)return{bg:"#155e75",text:"#cffafe",border:"#22d3ee"};if(y>=4)return{bg:"#0e7490",text:"#a5f3fc",border:"#06b6d4"};if(y>=2)return{bg:"#0c4a6e",text:"#7dd3fc",border:"#0891b2"};if(y>0)return{bg:"#1e3a5f",text:"#93c5fd",border:"#3b82f6"};return{bg:"#1e2235",text:"#6b7280",border:"#374151"};}else{if(y>=6)return{bg:"#cffafe",text:"#164e63",border:"#67e8f9"};if(y>=4)return{bg:"#e0f2fe",text:"#0c4a6e",border:"#7dd3fc"};if(y>=2)return{bg:"#eff6ff",text:"#1e3a8a",border:"#93c5fd"};if(y>0)return{bg:"#f0f9ff",text:"#0369a1",border:"#bae6fd"};return{bg:"#f3f4f6",text:"#9ca3af",border:"#e5e7eb"};}}
+
+// ─── Currency ─────────────────────────────────────────────────────────────────
+const toAUD=(a,cur,R)=>{if(cur==="IDR")return a/R.AUD_IDR;if(cur==="USD")return a/R.AUD_USD;return a;};
+const fromAUD=(a,cur,R)=>{if(cur==="IDR")return a*R.AUD_IDR;if(cur==="USD")return a*R.AUD_USD;return a;};
+function fmtIDR(n){try{return Math.round(n).toLocaleString("id-ID");}catch{return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,".");}}
+function fmtAUD(n){return Math.abs(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,",");}
+function fmtCur(audAmt,dc,R,compact=false){
+  const a=fromAUD(audAmt,dc,R);
+  if(dc==="IDR"){const abs=Math.abs(a);if(compact&&abs>=1e9)return`Rp${(a/1e9).toFixed(1)}M`;if(compact&&abs>=1e6)return`Rp${(a/1e6).toFixed(1)}Jt`;if(compact&&abs>=1e3)return`Rp${(a/1e3).toFixed(0)}Rb`;return`Rp ${fmtIDR(a)}`;}
+  if(dc==="USD"){const abs=Math.abs(a);if(compact&&abs>=1e6)return`US$${(a/1e6).toFixed(2)}M`;if(compact&&abs>=1e3)return`US$${(a/1e3).toFixed(1)}K`;return`US$${fmtAUD(a)}`;}
+  const abs=Math.abs(a);if(compact&&abs>=1e6)return`A$${(a/1e6).toFixed(2)}M`;if(compact&&abs>=1e3)return`A$${(a/1e3).toFixed(1)}K`;return`A$${fmtAUD(a)}`;
 }
-</script>
-</body>
-</html>
+function fmtGain(audAmt,dc,R){
+  const a=fromAUD(audAmt,dc,R);const sign=a>=0?"+":"-";
+  if(dc==="IDR")return`${sign}Rp ${fmtIDR(Math.abs(a))}`;
+  if(dc==="USD")return`${sign}US$${fmtAUD(a)}`;
+  return`${sign}A$${fmtAUD(a)}`;
+}
+const fmtPct=n=>`${n>=0?"+":""}${n.toFixed(2)}%`;
+const fmtDate=d=>{try{return new Date(d+"T12:00:00").toLocaleDateString("en-AU",{day:"2-digit",month:"short",year:"numeric"});}catch{return d;}};
+const fmtMon=d=>{try{const dt=new Date(d+"-01");return dt.toLocaleDateString("en-AU",{month:"short",year:"2-digit"});}catch{return d;}};
+const fmtMonShort=d=>{try{return new Date(d+"T12:00:00").toLocaleDateString("en-AU",{day:"2-digit",month:"short"});}catch{return d;}};
+const fmtTime=d=>{if(!d)return"—";try{return d.toLocaleTimeString("en-AU",{hour:"2-digit",minute:"2-digit"});}catch{return"—";}};
+
+// ─── Yahoo Symbol Suggester ───────────────────────────────────────────────────
+function suggestYahoo(ticker,exchange,assetType){
+  const ex=(exchange||"").toUpperCase().trim();const at=assetType||"";const tk=ticker.toUpperCase();
+  if(ex==="ASX")return tk+".AX";
+  if(ex==="IDX"||ex==="IDX (SECONDARY)")return tk+".JK";
+  if(ex==="NYSE"||ex==="NASDAQ"||ex==="AMEX")return tk;
+  if(ex==="LSE")return tk+".L";
+  if(ex==="SGX")return tk+".SI";
+  if(ex==="TSX")return tk+".TO";
+  if(ex==="CRYPTO"||tk==="BTC"||tk==="ETH"){const cm={BTC:"BTC-AUD",ETH:"ETH-AUD",BNB:"BNB-AUD",SOL:"SOL-AUD",XRP:"XRP-AUD",ADA:"ADA-AUD",DOGE:"DOGE-AUD",USDT:"USDT-AUD"};return cm[tk]||tk+"-AUD";}
+  if(ex==="SPOT"||at==="Commodity"){const cm={GOLD:"GC=F",SILVER:"SI=F",OIL:"CL=F",COPPER:"HG=F",PLATINUM:"PL=F",PALLADIUM:"PA=F",XAUUSD:"XAUUSD=X",XAGUSD:"XAGUSD=X"};return cm[tk]||"";}
+  if(at.includes("Bond")||at.includes("Sukuk"))return"";
+  return"";
+}
+
+// ─── Live Price Fetcher ───────────────────────────────────────────────────────
+const YAHOO_BASE ="https://query2.finance.yahoo.com/v8/finance/chart/";
+const YAHOO_BASE1="https://query1.finance.yahoo.com/v8/finance/chart/";
+const YAHOO_V7   ="https://query1.finance.yahoo.com/v7/finance/quote?symbols=";
+const RATES_URL  ="https://open.er-api.com/v6/latest/AUD";
+
+const PROXIES=[
+  u=>"https://corsproxy.io/?"+encodeURIComponent(u),
+  u=>"https://api.allorigins.win/raw?url="+encodeURIComponent(u),
+  u=>"https://proxy.cors.sh/"+u,
+  u=>"https://cors.eu.org/"+u,
+  u=>"https://api.codetabs.com/v1/proxy?quest="+encodeURIComponent(u),
+  u=>"https://corsproxy.org/?"+encodeURIComponent(u),
+  u=>"https://thingproxy.freeboard.io/fetch/"+u,
+  u=>"https://api.allorigins.win/get?url="+encodeURIComponent(u),
+];
+
+// ========== FIX: fetchWithProxyRaw defined before it's used ==========
+async function fetchWithProxyRaw(url,timeoutMs=10000){
+  return new Promise((resolve,reject)=>{
+    let settled=false;let pending=PROXIES.length;
+    PROXIES.forEach(proxy=>{
+      fetch(proxy(url),{signal:AbortSignal.timeout(timeoutMs)})
+        .then(async r=>{
+          if(!r.ok)throw new Error("HTTP "+r.status);
+          const t=await r.text();
+          if(!t||t.length<10)throw new Error("Empty");
+          if(t.trim().startsWith("{")&&t.includes('"contents"')){
+            try{const j=JSON.parse(t);if(j.contents){if(!settled){settled=true;resolve(j.contents);}return;}}catch(e){}
+          }
+          if(!settled){settled=true;resolve(t);}
+        })
+        .catch(()=>{
+          pending--;
+          if(pending===0&&!settled)reject(new Error("All proxies failed (raw)"));
+        });
+    });
+  });
+}
+
+async function tryProxy(proxyUrl, timeoutMs){
+  const r=await fetch(proxyUrl,{signal:AbortSignal.timeout(timeoutMs)});
+  if(!r.ok)throw new Error("HTTP "+r.status);
+  const t=await r.text();
+  if(!t||t.length<10)throw new Error("Empty response");
+  let parsed=JSON.parse(t);
+  if(parsed?.contents&&typeof parsed.contents==="string") parsed=JSON.parse(parsed.contents);
+  return parsed;
+}
+
+async function fetchWithProxy(url, timeoutMs=10000){
+  return new Promise((resolve,reject)=>{
+    let settled=false;
+    let pending=PROXIES.length;
+    const errors=[];
+    PROXIES.forEach(proxy=>{
+      tryProxy(proxy(url), timeoutMs)
+        .then(data=>{
+          if(!settled){settled=true;resolve(data);}
+        })
+        .catch(e=>{
+          errors.push(e.message);
+          pending--;
+          if(pending===0&&!settled) reject(new Error("All proxies failed: "+url.split("?")[0].split("/").pop()));
+        });
+    });
+  });
+}
+
+// ─── IDX (Indonesia Stock Exchange) public API ───────────────────────────────
+async function fetchIDXPrice(stockCode){
+  const code=stockCode.toUpperCase().replace(".JK","").trim();
+  const endpoints=[
+    `https://api-apps.idx.co.id/api/Stock/GetStockSummary?StockCode=${code}`,
+    `https://api-apps.idx.co.id/api/Stock/GetStockData?StockCode=${code}`,
+    `https://api-apps.idx.co.id/api/Stock/GetTradingResult?StockCode=${code}`,
+    `https://api.stockbit.com/v2.4/fundamental/financialsummary/${code}`,
+    `https://api.markets.ft.com/data/prices/v1/series/symbol/${code}.JK`,
+  ];
+  for(const url of endpoints){
+    try{
+      const d=await fetchWithProxy(url,8000);
+      if(!d)continue;
+      const item=d?.data||d?.Data||d;
+      const cur=parseFloat(item?.ClosePrice??item?.closePrice??item?.LastPrice??item?.lastPrice??item?.price??0);
+      if(cur>0){
+        const prev=parseFloat(item?.PreviousPrice??item?.previousPrice??item?.OpenPrice??cur);
+        return{current:cur,prev};
+      }
+      const arr=Array.isArray(item)?item:(item?.stockData||item?.result||[]);
+      if(arr.length){
+        const r=arr[0];
+        const cur2=parseFloat(r?.ClosePrice??r?.closePrice??r?.LastPrice??0);
+        if(cur2>0)return{current:cur2,prev:parseFloat(r?.PreviousPrice??cur2)};
+      }
+    }catch(e){}
+  }
+  throw new Error("IDX: "+code+" not found");
+}
+
+function toStooqSymbol(yahooSymbol){
+  const s=yahooSymbol.toUpperCase();
+  if(s.endsWith(".AX"))  return s.replace(".AX",".AU").toLowerCase();
+  if(s.endsWith(".JK"))  return s.replace(".JK",".ID").toLowerCase();
+  if(s.endsWith("-AUD")) return s.replace("-AUD","-AUD.CRYPTO").toLowerCase();
+  if(s.endsWith("-USD")) return s.replace("-USD","-USD.CRYPTO").toLowerCase();
+  if(s.endsWith("-BTC")) return s.replace("-BTC","-BTC.CRYPTO").toLowerCase();
+  if(s==="GC=F")  return "gc.f";
+  if(s==="SI=F")  return "si.f";
+  if(s==="CL=F")  return "cl.f";
+  if(s==="NG=F")  return "ng.f";
+  if(s.endsWith(".L"))   return s.toLowerCase();
+  if(s.endsWith(".SI"))  return s.toLowerCase();
+  if(s.endsWith(".TO"))  return s.toLowerCase();
+  if(s.endsWith(".HK"))  return s.toLowerCase();
+  if(!s.includes(".")&&!s.includes("-")&&!s.includes("=")) return s.toLowerCase()+".us";
+  return null;
+}
+
+async function fetchStooq(yahooSymbol){
+  const stooq=toStooqSymbol(yahooSymbol);
+  if(!stooq)throw new Error("No Stooq symbol for "+yahooSymbol);
+  const now=new Date();
+  const d1=new Date(now);d1.setDate(d1.getDate()-7);
+  const fmt=d=>`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}`;
+  const url=`https://stooq.com/q/d/l/?s=${stooq}&d1=${fmt(d1)}&d2=${fmt(now)}&i=d`;
+  const raw=await fetchWithProxyRaw(url);
+  const allLines=raw.trim().split("\n").map(l=>l.trim()).filter(Boolean);
+  if(allLines.length<2)throw new Error("Stooq: no data for "+stooq);
+  const header=allLines[0].toLowerCase().split(",");
+  const closeIdx=header.indexOf("close");
+  if(closeIdx<0)throw new Error("Stooq: no Close col");
+  const dataLines=allLines.slice(1).filter(l=>!/no data/i.test(l));
+  if(!dataLines.length)throw new Error("Stooq: empty data");
+  dataLines.sort((a,b)=>a.split(",")[0].localeCompare(b.split(",")[0]));
+  const parseClose=l=>parseFloat(l.split(",")[closeIdx])||0;
+  const cur=parseClose(dataLines[dataLines.length-1]);
+  const prev=dataLines.length>1?parseClose(dataLines[dataLines.length-2]):cur;
+  if(!cur)throw new Error("Stooq: zero price");
+  return{current:cur,prev};
+}
+async function fetchYahooPrice(symbol) {
+  const sym = encodeURIComponent(symbol);
+  const isJK = symbol.endsWith(".JK");
+
+  // Helper to parse Yahoo quote response (v7 or v8)
+  const parseQuote = (d) => {
+    const quote = d?.quoteResponse?.result?.[0] || d?.result?.[0];
+    if (quote && quote.regularMarketPrice) {
+      const prev = quote.regularMarketPreviousClose;
+      if (prev && prev !== quote.regularMarketPrice) {
+        return { current: quote.regularMarketPrice, prev: prev };
+     
