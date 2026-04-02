@@ -4,78 +4,38 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
   <title>FOLIO — Investment Dashboard</title>
-  <!-- Preconnect to Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-  <!-- External libraries -->
   <script src="https://unpkg.com/react@18.2.0/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-  <!-- Firebase (compat) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    body {
-      font-family: 'Roboto', sans-serif;
-      background: #0b0e14;
-      color: #eef2ff;
-      transition: background 0.2s, color 0.2s;
-    }
-    button {
-      cursor: pointer;
-      font-family: inherit;
-    }
-    input, select, textarea {
-      font-family: inherit;
-    }
-    /* utility */
-    .spin {
-      animation: spin 0.9s linear infinite;
-    }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    .pulse {
-      animation: pulse 1.5s ease-in-out infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
-    }
-    ::-webkit-scrollbar {
-      width: 5px;
-      height: 5px;
-    }
-    ::-webkit-scrollbar-track {
-      background: transparent;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #2a3a5a;
-      border-radius: 4px;
-    }
-    @media (max-width: 768px) {
-      .desktop-only { display: none; }
-      .mobile-flex { display: flex; }
-    }
-    @media (min-width: 769px) {
-      .mobile-only { display: none; }
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Roboto', sans-serif; background: #0b0e14; color: #eef2ff; transition: background 0.2s, color 0.2s; }
+    button { cursor: pointer; font-family: inherit; }
+    input, select, textarea { font-family: inherit; }
+    .spin { animation: spin 0.9s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .pulse { animation: pulse 1.5s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #2a3a5a; border-radius: 4px; }
+    @media (max-width: 768px) { .desktop-only { display: none; } .mobile-flex { display: flex; } }
+    @media (min-width: 769px) { .mobile-only { display: none; } }
+    #root-error { padding: 20px; background: #ffebee; color: #c62828; font-family: monospace; white-space: pre-wrap; margin: 20px; border-radius: 8px; }
   </style>
 </head>
 <body>
 <div id="root"></div>
 
-<script type="text/babel" data-presets="react">
+<script>
 // ----------------------------------------------------------------------
 //  CONFIGURATION & CONSTANTS
 // ----------------------------------------------------------------------
@@ -93,25 +53,19 @@ const ASSET_TYPES = ["Shares / Stocks","ETF","Mutual Fund","Index Fund","Superan
   "Commodity","Cryptocurrency","Forex","REIT / Property","Cash / Term Deposit","Other"];
 const CURRENCIES = ["AUD","IDR","USD"];
 
-// Themes
 const DARK = {
   bg: "#0a0c12", bg2: "#0f111a", bg3: "#141824", bg4: "#1a1f2e", bg5: "#202538",
-  border: "#252b3c", border2: "#30364c",
-  text: "#edf2ff", text2: "#9aa4c0", text3: "#5f6a84", text4: "#2a2f44",
-  green: "#4ade80", greenBtn: "#22c55e", red: "#f87171", redBtn: "#ef4444",
-  teal: "#2dd4bf", tealBtn: "#0d9488", amber: "#fbbf24", amberBg: "#1f1a0a",
+  border: "#252b3c", border2: "#30364c", text: "#edf2ff", text2: "#9aa4c0", text3: "#5f6a84", text4: "#2a2f44",
+  green: "#4ade80", greenBtn: "#22c55e", red: "#f87171", redBtn: "#ef4444", teal: "#2dd4bf", tealBtn: "#0d9488", amber: "#fbbf24", amberBg: "#1f1a0a",
   shadow: "0 8px 24px rgba(0,0,0,0.5)"
 };
 const LIGHT = {
   bg: "#f1f5f9", bg2: "#ffffff", bg3: "#f8fafc", bg4: "#f0f2f5", bg5: "#e6edf4",
-  border: "#dce3ec", border2: "#cbd5e1",
-  text: "#0f172a", text2: "#334155", text3: "#64748b", text4: "#cbd5e1",
-  green: "#15803d", greenBtn: "#16a34a", red: "#b91c1c", redBtn: "#dc2626",
-  teal: "#0e7490", tealBtn: "#0891b2", amber: "#d97706", amberBg: "#fffbeb",
+  border: "#dce3ec", border2: "#cbd5e1", text: "#0f172a", text2: "#334155", text3: "#64748b", text4: "#cbd5e1",
+  green: "#15803d", greenBtn: "#16a34a", red: "#b91c1c", redBtn: "#dc2626", teal: "#0e7490", tealBtn: "#0891b2", amber: "#d97706", amberBg: "#fffbeb",
   shadow: "0 4px 20px rgba(0,0,0,0.08)"
 };
 
-// Currency helpers
 function toAUD(amount, currency, rates) {
   if (currency === "IDR") return amount / rates.AUD_IDR;
   if (currency === "USD") return amount / rates.AUD_USD;
@@ -122,12 +76,8 @@ function fromAUD(amount, currency, rates) {
   if (currency === "USD") return amount * rates.AUD_USD;
   return amount;
 }
-function fmtIDR(n) {
-  return Math.round(n).toLocaleString("id-ID");
-}
-function fmtAUD(n) {
-  return n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-}
+function fmtIDR(n) { return Math.round(n).toLocaleString("id-ID"); }
+function fmtAUD(n) { return n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
 function fmtCurrency(audAmount, displayCur, rates, compact = false) {
   const val = fromAUD(audAmount, displayCur, rates);
   if (displayCur === "IDR") {
@@ -156,24 +106,15 @@ function fmtGain(audAmount, displayCur, rates) {
   return `${sign}A$${fmtAUD(Math.abs(val))}`;
 }
 const fmtPct = (n) => `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`;
-const fmtDate = (d) => {
-  try { return new Date(d+"T12:00:00").toLocaleDateString("en-AU", {day:"2-digit", month:"short", year:"numeric"}); } 
-  catch { return d; }
-};
+const fmtDate = (d) => { try { return new Date(d+"T12:00:00").toLocaleDateString("en-AU", {day:"2-digit", month:"short", year:"numeric"}); } catch { return d; } };
 
-// ----------------------------------------------------------------------
-//  SAMPLE SEED DATA
-// ----------------------------------------------------------------------
 const INIT_RATES = { AUD_IDR: 10550, AUD_USD: 0.645 };
 const SEED_HOLDINGS = [
   { id: 1, ticker: "BHP", name: "BHP Group Ltd", currency: "AUD", assetType: "Shares / Stocks", exchange: "ASX", yahooSymbol: "BHP.AX", transactions: [
-      { type: "buy", qty: 50, price: 42, date: "2022-06-10" },
-      { type: "buy", qty: 30, price: 44, date: "2023-01-15" },
-      { type: "dividend", amountPerShare: 1.30, totalAmount: 104, date: "2022-09-20" }
+      { type: "buy", qty: 50, price: 42, date: "2022-06-10" }, { type: "buy", qty: 30, price: 44, date: "2023-01-15" }, { type: "dividend", amountPerShare: 1.30, totalAmount: 104, date: "2022-09-20" }
     ] },
   { id: 2, ticker: "CBA", name: "Commonwealth Bank", currency: "AUD", assetType: "Shares / Stocks", exchange: "ASX", yahooSymbol: "CBA.AX", transactions: [
-      { type: "buy", qty: 20, price: 98, date: "2022-08-01" },
-      { type: "dividend", amountPerShare: 2.40, totalAmount: 48, date: "2022-09-30" }
+      { type: "buy", qty: 20, price: 98, date: "2022-08-01" }, { type: "dividend", amountPerShare: 2.40, totalAmount: 48, date: "2022-09-30" }
     ] },
   { id: 3, ticker: "VAS", name: "Vanguard Aus Shares ETF", currency: "AUD", assetType: "ETF", exchange: "ASX", yahooSymbol: "VAS.AX", transactions: [
       { type: "buy", qty: 100, price: 88, date: "2022-07-20" }
@@ -185,7 +126,6 @@ const SEED_HOLDINGS = [
 const INIT_PRICES = { BHP: 46.5, CBA: 128, VAS: 98, BBCA: 10050 };
 const INIT_PREV = { BHP: 45.8, CBA: 126.5, VAS: 97.2, BBCA: 9950 };
 
-// Helper to compute holding stats
 function computeHolding(holding, prices, prevPrices, rates) {
   let qty = 0, costBasisLocal = 0, realizedLocal = 0;
   let lots = [];
@@ -228,47 +168,11 @@ function computeHolding(holding, prices, prevPrices, rates) {
   const dayGainAUD = toAUD(dayGainLocal, holding.currency, rates);
   const divYieldOnCost = totalInvestedAUD > 0 ? (dividendsAUD / totalInvestedAUD) * 100 : 0;
   
-  return {
-    ...holding,
-    qty,
-    costBasis: costBasisAUD,
-    currentPrice,
-    prevClose,
-    currentValue: currentValueAUD,
-    unrealizedGain: unrealizedAUD,
-    realizedGain: realizedAUD,
-    totalDividends: dividendsAUD,
-    totalGain: totalGainAUD,
-    gainPct,
-    dayGain: dayGainAUD,
-    dayGainPct: dayPct,
-    divYieldOnCost,
-    totalInvested: totalInvestedAUD
-  };
+  return { ...holding, qty, costBasis: costBasisAUD, currentPrice, prevClose, currentValue: currentValueAUD,
+    unrealizedGain: unrealizedAUD, realizedGain: realizedAUD, totalDividends: dividendsAUD, totalGain: totalGainAUD,
+    gainPct, dayGain: dayGainAUD, dayGainPct: dayPct, divYieldOnCost, totalInvested: totalInvestedAUD };
 }
 
-// ----------------------------------------------------------------------
-//  REACT APP
-// ----------------------------------------------------------------------
-const { useState, useEffect, useMemo, useCallback } = React;
-
-// Error boundary
-class ErrorBoundary extends React.Component {
-  constructor(props) { super(props); this.state = { hasError: false, error: null }; }
-  static getDerivedStateFromError(error) { return { hasError: true, error }; }
-  render() {
-    if (this.state.hasError) {
-      return React.createElement("div", { style: { padding: 20, color: "red" } },
-        React.createElement("h2", {}, "Something went wrong"),
-        React.createElement("pre", {}, this.state.error?.stack),
-        React.createElement("button", { onClick: () => window.location.reload() }, "Reload")
-      );
-    }
-    return this.props.children;
-  }
-}
-
-// Helper to get color based on gain %
 function gainColor(pct, dark) {
   if (dark) {
     if (pct >= 3) return { bg: "#166534", text: "#bbf7d0", border: "#4ade80" };
@@ -289,30 +193,40 @@ function gainColor(pct, dark) {
   }
 }
 
-// Main App Component
+// ----------------------------------------------------------------------
+//  REACT APP (using createElement, no JSX)
+// ----------------------------------------------------------------------
+const { useState, useEffect, useMemo } = React;
+
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+  static getDerivedStateFromError(error) { return { hasError: true, error }; }
+  render() {
+    if (this.state.hasError) {
+      return React.createElement("div", { style: { padding: 20, color: "red", background: "#fff", margin: 20, borderRadius: 8 } },
+        React.createElement("h2", {}, "Something went wrong"),
+        React.createElement("pre", {}, this.state.error?.stack),
+        React.createElement("button", { onClick: () => window.location.reload() }, "Reload")
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function App() {
-  // Load from localStorage
-  const loadState = (key, def) => {
-    try {
-      const raw = localStorage.getItem(key);
-      return raw ? JSON.parse(raw) : def;
-    } catch { return def; }
-  };
+  const loadState = (key, def) => { try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : def; } catch { return def; } };
   const [portfolio, setPortfolio] = useState(() => loadState("folio_portfolio", SEED_HOLDINGS));
   const [prices, setPrices] = useState(() => loadState("folio_prices", INIT_PRICES));
   const [prevPrices, setPrevPrices] = useState(() => loadState("folio_prev", INIT_PREV));
   const [rates, setRates] = useState(() => loadState("folio_rates", INIT_RATES));
   const [displayCur, setDisplayCur] = useState(() => loadState("folio_cur", "AUD"));
   const [darkMode, setDarkMode] = useState(() => loadState("folio_dark", true));
-  const [view, setView] = useState("table"); // table, chart
-  const [selectedHolding, setSelectedHolding] = useState(null);
+  const [view, setView] = useState("table");
   const [modal, setModal] = useState(null);
   const [formData, setFormData] = useState({});
   const [valuesHidden, setValuesHidden] = useState(false);
-  
   const theme = darkMode ? DARK : LIGHT;
-  
-  // Persist state
+
   useEffect(() => {
     localStorage.setItem("folio_portfolio", JSON.stringify(portfolio));
     localStorage.setItem("folio_prices", JSON.stringify(prices));
@@ -321,18 +235,9 @@ function App() {
     localStorage.setItem("folio_cur", JSON.stringify(displayCur));
     localStorage.setItem("folio_dark", JSON.stringify(darkMode));
   }, [portfolio, prices, prevPrices, rates, displayCur, darkMode]);
-  
-  // Apply body background
-  useEffect(() => {
-    document.body.style.backgroundColor = theme.bg;
-    document.body.style.color = theme.text;
-  }, [theme]);
-  
-  // Compute holdings with current data
-  const holdings = useMemo(() => {
-    return portfolio.map(h => computeHolding(h, prices, prevPrices, rates)).filter(h => h.qty > 0);
-  }, [portfolio, prices, prevPrices, rates]);
-  
+  useEffect(() => { document.body.style.backgroundColor = theme.bg; document.body.style.color = theme.text; }, [theme]);
+
+  const holdings = useMemo(() => portfolio.map(h => computeHolding(h, prices, prevPrices, rates)).filter(h => h.qty > 0), [portfolio, prices, prevPrices, rates]);
   const totalValue = holdings.reduce((s, h) => s + h.currentValue, 0);
   const totalGain = holdings.reduce((s, h) => s + h.totalGain, 0);
   const totalInvested = holdings.reduce((s, h) => s + h.totalInvested, 0);
@@ -341,12 +246,10 @@ function App() {
   const dayGainTotal = holdings.reduce((s, h) => s + h.dayGain, 0);
   const dayPctTotal = (totalValue - dayGainTotal) > 0 ? (dayGainTotal / (totalValue - dayGainTotal)) * 100 : 0;
   const divYield = totalInvested > 0 ? (totalDividends / totalInvested) * 100 : 0;
-  
-  // Helper formatters with hide flag
+
   const fmtVal = (audAmt, compact = false) => valuesHidden ? "••••••" : fmtCurrency(audAmt, displayCur, rates, compact);
   const fmtGainStr = (audAmt) => valuesHidden ? "••••••" : fmtGain(audAmt, displayCur, rates);
-  
-  // Modal handlers
+
   const closeModal = () => { setModal(null); setFormData({}); };
   const openAddHolding = () => {
     setModal("add");
@@ -360,148 +263,84 @@ function App() {
     if (existing) {
       setPortfolio(prev => prev.map(h => h.ticker === newTicker ? { ...h, transactions: [...h.transactions, { type: "buy", qty: parseFloat(qty), price: parseFloat(price), date }] } : h));
     } else {
-      const newHolding = {
-        id: Date.now(),
-        ticker: newTicker,
-        name: name || newTicker,
-        currency,
-        assetType,
-        exchange,
-        yahooSymbol: yahooSymbol || "",
-        transactions: [{ type: "buy", qty: parseFloat(qty), price: parseFloat(price), date }]
-      };
+      const newHolding = { id: Date.now(), ticker: newTicker, name: name || newTicker, currency, assetType, exchange, yahooSymbol: yahooSymbol || "", transactions: [{ type: "buy", qty: parseFloat(qty), price: parseFloat(price), date }] };
       setPortfolio(prev => [...prev, newHolding]);
       setPrices(prev => ({ ...prev, [newTicker]: parseFloat(price) }));
       setPrevPrices(prev => ({ ...prev, [newTicker]: parseFloat(price) }));
     }
     closeModal();
   };
-  
-  const openTrade = (holding, type) => {
-    setModal("trade");
-    setFormData({ holding, tradeType: type, qty: "", price: holding.currentPrice, date: new Date().toISOString().slice(0,10) });
-  };
-  const submitTrade = () => {
-    const { holding, tradeType, qty, price, date } = formData;
-    if (!qty || !price) return;
-    setPortfolio(prev => prev.map(h => h.id === holding.id ? { ...h, transactions: [...h.transactions, { type: tradeType, qty: parseFloat(qty), price: parseFloat(price), date }] } : h));
-    closeModal();
-  };
-  
-  const openDividend = (holding) => {
-    setModal("dividend");
-    setFormData({ holding, amountPerShare: "", entitledQty: holding.qty.toString(), date: new Date().toISOString().slice(0,10) });
-  };
-  const submitDividend = () => {
-    const { holding, amountPerShare, entitledQty, date } = formData;
-    if (!amountPerShare || !entitledQty) return;
-    const total = parseFloat(amountPerShare) * parseFloat(entitledQty);
-    setPortfolio(prev => prev.map(h => h.id === holding.id ? { ...h, transactions: [...h.transactions, { type: "dividend", amountPerShare: parseFloat(amountPerShare), totalAmount: total, entitledQty: parseFloat(entitledQty), date }] } : h));
-    closeModal();
-  };
-  
-  const openManualPrice = () => {
-    const manual = {};
-    holdings.forEach(h => { manual[`c_${h.ticker}`] = prices[h.ticker] || ""; manual[`p_${h.ticker}`] = prevPrices[h.ticker] || ""; });
-    setModal("price");
-    setFormData(manual);
-  };
-  const submitManualPrice = () => {
-    const newPrices = { ...prices };
-    const newPrev = { ...prevPrices };
-    Object.entries(formData).forEach(([key, val]) => {
-      if (key.startsWith("c_") && val !== "") newPrices[key.slice(2)] = parseFloat(val);
-      if (key.startsWith("p_") && val !== "") newPrev[key.slice(2)] = parseFloat(val);
-    });
-    setPrices(newPrices);
-    setPrevPrices(newPrev);
-    closeModal();
-  };
-  
-  // Table rendering
-  const TableView = () => (
-    React.createElement("div", { style: { overflowX: "auto", background: theme.bg2, borderRadius: 12, border: `1px solid ${theme.border}`, padding: "0 0 1px 0" } },
-      React.createElement("table", { style: { width: "100%", borderCollapse: "collapse", fontSize: 12 } },
-        React.createElement("thead", {},
-          React.createElement("tr", {},
-            ["Ticker","Name","Type","CCY","Units","Avg Cost","Current","Day G/L","Value","Total G/L","G/L%","Div/Coupon","Div Yld","Actions"].map(h => 
-              React.createElement("th", { key: h, style: { textAlign: "left", padding: "12px 10px", fontSize: 9, letterSpacing: 1, color: theme.text3, borderBottom: `1px solid ${theme.border}`, background: theme.bg3, whiteSpace: "nowrap" } }, h)
-            )
-          )
-        ),
-        React.createElement("tbody", {},
-          holdings.map((h, idx) => {
-            const gc = gainColor(h.gainPct, darkMode);
-            const rowBg = idx % 2 === 0 ? theme.bg : theme.bg2;
-            return React.createElement("tr", { key: h.ticker, style: { background: rowBg }, onMouseEnter: e=>e.currentTarget.style.background=theme.bg4, onMouseLeave: e=>e.currentTarget.style.background=rowBg },
-              React.createElement("td", { style: { padding: "10px 10px", fontFamily: "'Space Mono', monospace", fontWeight: 700, borderBottom: `1px solid ${theme.border}` } }, h.ticker),
-              React.createElement("td", { style: { padding: "10px 10px", color: theme.text2, borderBottom: `1px solid ${theme.border}`, maxWidth: 150, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, h.name),
-              React.createElement("td", { style: { padding: "10px 10px", color: theme.text3, borderBottom: `1px solid ${theme.border}` } }, h.assetType?.slice(0,12)),
-              React.createElement("td", { style: { padding: "10px 10px", fontFamily: "'Space Mono', monospace", borderBottom: `1px solid ${theme.border}` } }, h.currency),
-              React.createElement("td", { style: { padding: "10px 10px", fontFamily: "'Space Mono', monospace", borderBottom: `1px solid ${theme.border}` } }, h.qty.toFixed(4)),
-              React.createElement("td", { style: { padding: "10px 10px", fontFamily: "'Space Mono', monospace", borderBottom: `1px solid ${theme.border}` } }, fmtVal(h.costBasis / Math.max(h.qty,0.001), true)),
-              React.createElement("td", { style: { padding: "10px 10px", fontFamily: "'Space Mono', monospace", borderBottom: `1px solid ${theme.border}` } }, h.currency==="IDR"?`Rp ${fmtIDR(h.currentPrice)}`:(h.currency==="USD"?`$${h.currentPrice.toFixed(2)}`: `A$${h.currentPrice.toFixed(2)}`)),
-              React.createElement("td", { style: { padding: "10px 10px", fontFamily: "'Space Mono', monospace", color: h.dayGain>=0?theme.green:theme.red, borderBottom: `1px solid ${theme.border}` } }, `${fmtGainStr(h.dayGain)} (${fmtPct(h.dayGainPct)})`),
-              React.createElement("td", { style: { padding: "10px 10px", fontFamily: "'Space Mono', monospace", fontWeight: 600, borderBottom: `1px solid ${theme.border}` } }, fmtVal(h.currentValue, true)),
-              React.createElement("td", { style: { padding: "10px 10px", fontFamily: "'Space Mono', monospace", color: h.totalGain>=0?theme.green:theme.red, borderBottom: `1px solid ${theme.border}` } }, fmtGainStr(h.totalGain)),
-              React.createElement("td", { style: { padding: "10px 10px", borderBottom: `1px solid ${theme.border}` } }, React.createElement("span", { style: { background: gc.bg, color: gc.text, padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 700 } }, fmtPct(h.gainPct))),
-              React.createElement("td", { style: { padding: "10px 10px", fontFamily: "'Space Mono', monospace", color: theme.teal, borderBottom: `1px solid ${theme.border}` } }, fmtVal(h.totalDividends, true)),
-              React.createElement("td", { style: { padding: "10px 10px", fontFamily: "'Space Mono', monospace", color: theme.teal, borderBottom: `1px solid ${theme.border}` } }, fmtPct(h.divYieldOnCost)),
-              React.createElement("td", { style: { padding: "10px 10px", borderBottom: `1px solid ${theme.border}` } },
-                React.createElement("div", { style: { display: "flex", gap: 5 } },
-                  React.createElement("button", { onClick: ()=>openTrade(h,"buy"), style: { background: theme.greenBtn, border: "none", color: "white", padding: "4px 8px", borderRadius: 5, fontSize: 10, fontWeight: 700 } }, "B"),
-                  React.createElement("button", { onClick: ()=>openTrade(h,"sell"), style: { background: theme.redBtn, border: "none", color: "white", padding: "4px 8px", borderRadius: 5, fontSize: 10, fontWeight: 700 } }, "S"),
-                  React.createElement("button", { onClick: ()=>openDividend(h), style: { background: theme.tealBtn, border: "none", color: "white", padding: "4px 8px", borderRadius: 5, fontSize: 10, fontWeight: 700 } }, "D")
-                )
-              )
-            );
-          })
-        )
-      )
+  const openTrade = (holding, type) => { setModal("trade"); setFormData({ holding, tradeType: type, qty: "", price: holding.currentPrice, date: new Date().toISOString().slice(0,10) }); };
+  const submitTrade = () => { const { holding, tradeType, qty, price, date } = formData; if (!qty || !price) return; setPortfolio(prev => prev.map(h => h.id === holding.id ? { ...h, transactions: [...h.transactions, { type: tradeType, qty: parseFloat(qty), price: parseFloat(price), date }] } : h)); closeModal(); };
+  const openDividend = (holding) => { setModal("dividend"); setFormData({ holding, amountPerShare: "", entitledQty: holding.qty.toString(), date: new Date().toISOString().slice(0,10) }); };
+  const submitDividend = () => { const { holding, amountPerShare, entitledQty, date } = formData; if (!amountPerShare || !entitledQty) return; const total = parseFloat(amountPerShare) * parseFloat(entitledQty); setPortfolio(prev => prev.map(h => h.id === holding.id ? { ...h, transactions: [...h.transactions, { type: "dividend", amountPerShare: parseFloat(amountPerShare), totalAmount: total, entitledQty: parseFloat(entitledQty), date }] } : h)); closeModal(); };
+  const openManualPrice = () => { const manual = {}; holdings.forEach(h => { manual[`c_${h.ticker}`] = prices[h.ticker] || ""; manual[`p_${h.ticker}`] = prevPrices[h.ticker] || ""; }); setModal("price"); setFormData(manual); };
+  const submitManualPrice = () => { const newPrices = { ...prices }; const newPrev = { ...prevPrices }; Object.entries(formData).forEach(([key, val]) => { if (key.startsWith("c_") && val !== "") newPrices[key.slice(2)] = parseFloat(val); if (key.startsWith("p_") && val !== "") newPrev[key.slice(2)] = parseFloat(val); }); setPrices(newPrices); setPrevPrices(newPrev); closeModal(); };
+
+  const TableView = () => React.createElement("div", { style: { overflowX: "auto", background: theme.bg2, borderRadius: 12, border: `1px solid ${theme.border}`, padding: "0 0 1px 0" } },
+    React.createElement("table", { style: { width: "100%", borderCollapse: "collapse", fontSize: 12 } },
+      React.createElement("thead", {}, React.createElement("tr", {}, ["Ticker","Name","Type","CCY","Units","Avg Cost","Current","Day G/L","Value","Total G/L","G/L%","Div/Coupon","Div Yld","Actions"].map(h => React.createElement("th", { key: h, style: { textAlign: "left", padding: "12px 10px", fontSize: 9, letterSpacing: 1, color: theme.text3, borderBottom: `1px solid ${theme.border}`, background: theme.bg3, whiteSpace: "nowrap" } }, h)))),
+      React.createElement("tbody", {}, holdings.map((h, idx) => {
+        const gc = gainColor(h.gainPct, darkMode);
+        const rowBg = idx % 2 === 0 ? theme.bg : theme.bg2;
+        return React.createElement("tr", { key: h.ticker, style: { background: rowBg }, onMouseEnter: e=>e.currentTarget.style.background=theme.bg4, onMouseLeave: e=>e.currentTarget.style.background=rowBg },
+          React.createElement("td", { style: { padding: "10px 10px", fontFamily: "'Space Mono', monospace", fontWeight: 700, borderBottom: `1px solid ${theme.border}` } }, h.ticker),
+          React.createElement("td", { style: { padding: "10px 10px", color: theme.text2, borderBottom: `1px solid ${theme.border}`, maxWidth: 150, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, h.name),
+          React.createElement("td", { style: { padding: "10px 10px", color: theme.text3, borderBottom: `1px solid ${theme.border}` } }, h.assetType?.slice(0,12)),
+          React.createElement("td", { style: { padding: "10px 10px", fontFamily: "'Space Mono', monospace", borderBottom: `1px solid ${theme.border}` } }, h.currency),
+          React.createElement("td", { style: { padding: "10px 10px", fontFamily: "'Space Mono', monospace", borderBottom: `1px solid ${theme.border}` } }, h.qty.toFixed(4)),
+          React.createElement("td", { style: { padding: "10px 10px", fontFamily: "'Space Mono', monospace", borderBottom: `1px solid ${theme.border}` } }, fmtVal(h.costBasis / Math.max(h.qty,0.001), true)),
+          React.createElement("td", { style: { padding: "10px 10px", fontFamily: "'Space Mono', monospace", borderBottom: `1px solid ${theme.border}` } }, h.currency==="IDR"?`Rp ${fmtIDR(h.currentPrice)}`:(h.currency==="USD"?`$${h.currentPrice.toFixed(2)}`: `A$${h.currentPrice.toFixed(2)}`)),
+          React.createElement("td", { style: { padding: "10px 10px", fontFamily: "'Space Mono', monospace", color: h.dayGain>=0?theme.green:theme.red, borderBottom: `1px solid ${theme.border}` } }, `${fmtGainStr(h.dayGain)} (${fmtPct(h.dayGainPct)})`),
+          React.createElement("td", { style: { padding: "10px 10px", fontFamily: "'Space Mono', monospace", fontWeight: 600, borderBottom: `1px solid ${theme.border}` } }, fmtVal(h.currentValue, true)),
+          React.createElement("td", { style: { padding: "10px 10px", fontFamily: "'Space Mono', monospace", color: h.totalGain>=0?theme.green:theme.red, borderBottom: `1px solid ${theme.border}` } }, fmtGainStr(h.totalGain)),
+          React.createElement("td", { style: { padding: "10px 10px", borderBottom: `1px solid ${theme.border}` } }, React.createElement("span", { style: { background: gc.bg, color: gc.text, padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 700 } }, fmtPct(h.gainPct))),
+          React.createElement("td", { style: { padding: "10px 10px", fontFamily: "'Space Mono', monospace", color: theme.teal, borderBottom: `1px solid ${theme.border}` } }, fmtVal(h.totalDividends, true)),
+          React.createElement("td", { style: { padding: "10px 10px", fontFamily: "'Space Mono', monospace", color: theme.teal, borderBottom: `1px solid ${theme.border}` } }, fmtPct(h.divYieldOnCost)),
+          React.createElement("td", { style: { padding: "10px 10px", borderBottom: `1px solid ${theme.border}` } }, React.createElement("div", { style: { display: "flex", gap: 5 } },
+            React.createElement("button", { onClick: ()=>openTrade(h,"buy"), style: { background: theme.greenBtn, border: "none", color: "white", padding: "4px 8px", borderRadius: 5, fontSize: 10, fontWeight: 700 } }, "B"),
+            React.createElement("button", { onClick: ()=>openTrade(h,"sell"), style: { background: theme.redBtn, border: "none", color: "white", padding: "4px 8px", borderRadius: 5, fontSize: 10, fontWeight: 700 } }, "S"),
+            React.createElement("button", { onClick: ()=>openDividend(h), style: { background: theme.tealBtn, border: "none", color: "white", padding: "4px 8px", borderRadius: 5, fontSize: 10, fontWeight: 700 } }, "D")
+          ))
+        );
+      }))
     )
   );
-  
-  // Simple ChartView with placeholder (avoid Chart.js complexity for brevity but functional)
-  const ChartView = () => (
-    React.createElement("div", { style: { background: theme.bg2, borderRadius: 12, border: `1px solid ${theme.border}`, padding: 20, textAlign: "center" } },
-      React.createElement("div", { style: { fontSize: 14, fontWeight: 500, marginBottom: 10 } }, "Portfolio Analytics"),
-      React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px,1fr))", gap: 16, marginTop: 16 } },
-        React.createElement("div", { style: { background: theme.bg3, padding: 14, borderRadius: 10 } }, React.createElement("div", { style: { fontSize: 11, color: theme.text3 } }, "Total Value"), React.createElement("div", { style: { fontSize: 18, fontWeight: 700, fontFamily: "'Space Mono', monospace" } }, fmtVal(totalValue))),
-        React.createElement("div", { style: { background: theme.bg3, padding: 14, borderRadius: 10 } }, React.createElement("div", { style: { fontSize: 11, color: theme.text3 } }, "Total Gain/Loss"), React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: totalGain>=0?theme.green:theme.red, fontFamily: "'Space Mono', monospace" } }, fmtGainStr(totalGain))),
-        React.createElement("div", { style: { background: theme.bg3, padding: 14, borderRadius: 10 } }, React.createElement("div", { style: { fontSize: 11, color: theme.text3 } }, "Dividends Received"), React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: theme.teal, fontFamily: "'Space Mono', monospace" } }, fmtVal(totalDividends))),
-        React.createElement("div", { style: { background: theme.bg3, padding: 14, borderRadius: 10 } }, React.createElement("div", { style: { fontSize: 11, color: theme.text3 } }, "Total ROI"), React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: totalGain>=0?theme.green:theme.red, fontFamily: "'Space Mono', monospace" } }, fmtPct(totalGainPct)))
-      )
+
+  const ChartView = () => React.createElement("div", { style: { background: theme.bg2, borderRadius: 12, border: `1px solid ${theme.border}`, padding: 20, textAlign: "center" } },
+    React.createElement("div", { style: { fontSize: 14, fontWeight: 500, marginBottom: 10 } }, "Portfolio Analytics"),
+    React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px,1fr))", gap: 16, marginTop: 16 } },
+      React.createElement("div", { style: { background: theme.bg3, padding: 14, borderRadius: 10 } }, React.createElement("div", { style: { fontSize: 11, color: theme.text3 } }, "Total Value"), React.createElement("div", { style: { fontSize: 18, fontWeight: 700, fontFamily: "'Space Mono', monospace" } }, fmtVal(totalValue))),
+      React.createElement("div", { style: { background: theme.bg3, padding: 14, borderRadius: 10 } }, React.createElement("div", { style: { fontSize: 11, color: theme.text3 } }, "Total Gain/Loss"), React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: totalGain>=0?theme.green:theme.red, fontFamily: "'Space Mono', monospace" } }, fmtGainStr(totalGain))),
+      React.createElement("div", { style: { background: theme.bg3, padding: 14, borderRadius: 10 } }, React.createElement("div", { style: { fontSize: 11, color: theme.text3 } }, "Dividends Received"), React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: theme.teal, fontFamily: "'Space Mono', monospace" } }, fmtVal(totalDividends))),
+      React.createElement("div", { style: { background: theme.bg3, padding: 14, borderRadius: 10 } }, React.createElement("div", { style: { fontSize: 11, color: theme.text3 } }, "Total ROI"), React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: totalGain>=0?theme.green:theme.red, fontFamily: "'Space Mono', monospace" } }, fmtPct(totalGainPct)))
     )
   );
-  
-  // Header
-  const Header = () => (
-    React.createElement("header", { style: { background: theme.bg2, borderBottom: `1px solid ${theme.border}`, padding: "12px 16px", position: "sticky", top: 0, zIndex: 10, boxShadow: theme.shadow } },
-      React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 } },
-        React.createElement("div", { style: { fontFamily: "'Space Mono', monospace", fontSize: 20, fontWeight: 700, letterSpacing: 2, background: "linear-gradient(135deg, #22c55e, #06b6d4)", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" } }, "FOLIO"),
-        React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" } },
-          React.createElement("button", { onClick: () => setDarkMode(!darkMode), style: { background: theme.bg4, border: `1px solid ${theme.border}`, borderRadius: 8, padding: "6px 12px", fontSize: 13, color: theme.text } }, darkMode ? "☀️ Light" : "🌙 Dark"),
-          React.createElement("button", { onClick: () => setValuesHidden(!valuesHidden), style: { background: theme.bg4, border: `1px solid ${theme.border}`, borderRadius: 8, padding: "6px 12px", fontSize: 13, color: theme.text } }, valuesHidden ? "👁️ Show" : "🙈 Hide"),
-          React.createElement("button", { onClick: openManualPrice, style: { background: theme.bg4, border: `1px solid ${theme.border}`, borderRadius: 8, padding: "6px 12px", fontSize: 13, color: theme.text } }, "✏️ Prices"),
-          React.createElement("button", { onClick: openAddHolding, style: { background: theme.greenBtn, border: "none", borderRadius: 8, padding: "6px 16px", fontSize: 13, fontWeight: 700, color: "white" } }, "+ Add Holding")
-        )
+
+  const Header = () => React.createElement("header", { style: { background: theme.bg2, borderBottom: `1px solid ${theme.border}`, padding: "12px 16px", position: "sticky", top: 0, zIndex: 10, boxShadow: theme.shadow } },
+    React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 } },
+      React.createElement("div", { style: { fontFamily: "'Space Mono', monospace", fontSize: 20, fontWeight: 700, letterSpacing: 2, background: "linear-gradient(135deg, #22c55e, #06b6d4)", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" } }, "FOLIO"),
+      React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" } },
+        React.createElement("button", { onClick: () => setDarkMode(!darkMode), style: { background: theme.bg4, border: `1px solid ${theme.border}`, borderRadius: 8, padding: "6px 12px", fontSize: 13, color: theme.text } }, darkMode ? "☀️ Light" : "🌙 Dark"),
+        React.createElement("button", { onClick: () => setValuesHidden(!valuesHidden), style: { background: theme.bg4, border: `1px solid ${theme.border}`, borderRadius: 8, padding: "6px 12px", fontSize: 13, color: theme.text } }, valuesHidden ? "👁️ Show" : "🙈 Hide"),
+        React.createElement("button", { onClick: openManualPrice, style: { background: theme.bg4, border: `1px solid ${theme.border}`, borderRadius: 8, padding: "6px 12px", fontSize: 13, color: theme.text } }, "✏️ Prices"),
+        React.createElement("button", { onClick: openAddHolding, style: { background: theme.greenBtn, border: "none", borderRadius: 8, padding: "6px 16px", fontSize: 13, fontWeight: 700, color: "white" } }, "+ Add Holding")
+      )
+    ),
+    React.createElement("div", { style: { display: "flex", gap: 12, marginTop: 12, flexWrap: "wrap", justifyContent: "space-between", alignItems: "center" } },
+      React.createElement("div", { style: { display: "flex", gap: 20, flexWrap: "wrap" } },
+        React.createElement("div", {}, React.createElement("div", { style: { fontSize: 9, color: theme.text3, letterSpacing: 1 } }, "TOTAL VALUE"), React.createElement("div", { style: { fontFamily: "'Space Mono', monospace", fontSize: 16, fontWeight: 700 } }, fmtVal(totalValue))),
+        React.createElement("div", {}, React.createElement("div", { style: { fontSize: 9, color: theme.text3 } }, "TOTAL G/L"), React.createElement("div", { style: { fontFamily: "'Space Mono', monospace", fontSize: 14, fontWeight: 700, color: totalGain>=0?theme.green:theme.red } }, `${fmtGainStr(totalGain)} (${fmtPct(totalGainPct)})`)),
+        React.createElement("div", {}, React.createElement("div", { style: { fontSize: 9, color: theme.text3 } }, "DAY G/L"), React.createElement("div", { style: { fontFamily: "'Space Mono', monospace", fontSize: 14, fontWeight: 700, color: dayGainTotal>=0?theme.green:theme.red } }, `${fmtGainStr(dayGainTotal)} (${fmtPct(dayPctTotal)})`)),
+        React.createElement("div", {}, React.createElement("div", { style: { fontSize: 9, color: theme.text3 } }, "DIV YIELD"), React.createElement("div", { style: { fontFamily: "'Space Mono', monospace", fontSize: 14, fontWeight: 700, color: theme.teal } }, fmtPct(divYield)))
       ),
-      React.createElement("div", { style: { display: "flex", gap: 12, marginTop: 12, flexWrap: "wrap", justifyContent: "space-between", alignItems: "center" } },
-        React.createElement("div", { style: { display: "flex", gap: 20, flexWrap: "wrap" } },
-          React.createElement("div", {}, React.createElement("div", { style: { fontSize: 9, color: theme.text3, letterSpacing: 1 } }, "TOTAL VALUE"), React.createElement("div", { style: { fontFamily: "'Space Mono', monospace", fontSize: 16, fontWeight: 700 } }, fmtVal(totalValue))),
-          React.createElement("div", {}, React.createElement("div", { style: { fontSize: 9, color: theme.text3 } }, "TOTAL G/L"), React.createElement("div", { style: { fontFamily: "'Space Mono', monospace", fontSize: 14, fontWeight: 700, color: totalGain>=0?theme.green:theme.red } }, `${fmtGainStr(totalGain)} (${fmtPct(totalGainPct)})`)),
-          React.createElement("div", {}, React.createElement("div", { style: { fontSize: 9, color: theme.text3 } }, "DAY G/L"), React.createElement("div", { style: { fontFamily: "'Space Mono', monospace", fontSize: 14, fontWeight: 700, color: dayGainTotal>=0?theme.green:theme.red } }, `${fmtGainStr(dayGainTotal)} (${fmtPct(dayPctTotal)})`)),
-          React.createElement("div", {}, React.createElement("div", { style: { fontSize: 9, color: theme.text3 } }, "DIV YIELD"), React.createElement("div", { style: { fontFamily: "'Space Mono', monospace", fontSize: 14, fontWeight: 700, color: theme.teal } }, fmtPct(divYield)))
-        ),
-        React.createElement("div", { style: { display: "flex", gap: 6, background: theme.bg4, borderRadius: 8, padding: 3 } },
-          React.createElement("button", { onClick: () => setView("table"), style: { padding: "5px 12px", borderRadius: 6, border: "none", background: view==="table"?theme.bg2:"transparent", color: view==="table"?theme.text:theme.text3, fontWeight: view==="table"?700:400, fontSize: 12 } }, "Table"),
-          React.createElement("button", { onClick: () => setView("chart"), style: { padding: "5px 12px", borderRadius: 6, border: "none", background: view==="chart"?theme.bg2:"transparent", color: view==="chart"?theme.text:theme.text3, fontWeight: view==="chart"?700:400, fontSize: 12 } }, "Charts")
-        )
+      React.createElement("div", { style: { display: "flex", gap: 6, background: theme.bg4, borderRadius: 8, padding: 3 } },
+        React.createElement("button", { onClick: () => setView("table"), style: { padding: "5px 12px", borderRadius: 6, border: "none", background: view==="table"?theme.bg2:"transparent", color: view==="table"?theme.text:theme.text3, fontWeight: view==="table"?700:400, fontSize: 12 } }, "Table"),
+        React.createElement("button", { onClick: () => setView("chart"), style: { padding: "5px 12px", borderRadius: 6, border: "none", background: view==="chart"?theme.bg2:"transparent", color: view==="chart"?theme.text:theme.text3, fontWeight: view==="chart"?700:400, fontSize: 12 } }, "Charts")
       )
     )
   );
-  
-  // Modal renderer
+
   const ModalOverlay = () => {
     if (!modal) return null;
     let content = null;
@@ -566,25 +405,26 @@ function App() {
         )
       );
     }
-    return React.createElement("div", { onClick: closeModal, style: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 } }, 
-      React.createElement("div", { onClick: e => e.stopPropagation() }, content)
-    );
+    return React.createElement("div", { onClick: closeModal, style: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 } }, React.createElement("div", { onClick: e => e.stopPropagation() }, content));
   };
-  
+
   return React.createElement(ErrorBoundary, null,
     React.createElement("div", { style: { minHeight: "100vh", background: theme.bg, color: theme.text } },
       React.createElement(Header, null),
-      React.createElement("main", { style: { padding: "16px" } },
-        view === "table" ? React.createElement(TableView, null) : React.createElement(ChartView, null)
-      ),
+      React.createElement("main", { style: { padding: "16px" } }, view === "table" ? React.createElement(TableView, null) : React.createElement(ChartView, null)),
       React.createElement(ModalOverlay, null)
     )
   );
 }
 
-// Render
-const root = ReactDOM.createRoot(document.getElementById("root"));
-root.render(React.createElement(App, null));
+// Render with error handling
+try {
+  const root = ReactDOM.createRoot(document.getElementById("root"));
+  root.render(React.createElement(App, null));
+} catch (err) {
+  console.error("Render error:", err);
+  document.getElementById("root").innerHTML = `<div id="root-error"><strong>Failed to load dashboard:</strong><br>${err.message}<br><br>Check console for details. Try refreshing.</div>`;
+}
 </script>
 </body>
 </html>
