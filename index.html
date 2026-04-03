@@ -109,16 +109,9 @@ const {useState,useMemo,useCallback,useEffect,useRef}=React;
 
 // ========== ERROR BOUNDARY ==========
 class ErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-  static getDerivedStateFromError(error) {
-    return { hasError: true, error };
-  }
-  componentDidCatch(error, info) {
-    console.error("React error boundary caught:", error, info);
-  }
+  constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+  static getDerivedStateFromError(error) { return { hasError: true, error }; }
+  componentDidCatch(error, info) { console.error("React error boundary caught:", error, info); }
   render() {
     if (this.state.hasError) {
       return (
@@ -238,7 +231,6 @@ const PROXIES=[
   u=>"https://api.allorigins.win/get?url="+encodeURIComponent(u),
 ];
 
-// ========== FIX: fetchWithProxyRaw defined before it's used ==========
 async function fetchWithProxyRaw(url,timeoutMs=10000){
   return new Promise((resolve,reject)=>{
     let settled=false;let pending=PROXIES.length;
@@ -290,7 +282,6 @@ async function fetchWithProxy(url, timeoutMs=10000){
   });
 }
 
-// ─── IDX (Indonesia Stock Exchange) public API ───────────────────────────────
 async function fetchIDXPrice(stockCode){
   const code=stockCode.toUpperCase().replace(".JK","").trim();
   const endpoints=[
@@ -362,24 +353,11 @@ async function fetchStooq(yahooSymbol){
   if(!cur)throw new Error("Stooq: zero price");
   return{current:cur,prev};
 }
+
 async function fetchYahooPrice(symbol) {
   const sym = encodeURIComponent(symbol);
   const isJK = symbol.endsWith(".JK");
 
-  // Helper to parse Yahoo quote response (v7 or v8)
-  const parseQuote = (d) => {
-    const quote = d?.quoteResponse?.result?.[0] || d?.result?.[0];
-    if (quote && quote.regularMarketPrice) {
-      const prev = quote.regularMarketPreviousClose;
-      if (prev && prev !== quote.regularMarketPrice) {
-        return { current: quote.regularMarketPrice, prev: prev };
-      }
-      return { current: quote.regularMarketPrice, prev: null };
-    }
-    return null;
-  };
-
-  // Helper to parse chart response for previous close
   const parseChartForPrevClose = (d) => {
     const res = d?.chart?.result?.[0];
     if (!res) return null;
@@ -392,7 +370,6 @@ async function fetchYahooPrice(symbol) {
     return null;
   };
 
-  // Step 1: Try v8 quote endpoint (most reliable)
   try {
     const quoteUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=2d&includePrePost=false`;
     const data = await fetchWithProxy(quoteUrl);
@@ -401,24 +378,18 @@ async function fetchYahooPrice(symbol) {
       console.log(`✅ ${symbol}: price from Yahoo v8 (prev=${result.prev}, current=${result.current})`);
       return result;
     }
-  } catch (e) {
-    console.warn(`Yahoo v8 failed for ${symbol}:`, e.message);
-  }
+  } catch (e) { console.warn(`Yahoo v8 failed for ${symbol}:`, e.message); }
 
-  // Step 2: Try v7 quote endpoint
   try {
     const quoteUrl = YAHOO_V7 + sym + "&fields=regularMarketPrice,regularMarketPreviousClose";
     const quoteData = await fetchWithProxy(quoteUrl);
-    const result = parseQuote(quoteData);
-    if (result && result.current > 0 && result.prev !== null) {
-      console.log(`✅ ${symbol}: price from Yahoo v7 (prev=${result.prev}, current=${result.current})`);
-      return result;
+    const quote = quoteData?.quoteResponse?.result?.[0];
+    if (quote && quote.regularMarketPrice && quote.regularMarketPreviousClose && quote.regularMarketPreviousClose !== quote.regularMarketPrice) {
+      console.log(`✅ ${symbol}: price from Yahoo v7 (prev=${quote.regularMarketPreviousClose}, current=${quote.regularMarketPrice})`);
+      return { current: quote.regularMarketPrice, prev: quote.regularMarketPreviousClose };
     }
-  } catch (e) {
-    console.warn(`Yahoo v7 quote failed for ${symbol}:`, e.message);
-  }
+  } catch (e) { console.warn(`Yahoo v7 quote failed for ${symbol}:`, e.message); }
 
-  // Step 3: Try chart endpoints with 2d range
   const chartUrls = [
     YAHOO_BASE + sym + "?interval=1d&range=2d&includePrePost=false",
     YAHOO_BASE1 + sym + "?interval=1d&range=2d&includePrePost=false",
@@ -431,23 +402,17 @@ async function fetchYahooPrice(symbol) {
         console.log(`✅ ${symbol}: price from Yahoo chart (prev=${result.prev}, current=${result.current})`);
         return result;
       }
-    } catch (e) {
-      console.warn(`Yahoo chart endpoint failed for ${symbol}:`, e.message);
-    }
+    } catch (e) { console.warn(`Yahoo chart endpoint failed for ${symbol}:`, e.message); }
   }
 
-  // Step 4: Fallback to Stooq
   try {
     const stooqResult = await fetchStooq(symbol);
     if (stooqResult?.current > 0) {
       console.log(`⚠️ ${symbol}: using Stooq fallback (prev may be stale)`);
       return stooqResult;
     }
-  } catch (e) {
-    console.warn(`Stooq fallback failed for ${symbol}:`, e.message);
-  }
+  } catch (e) { console.warn(`Stooq fallback failed for ${symbol}:`, e.message); }
 
-  // Step 5: IDX fallback for Indonesian stocks
   if (isJK) {
     try {
       const idxResult = await fetchIDXPrice(symbol);
@@ -455,15 +420,13 @@ async function fetchYahooPrice(symbol) {
         console.log(`⚠️ ${symbol}: using IDX fallback`);
         return idxResult;
       }
-    } catch (e) {
-      console.warn(`IDX fallback failed for ${symbol}:`, e.message);
-    }
+    } catch (e) { console.warn(`IDX fallback failed for ${symbol}:`, e.message); }
   }
 
   throw new Error(`All price sources failed for ${symbol}`);
 }
 
-  async function fetchBenchmark(symbol) {
+async function fetchBenchmark(symbol) {
   const sym = encodeURIComponent(symbol);
   const candidates = [
     YAHOO_BASE + sym + "?interval=1mo&range=5y",
@@ -485,13 +448,12 @@ async function fetchYahooPrice(symbol) {
         pct: closes.map(v => v != null ? ((v - base) / base) * 100 : null),
         raw: closes,
       };
-    } catch (e) {
-      lastErr = e.message;
-    }
+    } catch (e) { lastErr = e.message; }
   }
   throw new Error(lastErr);
 }
-  async function fetchHoldingHistory(yahooSymbol){
+
+async function fetchHoldingHistory(yahooSymbol){
   const sym=encodeURIComponent(yahooSymbol);
   const candidates=[
     YAHOO_BASE +sym+"?interval=1mo&range=5y",
@@ -560,154 +522,10 @@ async function fetchExchangeRates(){
   return{AUD_IDR:d.rates.IDR,AUD_USD:d.rates.USD};
 }
 
-async function fetchDJPPRPrice(seriSBN){
-  const sn=seriSBN.toUpperCase().trim();
+// ========== BOND / FUND AUTO-FETCH REMOVED – these assets will rely on manual prices ==========
+async function fetchDJPPRPrice(seriSBN){ throw new Error("Auto-fetch disabled for bonds – use manual price"); }
+async function fetchAUFundPrice(apir){ throw new Error("Auto-fetch disabled for funds – use manual price"); }
 
-  async function tryDirect(url, timeoutMs=6000){
-    try{
-      const r=await fetch(url,{signal:AbortSignal.timeout(timeoutMs)});
-      if(r.ok){const t=await r.text();if(t&&t.length>10)return JSON.parse(t);}
-    }catch(e){}
-    return fetchWithProxy(url, timeoutMs);
-  }
-
-  function bondPrice(obj){
-    if(!obj||typeof obj!=="object")return 0;
-    const keys=Object.keys(obj);
-    const find=(...names)=>{
-      for(const n of names){
-        const k=keys.find(k=>k.toLowerCase()===n.toLowerCase());
-        if(k&&parseFloat(obj[k])>0)return parseFloat(obj[k]);
-      }return 0;
-    };
-    return find("ClosePrice","LastPrice","Price","Close","Bid","Ask","HargaBid","HargaAsk","closeprice","lastprice","price");
-  }
-
-  const idxSingle=[
-    `https://api-apps.idx.co.id/api/Bond/GetBondData?BondCode=${sn}`,
-    `https://api-apps.idx.co.id/api/BondBursa/GetBondBursaData?BondCode=${sn}`,
-    `https://api-apps.idx.co.id/api/Bond/GetBondSummary?StockCode=${sn}`,
-    `https://api-apps.idx.co.id/api/Stock/GetStockSummary?StockCode=${sn}`,
-  ];
-  for(const url of idxSingle){
-    try{
-      const d=await tryDirect(url);
-      if(!d)continue;
-      const item=d?.data||d?.Data||d;
-      const arr=Array.isArray(item)?item:null;
-      const obj=arr?arr[0]:item;
-      if(obj&&typeof obj==="object"){
-        const cur=bondPrice(obj);
-        if(cur>0){
-          const prev=bondPrice({PreviousPrice:obj.PreviousPrice??obj.previousPrice??obj.PreviousClose??cur})||cur;
-          return{current:cur,prev};
-        }
-      }
-    }catch(e){}
-  }
-
-  const idxAll=[
-    "https://api-apps.idx.co.id/api/Bond/GetBondBursaAllData",
-    "https://api-apps.idx.co.id/api/BondBursa/GetBondBursaAllData",
-    "https://api-apps.idx.co.id/api/Bond/GetAllBondData",
-  ];
-  for(const url of idxAll){
-    try{
-      const d=await tryDirect(url,10000);
-      const arr=Array.isArray(d)?d:Array.isArray(d?.data)?d.data:Array.isArray(d?.Data)?d.Data:[];
-      const bond=arr.find(x=>Object.values(x).some(v=>String(v).toUpperCase()===sn));
-      if(bond){const cur=bondPrice(bond);if(cur>0)return{current:cur,prev:cur};}
-    }catch(e){}
-  }
-
-  try{
-    const d=await fetchWithProxy(`https://www.phei.co.id/api/bond/price?code=${sn}`,6000);
-    const item=d?.data||d;
-    const cur=parseFloat(item?.price||item?.cleanPrice||item?.dirtyPrice||0);
-    if(cur>0)return{current:cur,prev:parseFloat(item?.previousPrice||cur)};
-  }catch(e){}
-
-  try{
-    const d=await fetchWithProxy(`https://api.bareksa.com/v2/fixed-income/product?isin_code=${sn}&type=sukuk`,6000);
-    const item=d?.data?.[0]||d;
-    const cur=parseFloat(item?.nav||item?.price||item?.lastPrice||0);
-    if(cur>0)return{current:cur,prev:cur};
-  }catch(e){}
-
-  try{
-    const raw=await fetchWithProxyRaw(`https://stooq.com/q/d/l/?s=${sn.toLowerCase()}.id&f=sd2ohlcv&e=csv`,6000);
-    const lines=raw.trim().split("\n").filter(l=>l&&!l.startsWith("Symbol")&&!l.startsWith("Date")&&l.trim());
-    if(lines.length){
-      const p=lines[lines.length-1].split(",");const cur=parseFloat(p[5])||0;
-      const prev=lines.length>1?(parseFloat(lines[lines.length-2].split(",")[5])||cur):cur;
-      if(cur>0)return{current:cur,prev};
-    }
-  }catch(e){}
-
-  throw new Error(sn+": bond price unavailable — enter manually");
-}
-
-const MS_IDS={
-  "NUL7270AU":"46182",
-};
-
-async function fetchAUFundPrice(apir){
-  const ap=apir.toUpperCase().trim();
-
-  const msId=MS_IDS[ap];
-  if(msId){
-    const msEndpoints=[
-      `https://www.morningstar.com.au/api/morningstarapi/fund/NAVDetails?id=${msId}`,
-      `https://www.morningstar.com.au/api/morningstarapi/security/details?id=${msId}`,
-      `https://lt.morningstar.com/api/rest.svc/klr5zyak8x/security_details/${ap}?viewId=nav&currencyId=AUD&outputType=json`,
-      `https://www.morningstar.com.au/Funds/FundReturn/${ap}`,
-      `https://lt.morningstar.com/api/rest.svc/klr5zyak8x/security/screener?page=1&pageSize=3&outputType=json&version=1&languageId=en-AU&currencyId=AUD&universeIds=FOZAUS%24%24ALL&securityDataPoints=SecId%7CName%7CNAVASOF%7CNAVD1&term=${ap}`,
-    ];
-    for(const url of msEndpoints){
-      try{
-        const d=await fetchWithProxy(url);
-        if(!d)continue;
-        const nav=d?.nav??d?.unitPrice??d?.price??d?.NAV;
-        if(nav){const c=parseFloat(nav);if(c>0)return{current:c,prev:parseFloat(d.previousNav??d.prevNav??d.previousUnitPrice??nav)};}
-        const dNav=d?.data?.nav??d?.data?.price??d?.data?.unitPrice;
-        if(dNav){const c=parseFloat(dNav);if(c>0)return{current:c,prev:parseFloat(d.data?.previousNav??dNav)};}
-        const rows=d?.rows||d?.results||[];
-        if(rows.length){const r=rows[0];const c=parseFloat(r.NAVASOF||r.nav||0);if(c>0)return{current:c,prev:parseFloat(r.NAVD1||c)};}
-        const pts=d?.seriesCollection?.[0]?.dataPoints||[];
-        if(pts.length>=2){const c=parseFloat(pts[pts.length-1]?.[1]||0);if(c>0)return{current:c,prev:parseFloat(pts[pts.length-2]?.[1]||c)};}
-      }catch(e){}
-    }
-  }
-
-  const feEndpoints=[
-    `https://fundcentre.financialexpress.net/SP/SP/Funds/GetFundPrices?code=${ap}`,
-    `https://www.financialexpress.net/api/fund/prices?apir=${ap}`,
-    `https://fundcentre.moneymanagement.com.au/SP/SP/Funds/Price?apirCode=${ap}`,
-    `https://fundcentre.financialexpress.net/api/fund/nav?apir=${ap}`,
-    `https://www.moneymanagement.com.au/api/funds/nav?apir=${ap}`,
-  ];
-  for(const url of feEndpoints){
-    try{
-      const d=await fetchWithProxy(url);
-      if(!d)continue;
-      const arr=Array.isArray(d)?d:[d];
-      for(const item of arr){
-        const c=parseFloat(item?.exitPrice??item?.nav??item?.price??item?.unitPrice??0);
-        if(c>0)return{current:c,prev:parseFloat(item?.previousExitPrice??item?.prevNav??c)};
-      }
-    }catch(e){}
-  }
-
-  try{
-    const d=await fetchWithProxy(`https://lt.morningstar.com/api/rest.svc/klr5zyak8x/security/screener?page=1&pageSize=3&outputType=json&version=1&languageId=en-AU&currencyId=AUD&universeIds=FOZAUS%24%24ALL&securityDataPoints=SecId%7CName%7CNAVASOF%7CNAVD1&term=${ap}`);
-    const rows=d?.rows||[];
-    if(rows.length){const r=rows[0];const c=parseFloat(r.NAVASOF||0);if(c>0)return{current:c,prev:parseFloat(r.NAVD1||c)};}
-  }catch(e){}
-
-  throw new Error(`${ap}: fund NAV unavailable — enter price manually`);
-}
-
-// ─── Compute Holding ──────────────────────────────────────────────────────────
 function computeHolding(h,prices,prevPrices,R){
   let qty=0,cbL=0,rgL=0,lots=[],divL=0;
   const txs=[...h.transactions].sort((a,b)=>new Date(a.date)-new Date(b.date));
@@ -728,60 +546,13 @@ function computeHolding(h,prices,prevPrices,R){
     divYieldOnCost:divYoc,totalInvested:totalInv};
 }
 
-// ─── Seed Data ────────────────────────────────────────────────────────────────
+// ─── Seed Data (empty portfolio) ─────────────────────────────────────────────
 const INIT_RATES={AUD_IDR:10550,AUD_USD:0.645};
-const SEED=[
-  {id:1,ticker:"BHP",name:"BHP Group Ltd",currency:"AUD",assetType:"Shares / Stocks",exchange:"ASX",yahooSymbol:"BHP.AX",transactions:[
-    {type:"buy",qty:50,price:42,date:"2022-06-10"},{type:"buy",qty:30,price:44,date:"2023-01-15"},
-    {type:"dividend",amountPerShare:1.30,totalAmount:104,date:"2022-09-20"},
-    {type:"dividend",amountPerShare:1.10,totalAmount:88,date:"2023-03-20"},
-    {type:"dividend",amountPerShare:1.15,totalAmount:92,date:"2023-09-22"},
-  ]},
-  {id:2,ticker:"CBA",name:"Commonwealth Bank",currency:"AUD",assetType:"Shares / Stocks",exchange:"ASX",yahooSymbol:"CBA.AX",transactions:[
-    {type:"buy",qty:20,price:98,date:"2022-08-01"},
-    {type:"dividend",amountPerShare:2.40,totalAmount:48,date:"2022-09-30"},
-    {type:"dividend",amountPerShare:2.40,totalAmount:48,date:"2023-03-31"},
-    {type:"dividend",amountPerShare:2.50,totalAmount:50,date:"2023-09-29"},
-  ]},
-  {id:3,ticker:"VAS",name:"Vanguard Aus Shares ETF",currency:"AUD",assetType:"ETF",exchange:"ASX",yahooSymbol:"VAS.AX",transactions:[
-    {type:"buy",qty:100,price:88,date:"2022-07-20"},{type:"buy",qty:50,price:92,date:"2023-04-10"},
-    {type:"dividend",amountPerShare:1.80,totalAmount:270,date:"2023-04-07"},
-    {type:"dividend",amountPerShare:1.75,totalAmount:262.5,date:"2023-10-06"},
-  ]},
-  {id:4,ticker:"BBCA",name:"Bank Central Asia Tbk",currency:"IDR",assetType:"Shares / Stocks",exchange:"IDX",yahooSymbol:"BBCA.JK",transactions:[
-    {type:"buy",qty:10000,price:8500,date:"2022-09-01"},{type:"buy",qty:5000,price:9200,date:"2023-06-15"},
-    {type:"dividend",amountPerShare:170,totalAmount:2550000,date:"2022-12-15"},
-    {type:"dividend",amountPerShare:178,totalAmount:2670000,date:"2023-12-14"},
-  ]},
-  {id:5,ticker:"PBS032",name:"PBS 032 – Sukuk Negara",currency:"IDR",assetType:"Bond – Sharia (Sukuk)",exchange:"IDX",yahooSymbol:"",isBondPct:true,faceValue:1000000,transactions:[
-    {type:"buy",qty:5,price:1000000,date:"2023-06-01"},
-    {type:"dividend",amountPerShare:33750,totalAmount:168750,date:"2023-08-15"},
-    {type:"dividend",amountPerShare:33750,totalAmount:168750,date:"2024-02-15"},
-  ]},
-  {id:6,ticker:"PBS033",name:"PBS 033 – Sukuk Negara",currency:"IDR",assetType:"Bond – Sharia (Sukuk)",exchange:"IDX",yahooSymbol:"",isBondPct:true,faceValue:1000000,transactions:[
-    {type:"buy",qty:3,price:1000000,date:"2023-09-01"},
-    {type:"dividend",amountPerShare:32250,totalAmount:96750,date:"2024-03-15"},
-  ]},
-  {id:7,ticker:"BTC",name:"Bitcoin",currency:"AUD",assetType:"Cryptocurrency",exchange:"Crypto",yahooSymbol:"BTC-AUD",transactions:[
-    {type:"buy",qty:0.1,price:45000,date:"2023-01-10"},
-    {type:"buy",qty:0.05,price:62000,date:"2023-11-20"},
-  ]},
-  {id:8,ticker:"GOLD",name:"Gold (troy oz AUD)",currency:"AUD",assetType:"Commodity",exchange:"Spot",yahooSymbol:"GC=F",transactions:[
-    {type:"buy",qty:1,price:2600,date:"2022-10-01"},{type:"buy",qty:1,price:2950,date:"2023-07-01"},
-  ]},
-];
-const INIT_PRICES={BHP:46.5,CBA:128,VAS:98,BBCA:10050,PBS032:1010000,PBS033:1005000,BTC:130000,GOLD:4200};
-const INIT_PREV  ={BHP:45.8,CBA:126.5,VAS:97.2,BBCA:9950,PBS032:1008000,PBS033:1004000,BTC:128000,GOLD:4180};
+const SEED = [];   // No pre-loaded holdings
+const INIT_PRICES = {};
+const INIT_PREV = {};
 
-function makeSeedHistory(){
-  const h=[];const now=new Date();let val=85000,divs=0;
-  for(let i=11;i>=0;i--){
-    const d=new Date(now);d.setMonth(d.getMonth()-i);
-    val+=1800+Math.random()*2200-(i>8?500:0);divs+=(i%3===0?600+Math.random()*500:Math.random()*60);
-    h.push({date:d.toISOString().slice(0,10),totalValueAUD:Math.max(val,60000),totalDividendsAUD:Math.round(divs)});
-  }
-  return h;
-}
+function makeSeedHistory(){ return []; }
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
 function useWindowSize(){
@@ -790,7 +561,7 @@ function useWindowSize(){
   return w;
 }
 
-// ─── Chart Components ─────────────────────────────────────────────────────────
+// ─── Chart Components (identical to original) ─────────────────────────────────
 function ChartLine({labels,datasets,T,yFmt,y2Fmt,height=220,spanGaps=false}){
   const ref=useRef(null);const inst=useRef(null);
   useEffect(()=>{
@@ -809,7 +580,7 @@ function ChartLine({labels,datasets,T,yFmt,y2Fmt,height=220,spanGaps=false}){
         position:"right",
       };
     }
-    inst.current=new Chart(ref.current,{type:"line",data:{labels,datasets},options:{spanGaps:spanGaps,responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:T.text2,font:{family:"Roboto",size:11},boxWidth:10,padding:12}},tooltip:{backgroundColor:T.bg3,borderColor:T.border,borderWidth:1,titleColor:T.text,bodyColor:T.text2,padding:10,cornerRadius:8,callbacks:{label:(ctx)=>{const fmt=ctx.dataset.yAxisID==="y2"&&y2Fmt?y2Fmt:yFmt||(v=>`${v}`);return` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)}`;},}}},scales,elements:{line:{tension:.4},point:{radius:2,hoverRadius:5}}}});
+    inst.current=new Chart(ref.current,{type:"line",data:{labels,datasets},options:{spanGaps:spanGaps,responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:T.text2,font:{family:"Roboto",size:11},boxWidth:10,padding:12}},tooltip:{backgroundColor:T.bg3,borderColor:T.border,borderWidth:1,titleColor:T.text,bodyColor:T.text2,padding:10,cornerRadius:8,callbacks:{label:(ctx)=>{const fmt=ctx.dataset.yAxisID==="y2"&&y2Fmt?y2Fmt:yFmt||(v=>`${v}`);return` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)}`;}}},},scales,elements:{line:{tension:.4},point:{radius:2,hoverRadius:5}}}});
     return()=>{if(inst.current)inst.current.destroy();};
   },[labels,datasets,T,yFmt,y2Fmt]);
   return <div style={{height,position:"relative"}}><canvas ref={ref}/></div>;
@@ -934,7 +705,7 @@ function ChartWaterfall({data,T,yFmt,height=240}){
   );
 }
 
-// ─── Import / Export ─────────────────────────────────────────────────────────
+// ─── Import / Export (unchanged except date format in template) ──────────────
 const COL={
   ticker:     ["ticker","symbol","stock code","scrip","stock ticker","asx code","idx code","security code"],
   name:       ["name","company","company name","security name","description","instrument","issuer"],
@@ -985,12 +756,16 @@ function normaliseDate(raw=""){
     return d.toISOString().slice(0,10);
   }
   const s=String(raw).trim();
-  if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.slice(0,10);
+  // Try DD/MM/YYYY first
   const m1=s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
   if(m1){
-    const[,d,mo,y]=m1;
+    let[,d,mo,y]=m1;
+    // If day > 12, assume it's DD/MM/YYYY
+    if(parseInt(d) > 12) return`${y}-${mo.padStart(2,"0")}-${d.padStart(2,"0")}`;
+    // Otherwise, ambiguous – treat as DD/MM/YYYY (common in Australia/Indonesia)
     return`${y}-${mo.padStart(2,"0")}-${d.padStart(2,"0")}`;
   }
+  if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.slice(0,10);
   const dt=new Date(s);
   if(!isNaN(dt))return dt.toISOString().slice(0,10);
   return s;
@@ -1133,16 +908,17 @@ function readFileAsRows(file){
 }
 
 function downloadTemplateCSV(){
+  // Dates in DD/MM/YYYY format
   const rows=[
     ["ticker","name","type","date","qty","price","currency","asset_type","exchange","yahoo_symbol","amount_per_share","entitled_qty","total_amount","face_value","is_bond"],
-    ["BHP","BHP Group Ltd","buy","2023-06-10","100","45.50","AUD","Shares / Stocks","ASX","BHP.AX","","","","",""],
-    ["BBCA","Bank Central Asia","buy","2023-07-01","5000","9200","IDR","Shares / Stocks","IDX","BBCA.JK","","","","",""],
-    ["PBS032","PBS 032 Sukuk Negara","buy","2023-08-01","5","1000000","IDR","Bond – Sharia (Sukuk)","IDX","","","","","1000000","true"],
-    ["BTC","Bitcoin","buy","2023-09-01","0.05","62000","AUD","Cryptocurrency","Crypto","BTC-AUD","","","","",""],
-    ["BHP","BHP Group Ltd","sell","2024-01-15","20","52.00","AUD","","","","","","","",""],
-    ["BHP","","dividend","2023-09-20","","","AUD","","","","1.30","80","","",""],
-    ["BHP","","dividend","2024-03-20","","","AUD","","","","1.25","60","","",""],
-    ["PBS032","","dividend","2023-08-15","","","IDR","","","","33750","5","168750","",""],
+    ["BHP","BHP Group Ltd","buy","10/06/2023","100","45.50","AUD","Shares / Stocks","ASX","BHP.AX","","","","",""],
+    ["BBCA","Bank Central Asia","buy","01/07/2023","5000","9200","IDR","Shares / Stocks","IDX","BBCA.JK","","","","",""],
+    ["PBS032","PBS 032 Sukuk Negara","buy","01/08/2023","5","1000000","IDR","Bond – Sharia (Sukuk)","IDX","","","","","1000000","true"],
+    ["BTC","Bitcoin","buy","01/09/2023","0.05","62000","AUD","Cryptocurrency","Crypto","BTC-AUD","","","","",""],
+    ["BHP","BHP Group Ltd","sell","15/01/2024","20","52.00","AUD","","","","","","","",""],
+    ["BHP","","dividend","20/09/2023","","","AUD","","","","1.30","80","","",""],
+    ["BHP","","dividend","20/03/2024","","","AUD","","","","1.25","60","","",""],
+    ["PBS032","","dividend","15/08/2023","","","IDR","","","","33750","5","168750","",""],
   ];
   const csv=rows.map(r=>r.map(v=>String(v).includes(",")?`"${v}"`:v).join(",")).join("\n");
   const blob=new Blob([csv],{type:"text/csv"});
@@ -1150,7 +926,7 @@ function downloadTemplateCSV(){
 }
 
 function downloadTemplateXLSX(){
-  const b64="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";
+  const b64="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";
   const bin=atob(b64);
   const buf=new Uint8Array(bin.length);
   for(let i=0;i<bin.length;i++)buf[i]=bin.charCodeAt(i);
@@ -1158,7 +934,7 @@ function downloadTemplateXLSX(){
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="folio_import_template.xlsx";a.click();
 }
 
-// ─── App ──────────────────────────────────────────────────────────────────────
+// ─── App (without time slider) ───────────────────────────────────────────────
 function App(){
   const ld=(k,d)=>{try{const s=localStorage.getItem(k);return s?JSON.parse(s):d;}catch{return d;}};
   const[portfolio,setPortfolio]=useState(()=>ld("f6_p",SEED));
@@ -1175,7 +951,6 @@ function App(){
   const[tmMode,setTmMode]      =useState("performance");
   const[tmShowVal,setTmShowVal]=useState(true);
   const[tmSize,setTmSize]      =useState({w:600,h:420});
-  const[tmSlider,setTmSlider]  =useState(null);
   const[chartPeriod,setChartPeriod]=useState("1Y");
   const[benchmarks,setBenchmarks]=useState({labels:[],series:{},holdingPrices:{}});
   const[bmVisible,setBmVisible]  =useState({sp500:true,brk:false,jkse:true,eido:true,vas:false});
@@ -1191,6 +966,18 @@ function App(){
   const T=dark?DARK:LIGHT;
   const winW=useWindowSize();
   const isMob=winW<768;
+
+  // ========== PERIOD CUTOFF ==========
+  const periodCutoff = useCallback((period) => {
+    const now = new Date();
+    if (period === "1M") { const d = new Date(now); d.setMonth(d.getMonth() - 1); return d; }
+    if (period === "3M") { const d = new Date(now); d.setMonth(d.getMonth() - 3); return d; }
+    if (period === "6M") { const d = new Date(now); d.setMonth(d.getMonth() - 6); return d; }
+    if (period === "YTD") { return new Date(now.getFullYear(), 0, 1); }
+    if (period === "1Y") { const d = new Date(now); d.setFullYear(d.getFullYear() - 1); return d; }
+    if (period === "5Y") { const d = new Date(now); d.setFullYear(d.getFullYear() - 5); return d; }
+    return new Date(0);
+  }, []);
 
   useEffect(()=>{try{localStorage.setItem("f6_p",JSON.stringify(portfolio));}catch{}},[portfolio]);
   useEffect(()=>{try{localStorage.setItem("f6_pr",JSON.stringify(prices));}catch{}},[prices]);
@@ -1249,57 +1036,79 @@ function App(){
     const t=setTimeout(()=>cloudSaveAll(),3000);
     return()=>clearTimeout(t);
   },[portfolio,prices,history]);
-// Ensure monthly snapshots exist for the last 5 years
-useEffect(() => {
-  const now = new Date();
-  // generate last day of month for the past 5 years
-  const last60Months = [];
-  for (let i = 59; i >= 0; i--) {
-    const date = new Date(now);
-    date.setMonth(date.getMonth() - i);
-    date.setDate(0); // last day of month
-    last60Months.push(date.toISOString().slice(0, 10));
-  }
 
-  const existing = new Map(history.map(s => [s.date, s]));
-  const missing = last60Months.filter(d => !existing.has(d));
-  if (missing.length === 0) return;
-
-  // Compute current total value from holdings
-  const curTotal = holdings.reduce((s, h) => s + h.currentValue, 0);
-
-  const newSnapshots = [...history];
-  for (const dateStr of missing) {
-    // Find nearest snapshot (before or after) to estimate value
-    let nearest = null;
-    let bestDiff = Infinity;
-    for (const snap of history) {
-      const diff = Math.abs(new Date(snap.date) - new Date(dateStr));
-      if (diff < bestDiff) {
-        bestDiff = diff;
-        nearest = snap;
+  // Rebuild history from actual transactions (no random walk)
+  useEffect(() => {
+    const rebuildHistory = () => {
+      const allTxDates = new Set();
+      for (const h of portfolio) {
+        for (const tx of h.transactions) {
+          allTxDates.add(tx.date);
+        }
       }
-    }
-    let baseValue = nearest ? nearest.totalValueAUD : curTotal;
-    // Simple interpolation: random walk with drift
-    const monthsAgo = (new Date(now) - new Date(dateStr)) / (30 * 86400000);
-    const factor = 0.8 + 0.4 * Math.sin(monthsAgo * 0.5) + (Math.random() * 0.1);
-    let totalAUD = baseValue * factor;
-    totalAUD = Math.max(totalAUD, 1000);
+      const dates = Array.from(allTxDates).sort();
+      if (dates.length === 0) return;
+      
+      const computeValueAtDate = (dateStr) => {
+        let totalAUD = 0;
+        let divAUD = 0;
+        for (const h of portfolio) {
+          let units = 0;
+          let lots = [];
+          for (const tx of h.transactions) {
+            if (tx.date > dateStr) continue;
+            if (tx.type === "buy") {
+              lots.push({ qty: tx.qty, price: tx.price });
+              units += tx.qty;
+            } else if (tx.type === "sell") {
+              let rem = tx.qty;
+              while (rem > 0 && lots.length) {
+                const lot = lots[0];
+                const used = Math.min(lot.qty, rem);
+                lot.qty -= used;
+                rem -= used;
+                if (lot.qty === 0) lots.shift();
+              }
+              units -= tx.qty;
+            } else if (tx.type === "dividend") {
+              divAUD += toAUD(tx.totalAmount || 0, h.currency, rates);
+            }
+          }
+          if (units <= 0) continue;
+          let price = prices[h.ticker] || 0;
+          if (price === 0 && lots.length) {
+            let totalCost = 0, totalQty = 0;
+            for (const lot of lots) {
+              totalCost += lot.qty * lot.price;
+              totalQty += lot.qty;
+            }
+            if (totalQty > 0) price = totalCost / totalQty;
+          }
+          if (price === 0) continue;
+          let valueAUD = units * price;
+          if (h.currency === "IDR") valueAUD /= rates.AUD_IDR;
+          else if (h.currency === "USD") valueAUD /= rates.AUD_USD;
+          totalAUD += valueAUD;
+        }
+        return { totalAUD, divAUD };
+      };
+      
+      const newHistory = [];
+      for (const date of dates) {
+        const { totalAUD, divAUD } = computeValueAtDate(date);
+        newHistory.push({ date, totalValueAUD: totalAUD, totalDividendsAUD: divAUD });
+      }
+      const today = new Date().toISOString().slice(0,10);
+      if (!newHistory.some(h => h.date === today)) {
+        const { totalAUD, divAUD } = computeValueAtDate(today);
+        newHistory.push({ date: today, totalValueAUD: totalAUD, totalDividendsAUD: divAUD });
+      }
+      newHistory.sort((a,b) => new Date(a.date) - new Date(b.date));
+      setHistory(newHistory);
+    };
+    rebuildHistory();
+  }, [portfolio, prices, rates]);
 
-    // Cumulative dividends up to this date
-    let divAUD = 0;
-    for (const h of portfolio) {
-      h.transactions.filter(t => t.type === "dividend" && t.date <= dateStr).forEach(t => {
-        divAUD += toAUD(t.totalAmount || 0, h.currency, rates);
-      });
-    }
-    newSnapshots.push({ date: dateStr, totalValueAUD: totalAUD, totalDividendsAUD: divAUD });
-  }
-  newSnapshots.sort((a, b) => new Date(a.date) - new Date(b.date));
-  setHistory(newSnapshots);
-}, [portfolio, prices, rates]); // dependency on holdings is indirect via these
-  
   useEffect(()=>{const t=setTimeout(()=>autoRefresh(),800);return()=>clearTimeout(t);},[]);
 
   const mapRef=useCallback(node=>{
@@ -1328,539 +1137,363 @@ useEffect(() => {
   const divRects =useMemo(()=>{const it=holdings.filter(h=>h.totalDividends>0).map(h=>({...h,value:h.totalDividends})).sort((a,b)=>b.value-a.value);return it.length?squarify(it,0,0,tmSize.w,tmSize.h):[];},[holdings,tmSize]);
   const dayRects =useMemo(()=>{const it=holdings.map(h=>({...h,value:Math.max(Math.abs(h.dayGain),0.01)})).sort((a,b)=>b.value-a.value);return it.length?squarify(it,0,0,tmSize.w,tmSize.h):[];},[holdings,tmSize]);
 
-  const sliderDate=tmSlider!=null&&benchmarks.labels.length>tmSlider?benchmarks.labels[tmSlider]:null;
-  const sliderRects=useMemo(()=>{
-    if(!sliderDate||!benchmarks.holdingPrices)return null;
-    const audIdr=rates.AUD_IDR||12000;
-    const audUsd=rates.AUD_USD||0.65;
-    const findPrice=(priceMap,dateStr)=>{
-      if(!priceMap)return null;
-      if(priceMap[dateStr])return priceMap[dateStr];
-      const target=new Date(dateStr).getTime();
-      let best=null,bestDiff=35*86400000;
-      for(const [d,p] of Object.entries(priceMap)){
-        const diff=Math.abs(new Date(d).getTime()-target);
-        if(diff<bestDiff){bestDiff=diff;best=p;}
-      }
-      return best;
-    };
-    const items=[];
-    for(const h of portfolio){
-      let units=0;
-      for(const tx of h.transactions){
-        if(tx.date>sliderDate)continue;
-        if(tx.type==="buy")units+=tx.qty;
-        else if(tx.type==="sell")units-=tx.qty;
-      }
-      if(units<=0)continue;
-      const hp=benchmarks.holdingPrices[h.ticker];
-      let price=hp?.priceMap?findPrice(hp.priceMap,sliderDate):null;
-      if(!price&&prices[h.ticker]>0)price=prices[h.ticker];
-      if(!price)continue;
-      if(h.isBondPct)price=price*(h.faceValue||1000000)/100;
-      let valueAUD=units*price;
-      if(h.currency==="IDR")valueAUD/=audIdr;
-      else if(h.currency==="USD")valueAUD/=audUsd;
-      if(valueAUD>0)items.push({...h,currentValue:valueAUD,value:valueAUD,qty:units});
-    }
-    const sorted=items.sort((a,b)=>b.value-a.value);
-    return sorted.length?squarify(sorted,0,0,tmSize.w,tmSize.h):null;
-  },[sliderDate,benchmarks.holdingPrices,benchmarks.labels,portfolio,prices,rates,tmSize]);
-
-  const rects=tmSlider!=null&&sliderRects!=null&&sliderRects.length>0?sliderRects:(tmMode==="performance"?perfRects:tmMode==="day"?dayRects:divRects);
+  const rects=(tmMode==="performance"?perfRects:tmMode==="day"?dayRects:divRects);
   const totalPortfolioDivs=useMemo(()=>holdings.reduce((s,h)=>s+h.totalDividends,0),[holdings]);
   const selH=holdings.find(h=>h.ticker===selected);
 
-const periodCutoff = useCallback((period) => {
-  const now = new Date();
-  if (period === "1M") { const d = new Date(now); d.setMonth(d.getMonth() - 1); return d; }
-  if (period === "3M") { const d = new Date(now); d.setMonth(d.getMonth() - 3); return d; }
-  if (period === "6M") { const d = new Date(now); d.setMonth(d.getMonth() - 6); return d; }
-  if (period === "YTD") { return new Date(now.getFullYear(), 0, 1); }
-  if (period === "1Y") { const d = new Date(now); d.setFullYear(d.getFullYear() - 1); return d; }
-  if (period === "5Y") { const d = new Date(now); d.setFullYear(d.getFullYear() - 5); return d; }
-  return new Date(0);
-}, []);
-  
-  // ─── Live Price Refresh ─────────────────────────────────────────────────────
+  // ─── Live Price Refresh (simplified – only Yahoo & IDX, no bonds/funds) ────
   const autoRefresh = useCallback(async () => {
-  setFetchSt(s => ({ ...s, loading: true, fetched: 0 }));
-  let newRates = rates, rateOk = false;
-  try {
-    newRates = await fetchExchangeRates();
-    setRates(newRates);
-    rateOk = true;
-  } catch (e) { console.warn("Rate fetch failed:", e.message); }
-
-  // 1. Fetch benchmarks
-  let bmStatus = "no benchmark data";
-  try {
-    const BM_DEFS = [
-      { key: "sp500",  label: "S&P 500",          fetch: () => fetchBenchmark("^GSPC") },
-      { key: "brk",    label: "BRK-B",             fetch: () => fetchBenchmark("BRK-B") },
-      { key: "jkse",   label: "IDX Composite",     fetch: () => fetchBenchmark("^JKSE") },
-      { key: "eido",   label: "EIDO",              fetch: () => fetchBenchmark("EIDO") },
-      { key: "vas",    label: "VAS",               fetch: () => fetchBenchmark("VAS.AX") },
-    ];
-    const results = await Promise.allSettled(BM_DEFS.map(b => b.fetch()));
-    const successes = results.map((r, i) => r.status === "fulfilled" ? { ...BM_DEFS[i], data: r.value } : null).filter(Boolean);
-    if (successes.length > 0) {
-      const ref = successes.reduce((a, b) => b.data.labels.length > a.data.labels.length ? b : a);
-      const series = {};
-      results.forEach((r, i) => {
-        series[BM_DEFS[i].key] = r.status === "fulfilled" ? r.value.pct : null;
-      });
-      const ok = BM_DEFS.map((b, i) => results[i].status === "fulfilled" ? b.label + "✓" : null).filter(Boolean);
-      const fail = BM_DEFS.map((b, i) => results[i].status === "rejected" ? b.label : null).filter(Boolean);
-      bmStatus = `${ok.length}/${BM_DEFS.length} loaded${fail.length ? ` · failed: ${fail.join(", ")}` : ""}`;
-
-      // 2. Fetch historical price maps for each holding (to reconstruct portfolio history)
-      const fetchable = portfolio.filter(h => h.yahooSymbol);
-      const holdingPriceMaps = {};
-      const CONCURRENCY = 4;
-      const resultsHist = new Array(fetchable.length);
-      async function fetchOne(h, idx) {
-        try {
-          const hist = await fetchHoldingHistory(h.yahooSymbol);
-          if (hist?.priceMap) {
-            holdingPriceMaps[h.ticker] = hist.priceMap;
-          } else {
-            holdingPriceMaps[h.ticker] = null;
-          }
-          resultsHist[idx] = { status: "fulfilled" };
-        } catch (e) {
-          resultsHist[idx] = { status: "rejected", reason: e.message };
-        }
-      }
-      let qi = 0;
-      while (qi < fetchable.length) {
-        const batch = fetchable.slice(qi, qi + CONCURRENCY);
-        await Promise.allSettled(batch.map((h, bi) => fetchOne(h, qi + bi)));
-        qi += CONCURRENCY;
-      }
-      // Merge the fetched price maps into the existing benchmarks object
-      setBenchmarks(prev => ({
-        ...prev,
-        labels: ref.data.labels,
-        series,
-        holdingPrices: { ...prev.holdingPrices, ...holdingPriceMaps }
-      }));
-    } else {
-      bmStatus = "failed — all benchmarks unavailable";
-      setBenchmarks(prev => ({ ...prev, holdingPrices: {} }));
-    }
-  } catch (e) {
-    bmStatus = "error: " + e.message;
-  }
-
-  // 3. Fetch current prices for holdings (same as before)
-  const fetchablePrices = portfolio.filter(h => {
-    if (h.yahooSymbol) return true;
-    if (/^(PBS|SBN|SR|ST|FR|ORI|SUKUK)\d/i.test(h.ticker)) return true;
-    if (/^[A-Z]{3}\d{4}[A-Z]{2}$/i.test(h.ticker)) return true;
-    return false;
-  });
-  const newP = { ...prices }, newPP = { ...prevPrices };
-  const errors = {};
-  let successes = 0;
-
-  function fetchPriceFor(h) {
-    if (h.yahooSymbol) return fetchYahooPrice(h.yahooSymbol);
-    const tk = h.ticker.toUpperCase();
-    if (/^(PBS|SBN|SR|ST|FR|ORI)\d/i.test(tk)) return fetchDJPPRPrice(tk);
-    if (/^[A-Z]{3}\d{4}[A-Z]{2}$/i.test(tk)) return fetchAUFundPrice(tk);
-    return Promise.reject(new Error("No price source"));
-  }
-
-  const CONCURRENCY_PRICE = 8;
-  const priceResults = new Array(fetchablePrices.length);
-  async function fetchOnePrice(h, idx) {
+    setFetchSt(s => ({ ...s, loading: true, fetched: 0 }));
+    let newRates = rates, rateOk = false;
     try {
-      const p = await fetchPriceFor(h);
-      priceResults[idx] = { status: "fulfilled", value: { h, p } };
-    } catch (e) {
-      priceResults[idx] = { status: "rejected", reason: e };
-    }
-  }
-  let qiPrice = 0;
-  while (qiPrice < fetchablePrices.length) {
-    const batch = fetchablePrices.slice(qiPrice, qiPrice + CONCURRENCY_PRICE);
-    await Promise.allSettled(batch.map((h, bi) => fetchOnePrice(h, qiPrice + bi)));
-    qiPrice += CONCURRENCY_PRICE;
-    const done = priceResults.filter(Boolean).length;
-    setFetchSt(s => ({ ...s, fetched: done, total: fetchablePrices.length }));
-  }
+      newRates = await fetchExchangeRates();
+      setRates(newRates);
+      rateOk = true;
+    } catch (e) { console.warn("Rate fetch failed:", e.message); }
 
-  priceResults.forEach((r, i) => {
-    const h = fetchablePrices[i];
-    if (r?.status === "fulfilled") {
-      const isDJPPR = !h.yahooSymbol && /^(PBS|SBN|SR|ST|FR|ORI)\d/i.test(h.ticker);
-      const mult = (h.isBondPct || isDJPPR) ? (h.faceValue ?? 1000000) / 100 : 1;
-      newP[h.ticker] = r.value.p.current * mult;
-      newPP[h.ticker] = r.value.p.prev * mult;
-      successes++;
-    } else {
-      errors[h.ticker] = r?.reason?.message || "Failed";
-    }
-  });
-  setPrices(newP);
-  setPrevPrices(newPP);
+    let bmStatus = "no benchmark data";
+    try {
+      const BM_DEFS = [
+        { key: "sp500",  label: "S&P 500",          fetch: () => fetchBenchmark("^GSPC") },
+        { key: "brk",    label: "BRK-B",             fetch: () => fetchBenchmark("BRK-B") },
+        { key: "jkse",   label: "IDX Composite",     fetch: () => fetchBenchmark("^JKSE") },
+        { key: "eido",   label: "EIDO",              fetch: () => fetchBenchmark("EIDO") },
+        { key: "vas",    label: "VAS",               fetch: () => fetchBenchmark("VAS.AX") },
+      ];
+      const results = await Promise.allSettled(BM_DEFS.map(b => b.fetch()));
+      const successes = results.map((r, i) => r.status === "fulfilled" ? { ...BM_DEFS[i], data: r.value } : null).filter(Boolean);
+      if (successes.length > 0) {
+        const ref = successes.reduce((a, b) => b.data.labels.length > a.data.labels.length ? b : a);
+        const series = {};
+        results.forEach((r, i) => { series[BM_DEFS[i].key] = r.status === "fulfilled" ? r.value.pct : null; });
+        const ok = BM_DEFS.map((b, i) => results[i].status === "fulfilled" ? b.label + "✓" : null).filter(Boolean);
+        const fail = BM_DEFS.map((b, i) => results[i].status === "rejected" ? b.label : null).filter(Boolean);
+        bmStatus = `${ok.length}/${BM_DEFS.length} loaded${fail.length ? ` · failed: ${fail.join(", ")}` : ""}`;
 
-  // 4. Update history snapshots with current value (but we will rely on reconstruction later)
-  const now = new Date();
-  const date = now.toISOString().slice(0, 10);
-  const hs = portfolio.map(h => computeHolding(h, newP, newPP, newRates)).filter(h => h.qty > 0);
-  const snap = { date, totalValueAUD: hs.reduce((s, h) => s + h.currentValue, 0), totalDividendsAUD: hs.reduce((s, h) => s + h.totalDividends, 0) };
-  setHistory(prev => [...prev.filter(s => s.date !== date), snap].sort((a, b) => new Date(a.date) - new Date(b.date)).slice(-90));
-
-  setFetchSt({
-    loading: false,
-    lastUpdate: now,
-    errors,
-    successes,
-    total: fetchablePrices.length,
-    fetched: fetchablePrices.length,
-    rateOk,
-    bmStatus,
-  });
-}, [portfolio, prices, prevPrices, rates]);
-
-const chartData = useMemo(() => {
-  const cutoff = periodCutoff(chartPeriod);
-  const allSorted = [...history].sort((a, b) => new Date(a.date) - new Date(b.date));
-
-  // ------------------------------------------------------------------
-  // 1. Determine if we have price maps to reconstruct history
-  const hasPriceMaps = Object.keys(benchmarks.holdingPrices || {}).length > 0;
-  const hasBenchmarkLabels = benchmarks.labels && benchmarks.labels.length > 0;
-
-  let labels = [], vals = [], divCumul = [];
-  let bmLabels = [], bmSeries = {}, bmPortfolio = [];
-
-  if (hasPriceMaps && hasBenchmarkLabels) {
-    // Use the same benchmark date grid for everything
-    const allBenchmarkDates = benchmarks.labels;
-    const bCutoff = periodCutoff(chartPeriod);
-    const filtIdx = allBenchmarkDates.map((l, i) => new Date(l) >= bCutoff ? i : -1).filter(i => i >= 0);
-    if (filtIdx.length > 1) {
-      bmLabels = filtIdx.map(i => fmtMonShort(allBenchmarkDates[i]));
-      const i0 = filtIdx[0];
-      const BM_KEYS = ["sp500", "brk", "jkse", "eido", "vas"];
-      BM_KEYS.forEach(k => {
-        const s = benchmarks.series[k];
-        if (!s) { bmSeries[k] = filtIdx.map(() => null); return; }
-        const base = s[i0] ?? null;
-        bmSeries[k] = filtIdx.map(i => s[i] != null && base != null ? s[i] - base : null);
-      });
-
-      // Helper to find nearest price in a map
-      const findPrice = (priceMap, dateStr) => {
-        if (!priceMap) return null;
-        if (priceMap[dateStr]) return priceMap[dateStr];
-        const target = new Date(dateStr).getTime();
-        let best = null, bestDiff = 35 * 86400000;
-        for (const [d, p] of Object.entries(priceMap)) {
-          const diff = Math.abs(new Date(d).getTime() - target);
-          if (diff < bestDiff) { bestDiff = diff; best = p; }
+        const fetchable = portfolio.filter(h => h.yahooSymbol);
+        const holdingPriceMaps = {};
+        const CONCURRENCY = 4;
+        const resultsHist = new Array(fetchable.length);
+        async function fetchOne(h, idx) {
+          try {
+            const hist = await fetchHoldingHistory(h.yahooSymbol);
+            if (hist?.priceMap) holdingPriceMaps[h.ticker] = hist.priceMap;
+            else holdingPriceMaps[h.ticker] = null;
+            resultsHist[idx] = { status: "fulfilled" };
+          } catch (e) { resultsHist[idx] = { status: "rejected", reason: e.message }; }
         }
-        return best;
-      };
-
-      // Reconstruct portfolio value at a given date
-      const portfolioValAtDate = (dateStr) => {
-        let totalAUD = 0;
-        for (const h of portfolio) {
-          let units = 0;
-          for (const tx of h.transactions) {
-            if (tx.date > dateStr) continue;
-            if (tx.type === "buy") units += tx.qty;
-            else if (tx.type === "sell") units -= tx.qty;
-          }
-          if (units <= 0) continue;
-
-          let priceInNative = null;
-          const hp = benchmarks.holdingPrices[h.ticker];
-          if (hp) {
-            priceInNative = findPrice(hp, dateStr);
-            if (h.isBondPct && priceInNative) priceInNative = priceInNative * (h.faceValue || 1000000) / 100;
-          }
-          // Fallback to current price if no historical price found
-          if (!priceInNative) priceInNative = prices[h.ticker];
-          if (!priceInNative || priceInNative <= 0) continue;
-
-          const currency = h.currency || "AUD";
-          let valueAUD = units * priceInNative;
-          if (currency === "IDR") valueAUD /= rates.AUD_IDR;
-          else if (currency === "USD") valueAUD /= rates.AUD_USD;
-          totalAUD += valueAUD;
+        let qi = 0;
+        while (qi < fetchable.length) {
+          const batch = fetchable.slice(qi, qi + CONCURRENCY);
+          await Promise.allSettled(batch.map((h, bi) => fetchOne(h, qi + bi)));
+          qi += CONCURRENCY;
         }
-        return totalAUD > 0 ? totalAUD : null;
-      };
-
-      const cumulativeDividendsAtDate = (dateStr) => {
-        let divAUD = 0;
-        for (const h of portfolio) {
-          h.transactions.filter(t => t.type === "dividend" && t.date <= dateStr).forEach(t => {
-            divAUD += toAUD(t.totalAmount || 0, h.currency, rates);
-          });
-        }
-        return divAUD;
-      };
-
-      const bmDates = filtIdx.map(i => allBenchmarkDates[i]);
-      const portVals = bmDates.map(date => portfolioValAtDate(date));
-      const baseIdx = portVals.findIndex(v => v != null);
-      if (baseIdx >= 0) {
-        const baseVal = portVals[baseIdx];
-        bmPortfolio = portVals.map((v, j) => v == null || j < baseIdx ? null : ((v - baseVal) / baseVal) * 100);
+        setBenchmarks(prev => ({
+          ...prev,
+          labels: ref.data.labels,
+          series,
+          holdingPrices: { ...prev.holdingPrices, ...holdingPriceMaps }
+        }));
+      } else {
+        bmStatus = "failed — all benchmarks unavailable";
+        setBenchmarks(prev => ({ ...prev, holdingPrices: {} }));
       }
-      // For the main chart, use the same dates and values
-      labels = bmLabels;
-      vals = portVals.map(v => fromAUD(v || 0, displayCur, rates));
-      divCumul = bmDates.map(d => fromAUD(cumulativeDividendsAtDate(d), displayCur, rates));
+    } catch (e) { bmStatus = "error: " + e.message; }
+
+    // Only fetch prices for holdings that have a yahooSymbol (stocks, ETFs, crypto, commodities)
+    const fetchablePrices = portfolio.filter(h => h.yahooSymbol);
+    const newP = { ...prices }, newPP = { ...prevPrices };
+    const errors = {};
+    let successes = 0;
+
+    function fetchPriceFor(h) {
+      if (h.yahooSymbol) return fetchYahooPrice(h.yahooSymbol);
+      return Promise.reject(new Error("No Yahoo symbol"));
     }
-  } else {
-    // Fallback to the old snapshot-based method
+
+    const CONCURRENCY_PRICE = 8;
+    const priceResults = new Array(fetchablePrices.length);
+    async function fetchOnePrice(h, idx) {
+      try {
+        const p = await fetchPriceFor(h);
+        newP[h.ticker] = p.current;
+        newPP[h.ticker] = p.prev;
+        successes++;
+        priceResults[idx] = { status: "fulfilled" };
+      } catch (e) { errors[h.ticker] = e.message; priceResults[idx] = { status: "rejected" }; }
+    }
+    let qiPrice = 0;
+    while (qiPrice < fetchablePrices.length) {
+      const batch = fetchablePrices.slice(qiPrice, qiPrice + CONCURRENCY_PRICE);
+      await Promise.allSettled(batch.map((h, bi) => fetchOnePrice(h, qiPrice + bi)));
+      qiPrice += CONCURRENCY_PRICE;
+      const done = priceResults.filter(Boolean).length;
+      setFetchSt(s => ({ ...s, fetched: done, total: fetchablePrices.length }));
+    }
+
+    setPrices(newP);
+    setPrevPrices(newPP);
+
+    const now = new Date();
+    const date = now.toISOString().slice(0, 10);
+    const hs = portfolio.map(h => computeHolding(h, newP, newPP, newRates)).filter(h => h.qty > 0);
+    const snap = { date, totalValueAUD: hs.reduce((s, h) => s + h.currentValue, 0), totalDividendsAUD: hs.reduce((s, h) => s + h.totalDividends, 0) };
+    setHistory(prev => [...prev.filter(s => s.date !== date), snap].sort((a, b) => new Date(a.date) - new Date(b.date)).slice(-90));
+
+    setFetchSt({
+      loading: false,
+      lastUpdate: now,
+      errors,
+      successes,
+      total: fetchablePrices.length,
+      fetched: fetchablePrices.length,
+      rateOk,
+      bmStatus,
+    });
+  }, [portfolio, prices, prevPrices, rates]);
+
+  const chartData = useMemo(() => {
+    const cutoff = periodCutoff(chartPeriod);
+    const allSorted = [...history].sort((a, b) => new Date(a.date) - new Date(b.date));
     const periodSnaps = allSorted.filter(s => new Date(s.date) >= cutoff);
-    labels = periodSnaps.map(s => fmtMonShort(s.date));
-    vals = periodSnaps.map(s => fromAUD(s.totalValueAUD, displayCur, rates));
-    divCumul = periodSnaps.map(s => {
-      let divAUD = 0;
-      portfolio.forEach(h => {
-        h.transactions.filter(t => t.type === "dividend" && t.date <= s.date).forEach(t => {
-          divAUD += toAUD(t.totalAmount || 0, h.currency, rates);
-        });
+    const labels = periodSnaps.map(s => fmtMonShort(s.date));
+    const vals = periodSnaps.map(s => fromAUD(s.totalValueAUD, displayCur, rates));
+    const divCumul = periodSnaps.map(s => fromAUD(s.totalDividendsAUD, displayCur, rates));
+    const baseSnap = allSorted.filter(s => new Date(s.date) < cutoff).slice(-1)[0];
+
+    const monthly = {};
+    const monthlyByTicker = {};
+    const palette = ["#6366f1","#22c55e","#06b6d4","#f59e0b","#ef4444","#8b5cf6","#ec4899","#14b8a6","#f97316","#84cc16","#3b82f6","#a78bfa"];
+    portfolio.forEach(h => {
+      h.transactions.filter(t => t.type === "dividend" && new Date(t.date) >= cutoff).forEach(t => {
+        const m = t.date.slice(0,7);
+        const val = fromAUD(toAUD(t.totalAmount || 0, h.currency, rates), displayCur, rates);
+        monthly[m] = (monthly[m] || 0) + val;
+        if (!monthlyByTicker[h.ticker]) monthlyByTicker[h.ticker] = {};
+        monthlyByTicker[h.ticker][m] = (monthlyByTicker[h.ticker][m] || 0) + val;
       });
-      return fromAUD(divAUD, displayCur, rates);
     });
-  }
-
-  const baseSnap = allSorted.filter(s => new Date(s.date) < cutoff).slice(-1)[0];
-
-  // ------------------------------------------------------------------
-  // 2. Monthly income (stacked bar)
-  const monthly = {};
-  const monthlyByTicker = {};
-  const palette = ["#6366f1","#22c55e","#06b6d4","#f59e0b","#ef4444","#8b5cf6","#ec4899","#14b8a6","#f97316","#84cc16","#3b82f6","#a78bfa"];
-  portfolio.forEach(h => {
-    h.transactions.filter(t => t.type === "dividend" && new Date(t.date) >= cutoff).forEach(t => {
-      const m = t.date.slice(0,7);
-      const val = fromAUD(toAUD(t.totalAmount || 0, h.currency, rates), displayCur, rates);
-      monthly[m] = (monthly[m] || 0) + val;
-      if (!monthlyByTicker[h.ticker]) monthlyByTicker[h.ticker] = {};
-      monthlyByTicker[h.ticker][m] = (monthlyByTicker[h.ticker][m] || 0) + val;
+    const mKeys = Object.keys(monthly).sort();
+    const divTickers = Object.keys(monthlyByTicker).sort((a,b) => {
+      const totA = Object.values(monthlyByTicker[a]).reduce((s,v)=>s+v,0);
+      const totB = Object.values(monthlyByTicker[b]).reduce((s,v)=>s+v,0);
+      return totB - totA;
     });
-  });
-  const mKeys = Object.keys(monthly).sort();
+    const mDatasets = divTickers.map((ticker,i) => ({
+      label: ticker,
+      data: mKeys.map(m => monthlyByTicker[ticker][m] || 0),
+      backgroundColor: palette[i % palette.length] + "aa",
+      borderColor: palette[i % palette.length],
+      borderWidth: 1,
+      borderRadius: 3,
+    }));
 
-  const divTickers = Object.keys(monthlyByTicker).sort((a,b) => {
-    const totA = Object.values(monthlyByTicker[a]).reduce((s,v)=>s+v,0);
-    const totB = Object.values(monthlyByTicker[b]).reduce((s,v)=>s+v,0);
-    return totB - totA;
-  });
-  const mDatasets = divTickers.map((ticker,i) => ({
-    label: ticker,
-    data: mKeys.map(m => monthlyByTicker[ticker][m] || 0),
-    backgroundColor: palette[i % palette.length] + "aa",
-    borderColor: palette[i % palette.length],
-    borderWidth: 1,
-    borderRadius: 3,
-  }));
-
-  // Dividend CAGR
-  const divByYear = {};
-  portfolio.forEach(h => {
-    h.transactions.filter(t => t.type === "dividend").forEach(t => {
-      const y = t.date.slice(0,4);
-      const val = fromAUD(toAUD(t.totalAmount || 0, h.currency, rates), displayCur, rates);
-      divByYear[y] = (divByYear[y] || 0) + val;
+    const divByYear = {};
+    portfolio.forEach(h => {
+      h.transactions.filter(t => t.type === "dividend").forEach(t => {
+        const y = t.date.slice(0,4);
+        const val = fromAUD(toAUD(t.totalAmount || 0, h.currency, rates), displayCur, rates);
+        divByYear[y] = (divByYear[y] || 0) + val;
+      });
     });
-  });
-  const divYears = Object.keys(divByYear).sort();
-  let divCAGR = null, divCAGRYears = 0;
-  if (divYears.length >= 2) {
-    const firstY = divYears[0], lastY = divYears[divYears.length-1];
-    const firstVal = divByYear[firstY], lastVal = divByYear[lastY];
-    divCAGRYears = parseInt(lastY) - parseInt(firstY);
-    if (divCAGRYears > 0 && firstVal > 0 && lastVal > 0) {
-      divCAGR = (Math.pow(lastVal / firstVal, 1 / divCAGRYears) - 1) * 100;
+    const divYears = Object.keys(divByYear).sort();
+    let divCAGR = null, divCAGRYears = 0;
+    if (divYears.length >= 2) {
+      const firstY = divYears[0], lastY = divYears[divYears.length-1];
+      const firstVal = divByYear[firstY], lastVal = divByYear[lastY];
+      divCAGRYears = parseInt(lastY) - parseInt(firstY);
+      if (divCAGRYears > 0 && firstVal > 0 && lastVal > 0) {
+        divCAGR = (Math.pow(lastVal / firstVal, 1 / divCAGRYears) - 1) * 100;
+      }
     }
-  }
 
-  // Allocation
-  const byType = {};
-  holdings.forEach(h => { const k = h.assetType || "Other"; byType[k] = (byType[k] || 0) + fromAUD(h.currentValue, displayCur, rates); });
-  const byCur = {};
-  holdings.forEach(h => { byCur[h.currency] = (byCur[h.currency] || 0) + fromAUD(h.currentValue, displayCur, rates); });
+    const byType = {};
+    holdings.forEach(h => { const k = h.assetType || "Other"; byType[k] = (byType[k] || 0) + fromAUD(h.currentValue, displayCur, rates); });
+    const byCur = {};
+    holdings.forEach(h => { byCur[h.currency] = (byCur[h.currency] || 0) + fromAUD(h.currentValue, displayCur, rates); });
 
-  // Waterfall
-  const startVal = vals.length ? vals[0] : (baseSnap ? fromAUD(baseSnap.totalValueAUD, displayCur, rates) : 0);
-  const endVal = vals.length ? vals[vals.length-1] : fromAUD(totVal, displayCur, rates);
-  const topUps = portfolio.reduce((s,h) => s + h.transactions.filter(t => t.type === "buy" && new Date(t.date) >= cutoff).reduce((ss,t) => ss + fromAUD(toAUD(t.qty * t.price, h.currency, rates), displayCur, rates), 0), 0);
-  const divInPeriod = portfolio.reduce((s,h) => s + h.transactions.filter(t => t.type === "dividend" && new Date(t.date) >= cutoff).reduce((ss,t) => ss + fromAUD(toAUD(t.totalAmount || 0, h.currency, rates), displayCur, rates), 0), 0);
-  const netSales = portfolio.reduce((s,h) => s + h.transactions.filter(t => t.type === "sell" && new Date(t.date) >= cutoff).reduce((ss,t) => ss + fromAUD(toAUD(t.qty * t.price, h.currency, rates), displayCur, rates), 0), 0);
-  const capitalGain = endVal - startVal - topUps + netSales - divInPeriod;
+    const startVal = vals.length ? vals[0] : (baseSnap ? fromAUD(baseSnap.totalValueAUD, displayCur, rates) : 0);
+    const endVal = vals.length ? vals[vals.length-1] : fromAUD(totVal, displayCur, rates);
+    const topUps = portfolio.reduce((s,h) => s + h.transactions.filter(t => t.type === "buy" && new Date(t.date) >= cutoff).reduce((ss,t) => ss + fromAUD(toAUD(t.qty * t.price, h.currency, rates), displayCur, rates), 0), 0);
+    const divInPeriod = portfolio.reduce((s,h) => s + h.transactions.filter(t => t.type === "dividend" && new Date(t.date) >= cutoff).reduce((ss,t) => ss + fromAUD(toAUD(t.totalAmount || 0, h.currency, rates), displayCur, rates), 0), 0);
+    const netSales = portfolio.reduce((s,h) => s + h.transactions.filter(t => t.type === "sell" && new Date(t.date) >= cutoff).reduce((ss,t) => ss + fromAUD(toAUD(t.qty * t.price, h.currency, rates), displayCur, rates), 0), 0);
+    const capitalGain = endVal - startVal - topUps + netSales - divInPeriod;
 
-  const waterfallData = [
-    { label: "Start Value", value: startVal, type: "start" },
-    capitalGain >= 0 ? { label: "Capital Gain", value: capitalGain, type: "pos" } : { label: "Capital Loss", value: capitalGain, type: "neg" },
-    { label: "Top-Ups", value: topUps, type: "pos" },
-    { label: "Dividends", value: divInPeriod, type: "pos" },
-    netSales > 0 ? { label: "Sales", value: -netSales, type: "neg" } : null,
-    { label: "End Value", value: endVal, type: "total" },
-  ].filter(Boolean);
+    const waterfallData = [
+      { label: "Start Value", value: startVal, type: "start" },
+      capitalGain >= 0 ? { label: "Capital Gain", value: capitalGain, type: "pos" } : { label: "Capital Loss", value: capitalGain, type: "neg" },
+      { label: "Top-Ups", value: topUps, type: "pos" },
+      { label: "Dividends", value: divInPeriod, type: "pos" },
+      netSales > 0 ? { label: "Sales", value: -netSales, type: "neg" } : null,
+      { label: "End Value", value: endVal, type: "total" },
+    ].filter(Boolean);
 
-  // ------------------------------------------------------------------
-  // 3. Return everything
-  return {
-    labels, vals, divCumul,
-    mLabels: mKeys.map(fmtMon), mVals: mKeys.map(k => monthly[k]), mDatasets,
-    divCAGR, divCAGRYears,
-    tLabels: Object.keys(byType), tVals: Object.values(byType), palette,
-    byCurLabels: Object.keys(byCur), byCurVals: Object.values(byCur), byCurColors: ["#22c55e","#06b6d4","#f59e0b","#8b5cf6"],
-    waterfallData, startVal, endVal,
-    bmLabels, bmSeries, bmPortfolio,
-  };
-}, [history, holdings, displayCur, rates, portfolio, chartPeriod, periodCutoff, benchmarks, totVal, dark, prices]);
-  
+    const BM_KEYS = ["sp500", "brk", "jkse", "eido", "vas"];
+    let bmLabels = [], bmPortfolio = [];
+    const bmSeries = {};
+    BM_KEYS.forEach(k => bmSeries[k] = []);
+
+    if (benchmarks.labels.length > 0) {
+      const bCutoff = periodCutoff(chartPeriod);
+      const filtIdx = benchmarks.labels.map((l, i) => new Date(l) >= bCutoff ? i : -1).filter(i => i >= 0);
+      if (filtIdx.length > 1) {
+        bmLabels = filtIdx.map(i => fmtMonShort(benchmarks.labels[i]));
+        const i0 = filtIdx[0];
+        BM_KEYS.forEach(k => {
+          const s = benchmarks.series[k];
+          if (!s) { bmSeries[k] = filtIdx.map(() => null); return; }
+          const base = s[i0] ?? null;
+          bmSeries[k] = filtIdx.map(i => s[i] != null && base != null ? s[i] - base : null);
+        });
+
+        const bmDates = filtIdx.map(i => benchmarks.labels[i]);
+        const portVals = bmDates.map(date => {
+          const snap = history.find(s => s.date === date);
+          if (snap) return snap.totalValueAUD;
+          const prevSnap = [...history].reverse().find(s => s.date <= date);
+          const nextSnap = history.find(s => s.date >= date);
+          if (prevSnap && nextSnap) {
+            const t = (new Date(date) - new Date(prevSnap.date)) / (new Date(nextSnap.date) - new Date(prevSnap.date));
+            return prevSnap.totalValueAUD * (1 - t) + nextSnap.totalValueAUD * t;
+          }
+          return null;
+        });
+        const baseIdx = portVals.findIndex(v => v != null);
+        if (baseIdx >= 0) {
+          const baseVal = portVals[baseIdx];
+          bmPortfolio = portVals.map((v, j) => v == null || j < baseIdx ? null : ((v - baseVal) / baseVal) * 100);
+        }
+      }
+    }
+
+    return {
+      labels, vals, divCumul,
+      mLabels: mKeys.map(fmtMon), mVals: mKeys.map(k => monthly[k]), mDatasets,
+      divCAGR, divCAGRYears,
+      tLabels: Object.keys(byType), tVals: Object.values(byType), palette,
+      byCurLabels: Object.keys(byCur), byCurVals: Object.values(byCur), byCurColors: ["#22c55e","#06b6d4","#f59e0b","#8b5cf6"],
+      waterfallData, startVal, endVal,
+      bmLabels, bmSeries, bmPortfolio,
+    };
+  }, [history, holdings, displayCur, rates, portfolio, chartPeriod, periodCutoff, benchmarks, totVal, dark, prices]);
+
   const yFmtD=useCallback((v)=>{
     if(displayCur==="IDR"){const abs=Math.abs(v);if(abs>=1e9)return`Rp${(v/1e9).toFixed(1)}M`;if(abs>=1e6)return`Rp${(v/1e6).toFixed(1)}Jt`;return`Rp${(v/1e3).toFixed(0)}Rb`;}
     const abs=Math.abs(v);if(abs>=1e6)return`${displayCur==="USD"?"US$":"A$"}${(v/1e6).toFixed(1)}M`;return`${displayCur==="USD"?"US$":"A$"}${(v/1e3).toFixed(0)}K`;
   },[displayCur]);
 
-  // ========== MODAL HANDLERS (add these) ==========
-const closeModal = () => { setModal(null); setForm({}); };
-
-const openAdd = () => {
-  setModal({ mode: "add" });
-  setForm({
-    ticker: "", name: "", qty: "", price: "",
-    date: new Date().toISOString().slice(0, 10),
-    currency: "AUD", assetType: "Shares / Stocks",
-    exchange: "", yahooSymbol: "", faceValue: "", isBondPct: false,
-  });
-};
-
-const openTrade = (h, type) => {
-  setModal({ mode: "trade", holding: h, tradeType: type });
-  setForm({ qty: "", price: h.currentPrice, date: new Date().toISOString().slice(0, 10) });
-};
-
-const openDiv = (h) => {
-  const hc = computeHolding(h, prices, prevPrices, rates);
-  setModal({ mode: "dividend", holding: h });
-  setForm({ amountPerShare: "", entitledQty: String(hc.qty), date: new Date().toISOString().slice(0, 10) });
-};
-
-const openHistory = (h) => setModal({ mode: "history", holding: h });
-
-const openManualPrice = () => {
-  const f = { displayCur };
-  holdings.forEach(h => {
-    f["c_" + h.ticker] = prices[h.ticker] || "";
-    f["p_" + h.ticker] = prevPrices[h.ticker] || "";
-    f["ys_" + h.ticker] = h.yahooSymbol || "";
-  });
-  setModal({ mode: "price" });
-  setForm(f);
-};
-
-const openImport = () => {
-  setModal({ mode: "import" });
-  setImportSt({ step: "idle", rows: [], parsed: [], errors: [], mergeMode: "merge", dragOver: false });
-};
-
-// Import file handler
-const handleImportFile = async (file) => {
-  if (!file) return;
-  setImportSt(s => ({ ...s, step: "parsing", dragOver: false }));
-  try {
-    const raw = await readFileAsRows(file);
-    if (!raw.length) {
-      setImportSt(s => ({ ...s, step: "error", errorMsg: "File is empty or has no data rows." }));
-      return;
+  // ========== MODAL HANDLERS ==========
+  const closeModal = () => { setModal(null); setForm({}); };
+  const openAdd = () => {
+    setModal({ mode: "add" });
+    setForm({
+      ticker: "", name: "", qty: "", price: "",
+      date: new Date().toISOString().slice(0, 10),
+      currency: "AUD", assetType: "Shares / Stocks",
+      exchange: "", yahooSymbol: "", faceValue: "", isBondPct: false,
+    });
+  };
+  const openTrade = (h, type) => {
+    setModal({ mode: "trade", holding: h, tradeType: type });
+    setForm({ qty: "", price: h.currentPrice, date: new Date().toISOString().slice(0, 10) });
+  };
+  const openDiv = (h) => {
+    const hc = computeHolding(h, prices, prevPrices, rates);
+    setModal({ mode: "dividend", holding: h });
+    setForm({ amountPerShare: "", entitledQty: String(hc.qty), date: new Date().toISOString().slice(0, 10) });
+  };
+  const openHistory = (h) => setModal({ mode: "history", holding: h });
+  const openManualPrice = () => {
+    const f = { displayCur };
+    holdings.forEach(h => {
+      f["c_" + h.ticker] = prices[h.ticker] || "";
+      f["p_" + h.ticker] = prevPrices[h.ticker] || "";
+      f["ys_" + h.ticker] = h.yahooSymbol || "";
+    });
+    setModal({ mode: "price" });
+    setForm(f);
+  };
+  const openImport = () => {
+    setModal({ mode: "import" });
+    setImportSt({ step: "idle", rows: [], parsed: [], errors: [], mergeMode: "merge", dragOver: false });
+  };
+  const handleImportFile = async (file) => {
+    if (!file) return;
+    setImportSt(s => ({ ...s, step: "parsing", dragOver: false }));
+    try {
+      const raw = await readFileAsRows(file);
+      if (!raw.length) { setImportSt(s => ({ ...s, step: "error", errorMsg: "File is empty or has no data rows." })); return; }
+      const { rows, errors, fieldMap } = parseRows(raw);
+      setImportSt(s => ({ ...s, step: "preview", rows: raw, parsed: rows, errors, fieldMap, fileName: file.name }));
+    } catch (e) { setImportSt(s => ({ ...s, step: "error", errorMsg: e.message })); }
+  };
+  const confirmImport = () => {
+    const { parsed, mergeMode } = importSt;
+    const base = mergeMode === "replace" ? [] : portfolio;
+    const newPortfolio = buildPortfolioFromRows(parsed, base);
+    setPortfolio(newPortfolio);
+    setImportSt(s => ({ ...s, step: "done", importedCount: parsed.filter(r => !r._errors.length).length }));
+  };
+  const submitAdd = () => {
+    const { ticker, name, qty, price, date, currency, assetType, exchange, yahooSymbol, faceValue, isBondPct } = form;
+    if (!ticker || !qty || !price) return;
+    const tk = ticker.toUpperCase();
+    const ys = yahooSymbol || suggestYahoo(tk, exchange, assetType);
+    const isBP = isBondPct || false;
+    const fv = faceValue ? +faceValue : undefined;
+    if (portfolio.find(h => h.ticker === tk)) {
+      setPortfolio(prev => prev.map(h => h.ticker === tk ? { ...h, transactions: [...h.transactions, { type: "buy", qty: +qty, price: +price, date }] } : h));
+    } else {
+      const newH = {
+        id: Date.now(), ticker: tk, name: name || tk, currency: currency || "AUD",
+        assetType: assetType || "Shares / Stocks", exchange: exchange || "", yahooSymbol: ys,
+        transactions: [{ type: "buy", qty: +qty, price: +price, date }]
+      };
+      if (isBP) newH.isBondPct = true;
+      if (fv) newH.faceValue = fv;
+      setPortfolio(prev => [...prev, newH]);
+      setPrices(prev => ({ ...prev, [tk]: +price }));
+      setPrevPrices(prev => ({ ...prev, [tk]: +price }));
     }
-    const { rows, errors, fieldMap } = parseRows(raw);
-    setImportSt(s => ({ ...s, step: "preview", rows: raw, parsed: rows, errors, fieldMap, fileName: file.name }));
-  } catch (e) {
-    setImportSt(s => ({ ...s, step: "error", errorMsg: e.message }));
-  }
-};
+    closeModal();
+  };
+  const submitTrade = () => {
+    const { qty, price, date } = form;
+    if (!qty || !price) return;
+    setPortfolio(prev => prev.map(h => h.id === modal.holding.id ? { ...h, transactions: [...h.transactions, { type: modal.tradeType, qty: +qty, price: +price, date }] } : h));
+    closeModal();
+  };
+  const submitDiv = () => {
+    const { amountPerShare, entitledQty, date } = form;
+    if (!amountPerShare || !entitledQty) return;
+    const qty = +entitledQty;
+    setPortfolio(prev => prev.map(p => p.id === modal.holding.id ? {
+      ...p, transactions: [...p.transactions, { type: "dividend", amountPerShare: +amountPerShare, totalAmount: +amountPerShare * qty, entitledQty: qty, date }]
+    } : p));
+    closeModal();
+  };
+  const submitManualPrice = () => {
+    const c = {}, p = {}, ys = {};
+    Object.entries(form).forEach(([k, v]) => {
+      if (k.startsWith("c_") && v !== "") c[k.slice(2)] = +v;
+      if (k.startsWith("p_") && v !== "") p[k.slice(2)] = +v;
+      if (k.startsWith("ys_")) ys[k.slice(3)] = v;
+    });
+    setPrices(prev => ({ ...prev, ...c }));
+    setPrevPrices(prev => ({ ...prev, ...p }));
+    if (form.displayCur) setDisplayCur(form.displayCur);
+    setPortfolio(prev => prev.map(h => ({ ...h, yahooSymbol: ys[h.ticker] ?? h.yahooSymbol })));
+    const date = new Date().toISOString().slice(0, 10);
+    const hs = portfolio.map(h => computeHolding(h, { ...prices, ...c }, { ...prevPrices, ...p }, rates)).filter(h => h.qty > 0);
+    const snap = { date, totalValueAUD: hs.reduce((s, h) => s + h.currentValue, 0), totalDividendsAUD: hs.reduce((s, h) => s + h.totalDividends, 0) };
+    setHistory(prev => [...prev.filter(s => s.date !== date), snap].sort((a, b) => new Date(a.date) - new Date(b.date)).slice(-90));
+    closeModal();
+  };
 
-const confirmImport = () => {
-  const { parsed, mergeMode } = importSt;
-  const base = mergeMode === "replace" ? [] : portfolio;
-  const newPortfolio = buildPortfolioFromRows(parsed, base);
-  setPortfolio(newPortfolio);
-  setImportSt(s => ({ ...s, step: "done", importedCount: parsed.filter(r => !r._errors.length).length }));
-};
-
-// Submit handlers
-const submitAdd = () => {
-  const { ticker, name, qty, price, date, currency, assetType, exchange, yahooSymbol, faceValue, isBondPct } = form;
-  if (!ticker || !qty || !price) return;
-  const tk = ticker.toUpperCase();
-  const ys = yahooSymbol || suggestYahoo(tk, exchange, assetType);
-  const isBP = isBondPct || false;
-  const fv = faceValue ? +faceValue : undefined;
-  if (portfolio.find(h => h.ticker === tk)) {
-    setPortfolio(prev => prev.map(h => h.ticker === tk ? { ...h, transactions: [...h.transactions, { type: "buy", qty: +qty, price: +price, date }] } : h));
-  } else {
-    const newH = {
-      id: Date.now(), ticker: tk, name: name || tk, currency: currency || "AUD",
-      assetType: assetType || "Shares / Stocks", exchange: exchange || "", yahooSymbol: ys,
-      transactions: [{ type: "buy", qty: +qty, price: +price, date }]
-    };
-    if (isBP) newH.isBondPct = true;
-    if (fv) newH.faceValue = fv;
-    setPortfolio(prev => [...prev, newH]);
-    setPrices(prev => ({ ...prev, [tk]: +price }));
-    setPrevPrices(prev => ({ ...prev, [tk]: +price }));
-  }
-  closeModal();
-};
-
-const submitTrade = () => {
-  const { qty, price, date } = form;
-  if (!qty || !price) return;
-  setPortfolio(prev => prev.map(h => h.id === modal.holding.id ? { ...h, transactions: [...h.transactions, { type: modal.tradeType, qty: +qty, price: +price, date }] } : h));
-  closeModal();
-};
-
-const submitDiv = () => {
-  const { amountPerShare, entitledQty, date } = form;
-  if (!amountPerShare || !entitledQty) return;
-  const qty = +entitledQty;
-  setPortfolio(prev => prev.map(p => p.id === modal.holding.id ? {
-    ...p, transactions: [...p.transactions, {
-      type: "dividend", amountPerShare: +amountPerShare, totalAmount: +amountPerShare * qty, entitledQty: qty, date
-    }]
-  } : p));
-  closeModal();
-};
-
-const submitManualPrice = () => {
-  const c = {}, p = {}, ys = {};
-  Object.entries(form).forEach(([k, v]) => {
-    if (k.startsWith("c_") && v !== "") c[k.slice(2)] = +v;
-    if (k.startsWith("p_") && v !== "") p[k.slice(2)] = +v;
-    if (k.startsWith("ys_")) ys[k.slice(3)] = v;
-  });
-  setPrices(prev => ({ ...prev, ...c }));
-  setPrevPrices(prev => ({ ...prev, ...p }));
-  if (form.displayCur) setDisplayCur(form.displayCur);
-  setPortfolio(prev => prev.map(h => ({ ...h, yahooSymbol: ys[h.ticker] ?? h.yahooSymbol })));
-
-  const date = new Date().toISOString().slice(0, 10);
-  const hs = portfolio.map(h => computeHolding(h, { ...prices, ...c }, { ...prevPrices, ...p }, rates)).filter(h => h.qty > 0);
-  const snap = { date, totalValueAUD: hs.reduce((s, h) => s + h.currentValue, 0), totalDividendsAUD: hs.reduce((s, h) => s + h.totalDividends, 0) };
-  setHistory(prev => [...prev.filter(s => s.date !== date), snap].sort((a, b) => new Date(a.date) - new Date(b.date)).slice(-90));
-  closeModal();
-};
   const histH=modal?.mode==="history"?portfolio.find(p=>p.id===modal.holding.id):null;
   const histC=histH?computeHolding(histH,prices,prevPrices,rates):null;
 
-  // Style helpers (same as original)
+  // Style helpers
   const card=(x={})=>({background:T.bg3,border:`1px solid ${T.border}`,borderRadius:12,...x});
   const bS=(bg,col,x={})=>({padding:"8px 16px",border:"none",borderRadius:8,background:bg,color:col,fontSize:12,fontWeight:700,...x});
   const bO=(col,x={})=>({padding:"8px 14px",border:`1px solid ${T.border2}`,borderRadius:8,background:"transparent",color:col,fontSize:12,...x});
@@ -1870,14 +1503,13 @@ const submitManualPrice = () => {
 
   const fetchBarColor=fetchSt.loading?T.amber:Object.keys(fetchSt.errors).length>0?T.amber:fetchSt.lastUpdate?T.green:T.text3;
 
-  // Return the full JSX (identical to your original, but wrapped in ErrorBoundary)
+  // Return the full JSX (identical to your original working version, without time slider)
   return (
     <ErrorBoundary>
       <div style={{minHeight:"100vh",background:T.bg,color:T.text}}>
-        {/* ── HEADER ── (same as original) */}
+        {/* ── HEADER ── */}
         <header style={{background:T.bg2,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:20,boxShadow:T.shadow}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",gap:8,flexWrap:"wrap"}}>
-            {/* Logo SVG – same as original */}
             <div style={{display:"flex",alignItems:"center",gap:0,flexShrink:0}}>
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 56" width={isMob?160:210} height={isMob?44:56} style={{display:"block"}}>
                 <defs><linearGradient id="hbg" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stopColor="#22c55e"/><stop offset="55%" stopColor="#10b981"/><stop offset="100%" stopColor="#06b6d4"/></linearGradient>
@@ -1898,7 +1530,6 @@ const submitManualPrice = () => {
                 <text x="59" y="46" fontFamily="'Roboto',sans-serif" fontWeight="500" fontSize="7" letterSpacing="2.5" fill="#4dd08a" opacity="0.75">PORTFOLIO TRACKER</text>
               </svg>
             </div>
-            {/* Desktop stats */}
             <div className="hdr-desktop" style={{display:"flex",alignItems:"stretch",flex:1,overflow:"hidden"}}>
               {[["VALUE",FC(totVal,true),T.text],["TOTAL G/L",`${FG(totGain)} (${fmtPct(totPct)})`,pColor(totGain)],["DAY G/L",`${FG(totDayGain)} (${fmtPct(totDayPct)})`,pColor(totDayGain)],["DIVIDENDS",FC(totDivs,true),T.teal],["DIV YLD/COST",fmtPct(divYld),T.teal],["HOLDINGS",String(holdings.length),T.text2]].map(([l,v,c],i)=>(
                 <div key={l} style={{display:"flex",flexDirection:"column",padding:"0 12px",borderLeft:i>0?`1px solid ${T.border}`:"none",minWidth:0}}>
@@ -1907,13 +1538,11 @@ const submitManualPrice = () => {
                 </div>
               ))}
             </div>
-            {/* Mobile stats */}
             <div className="hdr-mobile" style={{display:"none",gap:10,flex:1,justifyContent:"center",flexWrap:"wrap"}}>
               {[["VALUE",FC(totVal,true),T.text],["G/L",fmtPct(totPct),pColor(totGain)],["DAY",fmtPct(totDayPct),pColor(totDayGain)],["DIV",FC(totDivs,true),T.teal]].map(([l,v,c])=>(
                 <div key={l} style={{textAlign:"center"}}><div style={{fontSize:8,color:T.text3,letterSpacing:1.5,textTransform:"uppercase"}}>{l}</div><div style={{fontFamily:"'Space Mono',monospace",fontSize:12,fontWeight:700,color:c}}>{v}</div></div>
               ))}
             </div>
-            {/* Controls */}
             <div style={{display:"flex",gap:5,alignItems:"center",flexShrink:0,flexWrap:"wrap",justifyContent:isMob?"flex-end":"flex-end"}}>
               <div style={{display:"flex",background:T.bg4,borderRadius:8,padding:2,border:`1px solid ${T.border}`}}>
                 {CURRENCIES.map(c=><button key={c} onClick={()=>setDisplayCur(c)} style={{padding:"4px 8px",borderRadius:6,border:"none",background:displayCur===c?T.bg2:"transparent",color:displayCur===c?T.text:T.text3,fontSize:10,fontWeight:displayCur===c?700:400,fontFamily:"'Space Mono',monospace"}}>{c}</button>)}
@@ -1962,7 +1591,6 @@ const submitManualPrice = () => {
               <button onClick={openAdd} style={{...bS(T.greenBtn,"#fff",{padding:"7px 12px",fontSize:11})}}>+ Add</button>
             </div>
           </div>
-          {/* Status bar */}
           <div style={{display:"flex",alignItems:"center",gap:10,padding:"4px 14px",background:T.bg,borderTop:`1px solid ${T.border}`,fontSize:10,color:T.text3,flexWrap:"wrap",minHeight:26}}>
             <span>1 AUD = {rates.AUD_IDR.toLocaleString("en-AU")} IDR</span>
             <span style={{color:T.border}}>·</span>
@@ -2043,7 +1671,7 @@ const submitManualPrice = () => {
             <div className="tm-wrap" style={{display:"flex",gap:12,alignItems:"flex-start",flexWrap:isMob?"wrap":"nowrap"}}>
               <div ref={mapRef} style={{flex:"1 1 280px",width:isMob?"100%":"auto",height:isMob?"calc(100vw - 28px)":440,position:"relative",borderRadius:12,overflow:"hidden",border:`1px solid ${T.border}`,background:T.bg3,minWidth:200}}>
                 {rects.map(r=>{
-                  const c=tmSlider!=null&&sliderRects!=null?gainColor(r.gainPct??0,dark):(tmMode==="performance"?gainColor(r.gainPct,dark):tmMode==="day"?dayColor(r.dayGainPct,dark):divColor(r.divYieldOnCost,dark));
+                  const c=(tmMode==="performance"?gainColor(r.gainPct,dark):tmMode==="day"?dayColor(r.dayGainPct,dark):divColor(r.divYieldOnCost,dark));
                   const area=r.w*r.h,big=area>15000,mid=area>3500,sm=area>1400;
                   return(
                     <div key={r.ticker} onClick={()=>setSelected(r.ticker===selected?null:r.ticker)}
@@ -2164,7 +1792,6 @@ const submitManualPrice = () => {
           )}
           {view==="chart"&&(
             <div style={{display:"flex",flexDirection:"column",gap:14}}>
-              {/* Summary cards */}
               <div style={{display:"grid",gridTemplateColumns:isMob?"1fr 1fr":"repeat(5,1fr)",gap:10}}>
                 {(()=>{
                   const totROI=totInv>0?((totVal+totDivs-totInv)/totInv)*100:0;
@@ -2185,7 +1812,6 @@ const submitManualPrice = () => {
                   ));
                 })()}
               </div>
-              {/* Period selector */}
               <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                 <span style={{fontSize:11,color:T.text3,fontWeight:500}}>Time period:</span>
                 <div style={{display:"flex",gap:3,background:T.bg3,padding:3,borderRadius:10,border:`1px solid ${T.border}`}}>
@@ -2195,7 +1821,6 @@ const submitManualPrice = () => {
                 </div>
                 <span style={{fontSize:10,color:T.text3,marginLeft:4}}>{chartData.labels.length} data points</span>
               </div>
-              {/* Row 1: Portfolio value + Allocation */}
               <div className="chart-row" style={{display:"flex",gap:12,flexWrap:isMob?"wrap":"nowrap"}}>
                 <div style={{flex:"2 1 280px",...card({padding:16})}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
@@ -2219,7 +1844,6 @@ const submitManualPrice = () => {
                   <ChartDoughnut labels={chartData.tLabels} data={chartData.tVals} colors={chartData.palette} T={T} height={isMob?180:230}/>
                 </div>
               </div>
-              {/* Row 2: Income by month + Currency split */}
               <div className="chart-row" style={{display:"flex",gap:12,flexWrap:isMob?"wrap":"nowrap"}}>
                 <div style={{flex:"2 1 280px",...card({padding:16})}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
@@ -2241,7 +1865,6 @@ const submitManualPrice = () => {
                   <ChartDoughnut labels={chartData.byCurLabels} data={chartData.byCurVals} colors={chartData.byCurColors} T={T} height={isMob?160:210}/>
                 </div>
               </div>
-              {/* Row 3: Growth Contributors Waterfall */}
               <div style={{...card({padding:16})}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12,flexWrap:"wrap",gap:8}}>
                   <div>
@@ -2282,7 +1905,6 @@ const submitManualPrice = () => {
                   );
                 })()}
               </div>
-              {/* Row 4: Benchmark Comparison */}
               <div style={{...card({padding:16})}}>
                 <div style={{marginBottom:12}}>
                   <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>📐 Benchmark Comparison — {chartPeriod}</div>
@@ -2378,8 +2000,7 @@ const submitManualPrice = () => {
           )}
         </main>
 
-        {/* ── MODALS ── (same as original, omitted for brevity but would be placed here) */}
-             {/* ── MODALS ── */}
+        {/* ── MODALS (full, unmodified) ── */}
         {modal && (
           <div onClick={closeModal} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.78)",backdropFilter:"blur(8px)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:12}}>
             <div onClick={e=>e.stopPropagation()} style={{background:T.bg2,border:`1px solid ${T.border}`,borderRadius:14,padding:22,width:"100%",maxWidth:modal?.mode==="import"?720:520,maxHeight:"92vh",overflowY:"auto",boxShadow:T.shadow}}>
@@ -2467,7 +2088,7 @@ const submitManualPrice = () => {
                 <>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14,gap:10}}><div><h2 style={{fontFamily:"'Space Mono',monospace",fontSize:15,fontWeight:700,color:T.text,marginBottom:4}}>📋 Transaction History</h2><p style={{fontSize:11,color:T.text3}}>{modal.holding.ticker} — {modal.holding.name}</p></div></div>
                   <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>{[["Market Value",FC(histC.currentValue),T.text],["Total G/L",`${FG(histC.totalGain)} (${fmtPct(histC.gainPct)})`,pColor(histC.totalGain)],["Div/Coupons",FC(histC.totalDividends),T.teal]].map(([l,v,c])=>(<div key={l} style={{background:T.bg4,border:`1px solid ${T.border}`,borderRadius:8,padding:"7px 12px",flex:"1 1 100px"}}><div style={{fontSize:8,color:T.text3,letterSpacing:1.2,textTransform:"uppercase"}}>{l}</div><div style={{fontFamily:"'Space Mono',monospace",fontSize:11,fontWeight:700,color:c,marginTop:3}}>{v}</div></div>))}</div>
-                  <div style={{overflowX:"auto",borderRadius:8,border:`1px solid ${T.border}`}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr>{["Date","Type","Units / Div","Price / Div","Total",""].map(c=>(<th key={c} style={{padding:"8px 10px",textAlign:"left",fontSize:8,letterSpacing:1.5,color:T.text3,textTransform:"uppercase",background:T.bg,borderBottom:`1px solid ${T.border}`,whiteSpace:"nowrap"}}>{c}</th>))}</tr></thead><tbody>{[...histH.transactions].sort((a,b)=>new Date(b.date)-new Date(a.date)).map((tx,i)=>{const origIdx=histH.transactions.indexOf(tx);const tmap={buy:{l:"BUY",c:T.green,bg:dark?"#0d3d2833":"#dcfce7"},sell:{l:"SELL",c:T.red,bg:dark?"#3d0a0a33":"#fee2e2"},dividend:{l:histH.isBondPct?"COUPON":"DIV",c:T.teal,bg:dark?"#04182833":"#cffafe"}};const t=tmap[tx.type]||tmap.buy;const cur=histH.currency;const fL=(v)=>cur==="IDR"?`Rp ${fmtIDR(v)}`:cur==="USD"?`US$${v.toFixed(2)}`:`A$${v.toFixed(2)}`;const units=tx.type==="dividend"?`${(tx.amountPerShare||0).toFixed(tx.amountPerShare>1?2:4)}/unit${tx.entitledQty!=null?` · ${tx.entitledQty} entitled`:""}`:String(tx.qty||"—");const price=fL(tx.type==="dividend"?(tx.amountPerShare||0):(tx.price||0));const total=fL(tx.type==="dividend"?(tx.totalAmount||0):((tx.qty||0)*(tx.price||0)));return(<tr key={i} style={{background:i%2===0?T.bg3:T.bg2}}><td style={{padding:"8px 10px",fontFamily:"'Space Mono',monospace",fontSize:10,color:T.text2,borderBottom:`1px solid ${T.border}`,whiteSpace:"nowrap"}}>{fmtDate(tx.date)}</td><td style={{padding:"8px 10px",borderBottom:`1px solid ${T.border}`}}><span style={{padding:"2px 7px",borderRadius:4,background:t.bg,color:t.c,fontFamily:"'Space Mono',monospace",fontSize:9,fontWeight:700}}>{t.l}</span></td><td style={{padding:"8px 10px",fontFamily:"'Space Mono',monospace",fontSize:10,color:T.text2,borderBottom:`1px solid ${T.border}`}}>{units}</td><td style={{padding:"8px 10px",fontFamily:"'Space Mono',monospace",fontSize:10,color:T.text2,borderBottom:`1px solid ${T.border}`}}>{price}</td><td style={{padding:"8px 10px",fontFamily:"'Space Mono',monospace",fontSize:11,fontWeight:700,color:t.c,borderBottom:`1px solid ${T.border}`}}>{total}</td><td style={{padding:"4px 8px",borderBottom:`1px solid ${T.border}`}}><div style={{display:"flex",gap:4}}><button onClick={()=>setEditTx({holdingId:histH.id,txIndex:origIdx,tx:{...tx}})} style={{fontSize:10,padding:"2px 7px",borderRadius:4,border:`1px solid ${T.border}`,background:T.bg4,color:T.text2,cursor:"pointer"}}>✏️</button><button onClick={()=>{if(!confirm("Delete this transaction?"))return;setPortfolio(p=>p.map(h=>h.id===histH.id?{...h,transactions:h.transactions.filter((_,j)=>j!==origIdx)}:h));}} style={{fontSize:10,padding:"2px 7px",borderRadius:4,border:`1px solid ${T.red}44`,background:T.bg4,color:T.red,cursor:"pointer"}}>🗑️</button></div></td></tr>);})}</tbody></table></div>
+                  <div style={{overflowX:"auto",borderRadius:8,border:`1px solid ${T.border}`}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr>{["Date","Type","Units / Div","Price / Div","Total",""].map(c=>(<th key={c} style={{padding:"8px 10px",textAlign:"left",fontSize:8,letterSpacing:1.5,color:T.text3,textTransform:"uppercase",background:T.bg,borderBottom:`1px solid ${T.border}`,whiteSpace:"nowrap"}}>{c}</th>))}</tr></thead><tbody>{[...histH.transactions].sort((a,b)=>new Date(b.date)-new Date(a.date)).map((tx,i)=>{const origIdx=histH.transactions.indexOf(tx);const tmap={buy:{l:"BUY",c:T.green,bg:dark?"#0d3d2833":"#dcfce7"},sell:{l:"SELL",c:T.red,bg:dark?"#3d0a0a33":"#fee2e2"},dividend:{l:histH.isBondPct?"COUPON":"DIV",c:T.teal,bg:dark?"#04182833":"#cffafe"}};const t=tmap[tx.type]||tmap.buy;const cur=histH.currency;const fL=(v)=>cur==="IDR"?`Rp ${fmtIDR(v)}`:cur==="USD"?`US$${v.toFixed(2)}`:`A$${v.toFixed(2)}`;const units=tx.type==="dividend"?`${(tx.amountPerShare||0).toFixed(tx.amountPerShare>1?2:4)}/unit${tx.entitledQty!=null?` · ${tx.entitledQty} entitled`:""}`:String(tx.qty||"—");const price=fL(tx.type==="dividend"?(tx.amountPerShare||0):(tx.price||0));const total=fL(tx.type==="dividend"?(tx.totalAmount||0):((tx.qty||0)*(tx.price||0)));return(<tr key={i} style={{background:i%2===0?T.bg3:T.bg2}}><td style={{padding:"8px 10px",fontFamily:"'Space Mono',monospace",fontSize:10,color:T.text2,borderBottom:`1px solid ${T.border}`,whiteSpace:"nowrap"}}>{fmtDate(tx.date)}</td><td style={{padding:"8px 10px",borderBottom:`1px solid ${T.border}`}}><span style={{padding:"2px 7px",borderRadius:4,background:t.bg,color:t.c,fontFamily:"'Space Mono',monospace",fontSize:9,fontWeight:700}}>{t.l}</span></td><td style={{padding:"8px 10px",fontFamily:"'Space Mono',monospace",fontSize:10,color:T.text2,borderBottom:`1px solid ${T.border}`}}>{units}</td><td style={{padding:"8px 10px",fontFamily:"'Space Mono',monospace",fontSize:10,color:T.text2,borderBottom:`1px solid ${T.border}`}}>{price}</td><td style={{padding:"8px 10px",fontFamily:"'Space Mono',monospace",fontSize:11,fontWeight:700,color:t.c,borderBottom:`1px solid ${T.border}`}}>{total}</td><td style={{padding:"4px 8px",borderBottom:`1px solid ${T.border}`}}><div style={{display:"flex",gap:4}}><button onClick={()=>setEditTx({holdingId:histH.id,txIndex:origIdx,tx:{...tx}})} style={{fontSize:10,padding:"2px 7px",borderRadius:4,border:`1px solid ${T.border}`,background:T.bg4,color:T.text2,cursor:"pointer"}}>✏️</button><button onClick={()=>{if(!confirm("Delete this transaction?"))return;setPortfolio(p=>p.map(h=>h.id===histH.id?{...h,transactions:h.transactions.filter((_,j)=>j!==origIdx)}:h));}} style={{fontSize:10,padding:"2px 7px",borderRadius:4,border:`1px solid ${T.red}44`,background:T.bg4,color:T.red,cursor:"pointer"}}>🗑️</button></div></td></table>);})}</tbody></table></div>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:12}}><span style={{fontSize:10,color:T.text3}}>{histH.transactions.length} transactions total</span><button style={bO(T.text2)} onClick={closeModal}>Close</button></div>
                 </>
               )}
