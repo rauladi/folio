@@ -4,35 +4,6 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>FOLIO — Investment Dashboard</title>
-<script>
-// Load fonts via FontFace API — works on file:// pages where <link> is blocked
-(function(){
-  const fonts=[
-    {family:"Roboto",     weight:"400", url:"https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2"},
-    {family:"Roboto",     weight:"500", url:"https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmEU9fBBc4.woff2"},
-    {family:"Roboto",     weight:"700", url:"https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc4.woff2"},
-    {family:"Space Mono", weight:"400", url:"https://fonts.gstatic.com/s/spacemono/v13/i7dPIFZifjKcF5UAWdDRUEZ2RFq7AwU.woff2"},
-    {family:"Space Mono", weight:"700", url:"https://fonts.gstatic.com/s/spacemono/v13/i7dMIFZifjKcF5UAWdDRaPpZYFKQHwyVd3U.woff2"},
-  ];
-  fonts.forEach(({family,weight,url})=>{
-    try{
-      const f=new FontFace(family,`url(${url}) format('woff2')`,{weight,style:"normal",display:"swap"});
-      f.load().then(loaded=>{document.fonts.add(loaded);}).catch(()=>{});
-    }catch(e){}
-  });
-})();
-</script>
-<!-- Development React for better error messages -->
-<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
@@ -103,6 +74,16 @@ async function signOut(){
   await fbAuth.signOut();
 }
 </script>
+
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
 <script type="text/babel">
 const {useState,useMemo,useCallback,useEffect,useRef}=React;
@@ -244,7 +225,6 @@ const PROXIES=[
   u=>"https://api.allorigins.win/get?url="+encodeURIComponent(u),
 ];
 
-// ========== FIX: fetchWithProxyRaw defined before it's used ==========
 async function fetchWithProxyRaw(url,timeoutMs=10000){
   return new Promise((resolve,reject)=>{
     let settled=false;let pending=PROXIES.length;
@@ -296,7 +276,6 @@ async function fetchWithProxy(url, timeoutMs=10000){
   });
 }
 
-// ─── IDX (Indonesia Stock Exchange) public API ───────────────────────────────
 async function fetchIDXPrice(stockCode){
   const code=stockCode.toUpperCase().replace(".JK","").trim();
   const endpoints=[
@@ -372,7 +351,6 @@ async function fetchYahooPrice(symbol) {
   const sym = encodeURIComponent(symbol);
   const isJK = symbol.endsWith(".JK");
 
-  // Helper to parse Yahoo quote response (v7 or v8)
   const parseQuote = (d) => {
     const quote = d?.quoteResponse?.result?.[0] || d?.result?.[0];
     if (quote && quote.regularMarketPrice) {
@@ -385,7 +363,6 @@ async function fetchYahooPrice(symbol) {
     return null;
   };
 
-  // Helper to parse chart response for previous close
   const parseChartForPrevClose = (d) => {
     const res = d?.chart?.result?.[0];
     if (!res) return null;
@@ -398,33 +375,26 @@ async function fetchYahooPrice(symbol) {
     return null;
   };
 
-  // Step 1: Try v8 quote endpoint (most reliable)
   try {
     const quoteUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=2d&includePrePost=false`;
     const data = await fetchWithProxy(quoteUrl);
     const result = parseChartForPrevClose(data);
     if (result && result.current > 0 && result.prev > 0) {
-      console.log(`✅ ${symbol}: price from Yahoo v8 (prev=${result.prev}, current=${result.current})`);
+      console.log(`✅ ${symbol}: price from Yahoo v8`);
       return result;
     }
-  } catch (e) {
-    console.warn(`Yahoo v8 failed for ${symbol}:`, e.message);
-  }
+  } catch (e) { console.warn(`Yahoo v8 failed for ${symbol}:`, e.message); }
 
-  // Step 2: Try v7 quote endpoint
   try {
     const quoteUrl = YAHOO_V7 + sym + "&fields=regularMarketPrice,regularMarketPreviousClose";
     const quoteData = await fetchWithProxy(quoteUrl);
     const result = parseQuote(quoteData);
     if (result && result.current > 0 && result.prev !== null) {
-      console.log(`✅ ${symbol}: price from Yahoo v7 (prev=${result.prev}, current=${result.current})`);
+      console.log(`✅ ${symbol}: price from Yahoo v7`);
       return result;
     }
-  } catch (e) {
-    console.warn(`Yahoo v7 quote failed for ${symbol}:`, e.message);
-  }
+  } catch (e) { console.warn(`Yahoo v7 quote failed for ${symbol}:`, e.message); }
 
-  // Step 3: Try chart endpoints with 2d range
   const chartUrls = [
     YAHOO_BASE + sym + "?interval=1d&range=2d&includePrePost=false",
     YAHOO_BASE1 + sym + "?interval=1d&range=2d&includePrePost=false",
@@ -434,26 +404,20 @@ async function fetchYahooPrice(symbol) {
       const chartData = await fetchWithProxy(url);
       const result = parseChartForPrevClose(chartData);
       if (result && result.current > 0 && result.prev > 0) {
-        console.log(`✅ ${symbol}: price from Yahoo chart (prev=${result.prev}, current=${result.current})`);
+        console.log(`✅ ${symbol}: price from Yahoo chart`);
         return result;
       }
-    } catch (e) {
-      console.warn(`Yahoo chart endpoint failed for ${symbol}:`, e.message);
-    }
+    } catch (e) { console.warn(`Yahoo chart endpoint failed for ${symbol}:`, e.message); }
   }
 
-  // Step 4: Fallback to Stooq
   try {
     const stooqResult = await fetchStooq(symbol);
     if (stooqResult?.current > 0) {
-      console.log(`⚠️ ${symbol}: using Stooq fallback (prev may be stale)`);
+      console.log(`⚠️ ${symbol}: using Stooq fallback`);
       return stooqResult;
     }
-  } catch (e) {
-    console.warn(`Stooq fallback failed for ${symbol}:`, e.message);
-  }
+  } catch (e) { console.warn(`Stooq fallback failed for ${symbol}:`, e.message); }
 
-  // Step 5: IDX fallback for Indonesian stocks
   if (isJK) {
     try {
       const idxResult = await fetchIDXPrice(symbol);
@@ -461,15 +425,13 @@ async function fetchYahooPrice(symbol) {
         console.log(`⚠️ ${symbol}: using IDX fallback`);
         return idxResult;
       }
-    } catch (e) {
-      console.warn(`IDX fallback failed for ${symbol}:`, e.message);
-    }
+    } catch (e) { console.warn(`IDX fallback failed for ${symbol}:`, e.message); }
   }
 
   throw new Error(`All price sources failed for ${symbol}`);
 }
 
-  async function fetchBenchmark(symbol) {
+async function fetchBenchmark(symbol) {
   const sym = encodeURIComponent(symbol);
   const candidates = [
     YAHOO_BASE + sym + "?interval=1mo&range=5y",
@@ -491,13 +453,12 @@ async function fetchYahooPrice(symbol) {
         pct: closes.map(v => v != null ? ((v - base) / base) * 100 : null),
         raw: closes,
       };
-    } catch (e) {
-      lastErr = e.message;
-    }
+    } catch (e) { lastErr = e.message; }
   }
   throw new Error(lastErr);
 }
-  async function fetchHoldingHistory(yahooSymbol){
+
+async function fetchHoldingHistory(yahooSymbol){
   const sym=encodeURIComponent(yahooSymbol);
   const candidates=[
     YAHOO_BASE +sym+"?interval=1mo&range=5y",
@@ -789,7 +750,6 @@ function makeSeedHistory(){
   return h;
 }
 
-// ─── Hooks ────────────────────────────────────────────────────────────────────
 function useWindowSize(){
   const[w,setW]=useState(typeof window!=="undefined"?window.innerWidth:1200);
   useEffect(()=>{const h=()=>setW(window.innerWidth);window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h);},[]);
@@ -820,7 +780,7 @@ function ChartLine({labels,datasets,T,yFmt,y2Fmt,height=220,spanGaps=false}){
   },[labels,datasets,T,yFmt,y2Fmt]);
   return <div style={{height,position:"relative"}}><canvas ref={ref}/></div>;
 }
-  function ChartBar({labels,datasets,T,yFmt,height=200,stacked=false}){
+function ChartBar({labels,datasets,T,yFmt,height=200,stacked=false}){
   const ref=useRef(null);const inst=useRef(null);
   useEffect(()=>{
     if(!ref.current||typeof Chart==="undefined")return;
@@ -1167,7 +1127,6 @@ function downloadTemplateXLSX(){
 // ─── App ──────────────────────────────────────────────────────────────────────
 function App(){
   const ld=(k,d)=>{try{const s=localStorage.getItem(k);return s?JSON.parse(s):d;}catch{return d;}};
-  // All useState declarations first
   const[portfolio,setPortfolio]=useState(()=>ld("f6_p",SEED));
   const[prices,setPrices]      =useState(()=>ld("f6_pr",INIT_PRICES));
   const[prevPrices,setPrevPrices]=useState(()=>ld("f6_pp",INIT_PREV));
@@ -1202,19 +1161,15 @@ function App(){
   const winW=useWindowSize();
   const isMob=winW<768;
 
-  // localStorage persistence effects (AFTER state definitions)
-  useEffect(()=>{try{localStorage.setItem("f6_p",JSON.stringify(portfolio));}catch{}},[portfolio]);
-  useEffect(()=>{try{localStorage.setItem("f6_pr",JSON.stringify(prices));}catch{}},[prices]);
-  useEffect(()=>{try{localStorage.setItem("f6_pp",JSON.stringify(prevPrices));}catch{}},[prevPrices]);
-  useEffect(()=>{try{localStorage.setItem("f6_rates",JSON.stringify(rates));}catch{}},[rates]);
-  useEffect(()=>{try{localStorage.setItem("f6_dcur",JSON.stringify(displayCur));}catch{}},[displayCur]);
-  useEffect(()=>{try{localStorage.setItem("f6_hist",JSON.stringify(history));}catch{}},[history]);
-  useEffect(()=>{try{localStorage.setItem("f6_dark",JSON.stringify(dark));}catch{}},[dark]);
-  // Now the effect that uses monthlyTargetAud and superDrawRate (defined above)
-  useEffect(() => {
-    localStorage.setItem("f6_targetAud", JSON.stringify(monthlyTargetAud));
-    localStorage.setItem("f6_superRate", JSON.stringify(superDrawRate));
-  }, [monthlyTargetAud, superDrawRate]);
+  useEffect(()=>{localStorage.setItem("f6_p",JSON.stringify(portfolio));},[portfolio]);
+  useEffect(()=>{localStorage.setItem("f6_pr",JSON.stringify(prices));},[prices]);
+  useEffect(()=>{localStorage.setItem("f6_pp",JSON.stringify(prevPrices));},[prevPrices]);
+  useEffect(()=>{localStorage.setItem("f6_rates",JSON.stringify(rates));},[rates]);
+  useEffect(()=>{localStorage.setItem("f6_dcur",JSON.stringify(displayCur));},[displayCur]);
+  useEffect(()=>{localStorage.setItem("f6_hist",JSON.stringify(history));},[history]);
+  useEffect(()=>{localStorage.setItem("f6_dark",JSON.stringify(dark));},[dark]);
+  useEffect(()=>{localStorage.setItem("f6_targetAud", JSON.stringify(monthlyTargetAud));},[monthlyTargetAud]);
+  useEffect(()=>{localStorage.setItem("f6_superRate", JSON.stringify(superDrawRate));},[superDrawRate]);
 
   useEffect(()=>{document.body.style.background=T.bg;document.body.style.color=T.text;},[T]);
 
@@ -1271,45 +1226,32 @@ function App(){
     return()=>clearTimeout(t);
   },[portfolio,prices,history,cloudSaveAll]);
 
-  // Ensure monthly snapshots exist for the last 5 years
-  useEffect(() => {
+  useEffect(()=>{
     const now = new Date();
-    // generate last day of month for the past 5 years
     const last60Months = [];
     for (let i = 59; i >= 0; i--) {
       const date = new Date(now);
       date.setMonth(date.getMonth() - i);
-      date.setDate(0); // last day of month
+      date.setDate(0);
       last60Months.push(date.toISOString().slice(0, 10));
     }
-
     const existing = new Map(history.map(s => [s.date, s]));
     const missing = last60Months.filter(d => !existing.has(d));
     if (missing.length === 0) return;
-
-    // Compute current total value from holdings (requires holdings to be computed)
     const curTotal = holdings.reduce((s, h) => s + h.currentValue, 0);
-
     const newSnapshots = [...history];
     for (const dateStr of missing) {
-      // Find nearest snapshot (before or after) to estimate value
       let nearest = null;
       let bestDiff = Infinity;
       for (const snap of history) {
         const diff = Math.abs(new Date(snap.date) - new Date(dateStr));
-        if (diff < bestDiff) {
-          bestDiff = diff;
-          nearest = snap;
-        }
+        if (diff < bestDiff) { bestDiff = diff; nearest = snap; }
       }
       let baseValue = nearest ? nearest.totalValueAUD : curTotal;
-      // Simple interpolation: random walk with drift
       const monthsAgo = (new Date(now) - new Date(dateStr)) / (30 * 86400000);
       const factor = 0.8 + 0.4 * Math.sin(monthsAgo * 0.5) + (Math.random() * 0.1);
       let totalAUD = baseValue * factor;
       totalAUD = Math.max(totalAUD, 1000);
-
-      // Cumulative dividends up to this date
       let divAUD = 0;
       for (const h of portfolio) {
         h.transactions.filter(t => t.type === "dividend" && t.date <= dateStr).forEach(t => {
@@ -1320,7 +1262,7 @@ function App(){
     }
     newSnapshots.sort((a, b) => new Date(a.date) - new Date(b.date));
     setHistory(newSnapshots);
-  }, [portfolio, prices, rates, holdings]); // holdings depends on portfolio, prices, rates – OK
+  }, [portfolio, rates, holdings]);
 
   useEffect(()=>{const t=setTimeout(()=>autoRefresh(),800);return()=>clearTimeout(t);},[]);
 
@@ -1359,7 +1301,6 @@ function App(){
     return fmtCur(monthlyTargetAud, displayCur, rates, true);
   }, [monthlyTargetAud, displayCur, rates]);
   
-  // ---- Passive income helpers ----
   function isDividendPayingHolding(holding) {
     if (!holding.assetType) return false;
     if (DIVIDEND_PAYING_TYPES.has(holding.assetType)) return true;
@@ -1426,7 +1367,6 @@ function App(){
     if (totalInvestedDiv <= 0) return 0;
     return (totalDividendsDiv / totalInvestedDiv) * 100;
   }
-  // ---------------------------------
   
   const FC=(a,compact=false)=>valuesHidden?"••••••":fmtCur(a,displayCur,rates,compact);
   const FG=(a)=>valuesHidden?"••••••":fmtGain(a,displayCur,rates);
@@ -1490,7 +1430,6 @@ function App(){
     return new Date(0);
   }, []);
   
-  // ─── Live Price Refresh ─────────────────────────────────────────────────────
   const autoRefresh = useCallback(async () => {
     setFetchSt(s => ({ ...s, loading: true, fetched: 0 }));
     let newRates = rates, rateOk = false;
@@ -1500,7 +1439,6 @@ function App(){
       rateOk = true;
     } catch (e) { console.warn("Rate fetch failed:", e.message); }
 
-    // 1. Fetch benchmarks
     let bmStatus = "no benchmark data";
     try {
       const BM_DEFS = [
@@ -1515,14 +1453,11 @@ function App(){
       if (successes.length > 0) {
         const ref = successes.reduce((a, b) => b.data.labels.length > a.data.labels.length ? b : a);
         const series = {};
-        results.forEach((r, i) => {
-          series[BM_DEFS[i].key] = r.status === "fulfilled" ? r.value.pct : null;
-        });
+        results.forEach((r, i) => { series[BM_DEFS[i].key] = r.status === "fulfilled" ? r.value.pct : null; });
         const ok = BM_DEFS.map((b, i) => results[i].status === "fulfilled" ? b.label + "✓" : null).filter(Boolean);
         const fail = BM_DEFS.map((b, i) => results[i].status === "rejected" ? b.label : null).filter(Boolean);
         bmStatus = `${ok.length}/${BM_DEFS.length} loaded${fail.length ? ` · failed: ${fail.join(", ")}` : ""}`;
 
-        // 2. Fetch historical price maps for each holding (to reconstruct portfolio history)
         const fetchable = portfolio.filter(h => h.yahooSymbol);
         const holdingPriceMaps = {};
         const CONCURRENCY = 4;
@@ -1530,15 +1465,10 @@ function App(){
         async function fetchOne(h, idx) {
           try {
             const hist = await fetchHoldingHistory(h.yahooSymbol);
-            if (hist?.priceMap) {
-              holdingPriceMaps[h.ticker] = hist.priceMap;
-            } else {
-              holdingPriceMaps[h.ticker] = null;
-            }
+            if (hist?.priceMap) holdingPriceMaps[h.ticker] = hist.priceMap;
+            else holdingPriceMaps[h.ticker] = null;
             resultsHist[idx] = { status: "fulfilled" };
-          } catch (e) {
-            resultsHist[idx] = { status: "rejected", reason: e.message };
-          }
+          } catch (e) { resultsHist[idx] = { status: "rejected", reason: e.message }; }
         }
         let qi = 0;
         while (qi < fetchable.length) {
@@ -1546,7 +1476,6 @@ function App(){
           await Promise.allSettled(batch.map((h, bi) => fetchOne(h, qi + bi)));
           qi += CONCURRENCY;
         }
-        // Merge the fetched price maps into the existing benchmarks object
         setBenchmarks(prev => ({
           ...prev,
           labels: ref.data.labels,
@@ -1557,11 +1486,8 @@ function App(){
         bmStatus = "failed — all benchmarks unavailable";
         setBenchmarks(prev => ({ ...prev, holdingPrices: {} }));
       }
-    } catch (e) {
-      bmStatus = "error: " + e.message;
-    }
+    } catch (e) { bmStatus = "error: " + e.message; }
 
-    // 3. Fetch current prices for holdings (same as before)
     const fetchablePrices = portfolio.filter(h => {
       if (h.yahooSymbol) return true;
       if (/^(PBS|SBN|SR|ST|FR|ORI|SUKUK)\d/i.test(h.ticker)) return true;
@@ -1586,9 +1512,7 @@ function App(){
       try {
         const p = await fetchPriceFor(h);
         priceResults[idx] = { status: "fulfilled", value: { h, p } };
-      } catch (e) {
-        priceResults[idx] = { status: "rejected", reason: e };
-      }
+      } catch (e) { priceResults[idx] = { status: "rejected", reason: e }; }
     }
     let qiPrice = 0;
     while (qiPrice < fetchablePrices.length) {
@@ -1614,7 +1538,6 @@ function App(){
     setPrices(newP);
     setPrevPrices(newPP);
 
-    // 4. Update history snapshots with current value (but we will rely on reconstruction later)
     const now = new Date();
     const date = now.toISOString().slice(0, 10);
     const hs = portfolio.map(h => computeHolding(h, newP, newPP, newRates)).filter(h => h.qty > 0);
@@ -1636,17 +1559,11 @@ function App(){
   const chartData = useMemo(() => {
     const cutoff = periodCutoff(chartPeriod);
     const allSorted = [...history].sort((a, b) => new Date(a.date) - new Date(b.date));
-
-    // ------------------------------------------------------------------
-    // 1. Determine if we have price maps to reconstruct history
     const hasPriceMaps = Object.keys(benchmarks.holdingPrices || {}).length > 0;
     const hasBenchmarkLabels = benchmarks.labels && benchmarks.labels.length > 0;
-
     let labels = [], vals = [], divCumul = [];
     let bmLabels = [], bmSeries = {}, bmPortfolio = [];
-
     if (hasPriceMaps && hasBenchmarkLabels) {
-      // Use the same benchmark date grid for everything
       const allBenchmarkDates = benchmarks.labels;
       const bCutoff = periodCutoff(chartPeriod);
       const filtIdx = allBenchmarkDates.map((l, i) => new Date(l) >= bCutoff ? i : -1).filter(i => i >= 0);
@@ -1660,8 +1577,6 @@ function App(){
           const base = s[i0] ?? null;
           bmSeries[k] = filtIdx.map(i => s[i] != null && base != null ? s[i] - base : null);
         });
-
-        // Helper to find nearest price in a map
         const findPrice = (priceMap, dateStr) => {
           if (!priceMap) return null;
           if (priceMap[dateStr]) return priceMap[dateStr];
@@ -1673,8 +1588,6 @@ function App(){
           }
           return best;
         };
-
-        // Reconstruct portfolio value at a given date
         const portfolioValAtDate = (dateStr) => {
           let totalAUD = 0;
           for (const h of portfolio) {
@@ -1685,17 +1598,14 @@ function App(){
               else if (tx.type === "sell") units -= tx.qty;
             }
             if (units <= 0) continue;
-
             let priceInNative = null;
             const hp = benchmarks.holdingPrices[h.ticker];
             if (hp) {
               priceInNative = findPrice(hp, dateStr);
               if (h.isBondPct && priceInNative) priceInNative = priceInNative * (h.faceValue || 1000000) / 100;
             }
-            // Fallback to current price if no historical price found
             if (!priceInNative) priceInNative = prices[h.ticker];
             if (!priceInNative || priceInNative <= 0) continue;
-
             const currency = h.currency || "AUD";
             let valueAUD = units * priceInNative;
             if (currency === "IDR") valueAUD /= rates.AUD_IDR;
@@ -1704,7 +1614,6 @@ function App(){
           }
           return totalAUD > 0 ? totalAUD : null;
         };
-
         const cumulativeDividendsAtDate = (dateStr) => {
           let divAUD = 0;
           for (const h of portfolio) {
@@ -1714,7 +1623,6 @@ function App(){
           }
           return divAUD;
         };
-
         const bmDates = filtIdx.map(i => allBenchmarkDates[i]);
         const portVals = bmDates.map(date => portfolioValAtDate(date));
         const baseIdx = portVals.findIndex(v => v != null);
@@ -1722,13 +1630,11 @@ function App(){
           const baseVal = portVals[baseIdx];
           bmPortfolio = portVals.map((v, j) => v == null || j < baseIdx ? null : ((v - baseVal) / baseVal) * 100);
         }
-        // For the main chart, use the same dates and values
         labels = bmLabels;
         vals = portVals.map(v => fromAUD(v || 0, displayCur, rates));
         divCumul = bmDates.map(d => fromAUD(cumulativeDividendsAtDate(d), displayCur, rates));
       }
     } else {
-      // Fallback to the old snapshot-based method
       const periodSnaps = allSorted.filter(s => new Date(s.date) >= cutoff);
       labels = periodSnaps.map(s => fmtMonShort(s.date));
       vals = periodSnaps.map(s => fromAUD(s.totalValueAUD, displayCur, rates));
@@ -1742,11 +1648,7 @@ function App(){
         return fromAUD(divAUD, displayCur, rates);
       });
     }
-
     const baseSnap = allSorted.filter(s => new Date(s.date) < cutoff).slice(-1)[0];
-
-    // ------------------------------------------------------------------
-    // 2. Monthly income (stacked bar)
     const monthly = {};
     const monthlyByTicker = {};
     const palette = ["#6366f1","#22c55e","#06b6d4","#f59e0b","#ef4444","#8b5cf6","#ec4899","#14b8a6","#f97316","#84cc16","#3b82f6","#a78bfa"];
@@ -1760,7 +1662,6 @@ function App(){
       });
     });
     const mKeys = Object.keys(monthly).sort();
-
     const divTickers = Object.keys(monthlyByTicker).sort((a,b) => {
       const totA = Object.values(monthlyByTicker[a]).reduce((s,v)=>s+v,0);
       const totB = Object.values(monthlyByTicker[b]).reduce((s,v)=>s+v,0);
@@ -1774,8 +1675,6 @@ function App(){
       borderWidth: 1,
       borderRadius: 3,
     }));
-
-    // Dividend CAGR
     const divByYear = {};
     portfolio.forEach(h => {
       h.transactions.filter(t => t.type === "dividend").forEach(t => {
@@ -1794,21 +1693,16 @@ function App(){
         divCAGR = (Math.pow(lastVal / firstVal, 1 / divCAGRYears) - 1) * 100;
       }
     }
-
-    // Allocation
     const byType = {};
     holdings.forEach(h => { const k = h.assetType || "Other"; byType[k] = (byType[k] || 0) + fromAUD(h.currentValue, displayCur, rates); });
     const byCur = {};
     holdings.forEach(h => { byCur[h.currency] = (byCur[h.currency] || 0) + fromAUD(h.currentValue, displayCur, rates); });
-
-    // Waterfall
     const startVal = vals.length ? vals[0] : (baseSnap ? fromAUD(baseSnap.totalValueAUD, displayCur, rates) : 0);
     const endVal = vals.length ? vals[vals.length-1] : fromAUD(totVal, displayCur, rates);
     const topUps = portfolio.reduce((s,h) => s + h.transactions.filter(t => t.type === "buy" && new Date(t.date) >= cutoff).reduce((ss,t) => ss + fromAUD(toAUD(t.qty * t.price, h.currency, rates), displayCur, rates), 0), 0);
     const divInPeriod = portfolio.reduce((s,h) => s + h.transactions.filter(t => t.type === "dividend" && new Date(t.date) >= cutoff).reduce((ss,t) => ss + fromAUD(toAUD(t.totalAmount || 0, h.currency, rates), displayCur, rates), 0), 0);
     const netSales = portfolio.reduce((s,h) => s + h.transactions.filter(t => t.type === "sell" && new Date(t.date) >= cutoff).reduce((ss,t) => ss + fromAUD(toAUD(t.qty * t.price, h.currency, rates), displayCur, rates), 0), 0);
     const capitalGain = endVal - startVal - topUps + netSales - divInPeriod;
-
     const waterfallData = [
       { label: "Start Value", value: startVal, type: "start" },
       capitalGain >= 0 ? { label: "Capital Gain", value: capitalGain, type: "pos" } : { label: "Capital Loss", value: capitalGain, type: "neg" },
@@ -1817,9 +1711,6 @@ function App(){
       netSales > 0 ? { label: "Sales", value: -netSales, type: "neg" } : null,
       { label: "End Value", value: endVal, type: "total" },
     ].filter(Boolean);
-
-    // ------------------------------------------------------------------
-    // 3. Return everything
     return {
       labels, vals, divCumul,
       mLabels: mKeys.map(fmtMon), mVals: mKeys.map(k => monthly[k]), mDatasets,
@@ -1836,9 +1727,7 @@ function App(){
     const abs=Math.abs(v);if(abs>=1e6)return`${displayCur==="USD"?"US$":"A$"}${(v/1e6).toFixed(1)}M`;return`${displayCur==="USD"?"US$":"A$"}${(v/1e3).toFixed(0)}K`;
   },[displayCur]);
 
-  // ========== MODAL HANDLERS ==========
   const closeModal = () => { setModal(null); setForm({}); };
-
   const openAdd = () => {
     setModal({ mode: "add" });
     setForm({
@@ -1848,20 +1737,16 @@ function App(){
       exchange: "", yahooSymbol: "", faceValue: "", isBondPct: false,
     });
   };
-
   const openTrade = (h, type) => {
     setModal({ mode: "trade", holding: h, tradeType: type });
     setForm({ qty: "", price: h.currentPrice, date: new Date().toISOString().slice(0, 10) });
   };
-
   const openDiv = (h) => {
     const hc = computeHolding(h, prices, prevPrices, rates);
     setModal({ mode: "dividend", holding: h });
     setForm({ amountPerShare: "", entitledQty: String(hc.qty), date: new Date().toISOString().slice(0, 10) });
   };
-
   const openHistory = (h) => setModal({ mode: "history", holding: h });
-
   const openManualPrice = () => {
     const f = { displayCur };
     holdings.forEach(h => {
@@ -1872,29 +1757,20 @@ function App(){
     setModal({ mode: "price" });
     setForm(f);
   };
-
   const openImport = () => {
     setModal({ mode: "import" });
     setImportSt({ step: "idle", rows: [], parsed: [], errors: [], mergeMode: "merge", dragOver: false });
   };
-
-  // Import file handler
   const handleImportFile = async (file) => {
     if (!file) return;
     setImportSt(s => ({ ...s, step: "parsing", dragOver: false }));
     try {
       const raw = await readFileAsRows(file);
-      if (!raw.length) {
-        setImportSt(s => ({ ...s, step: "error", errorMsg: "File is empty or has no data rows." }));
-        return;
-      }
+      if (!raw.length) { setImportSt(s => ({ ...s, step: "error", errorMsg: "File is empty or has no data rows." })); return; }
       const { rows, errors, fieldMap } = parseRows(raw);
       setImportSt(s => ({ ...s, step: "preview", rows: raw, parsed: rows, errors, fieldMap, fileName: file.name }));
-    } catch (e) {
-      setImportSt(s => ({ ...s, step: "error", errorMsg: e.message }));
-    }
+    } catch (e) { setImportSt(s => ({ ...s, step: "error", errorMsg: e.message })); }
   };
-
   const confirmImport = () => {
     const { parsed, mergeMode } = importSt;
     const base = mergeMode === "replace" ? [] : portfolio;
@@ -1902,8 +1778,6 @@ function App(){
     setPortfolio(newPortfolio);
     setImportSt(s => ({ ...s, step: "done", importedCount: parsed.filter(r => !r._errors.length).length }));
   };
-
-  // Submit handlers
   const submitAdd = () => {
     const { ticker, name, qty, price, date, currency, assetType, exchange, yahooSymbol, faceValue, isBondPct } = form;
     if (!ticker || !qty || !price) return;
@@ -1927,14 +1801,12 @@ function App(){
     }
     closeModal();
   };
-
   const submitTrade = () => {
     const { qty, price, date } = form;
     if (!qty || !price) return;
     setPortfolio(prev => prev.map(h => h.id === modal.holding.id ? { ...h, transactions: [...h.transactions, { type: modal.tradeType, qty: +qty, price: +price, date }] } : h));
     closeModal();
   };
-
   const submitDiv = () => {
     const { amountPerShare, entitledQty, date } = form;
     if (!amountPerShare || !entitledQty) return;
@@ -1946,7 +1818,6 @@ function App(){
     } : p));
     closeModal();
   };
-
   const submitManualPrice = () => {
     const c = {}, p = {}, ys = {};
     Object.entries(form).forEach(([k, v]) => {
@@ -1958,7 +1829,6 @@ function App(){
     setPrevPrices(prev => ({ ...prev, ...p }));
     if (form.displayCur) setDisplayCur(form.displayCur);
     setPortfolio(prev => prev.map(h => ({ ...h, yahooSymbol: ys[h.ticker] ?? h.yahooSymbol })));
-
     const date = new Date().toISOString().slice(0, 10);
     const hs = portfolio.map(h => computeHolding(h, { ...prices, ...c }, { ...prevPrices, ...p }, rates)).filter(h => h.qty > 0);
     const snap = { date, totalValueAUD: hs.reduce((s, h) => s + h.currentValue, 0), totalDividendsAUD: hs.reduce((s, h) => s + h.totalDividends, 0) };
@@ -1968,24 +1838,19 @@ function App(){
   const histH=modal?.mode==="history"?portfolio.find(p=>p.id===modal.holding.id):null;
   const histC=histH?computeHolding(histH,prices,prevPrices,rates):null;
 
-  // Style helpers (same as original)
   const card=(x={})=>({background:T.bg3,border:`1px solid ${T.border}`,borderRadius:12,...x});
   const bS=(bg,col,x={})=>({padding:"8px 16px",border:"none",borderRadius:8,background:bg,color:col,fontSize:12,fontWeight:700,...x});
   const bO=(col,x={})=>({padding:"8px 14px",border:`1px solid ${T.border2}`,borderRadius:8,background:"transparent",color:col,fontSize:12,...x});
   const inp=()=>({width:"100%",background:T.bg,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 12px",color:T.text,fontSize:13,outline:"none"});
   const lbl=(x={})=>({display:"block",fontSize:9,letterSpacing:1.2,color:T.text3,textTransform:"uppercase",marginBottom:5,fontWeight:600,...x});
   const fmtNativePrice=(h,v)=>{const cur=h.currency;if(!v&&v!==0)return"—";if(cur==="IDR")return`Rp ${fmtIDR(v)}`;if(cur==="USD")return`US$${fmtAUD(v)}`;return`A$${fmtAUD(v)}`;};
-
   const fetchBarColor=fetchSt.loading?T.amber:Object.keys(fetchSt.errors).length>0?T.amber:fetchSt.lastUpdate?T.green:T.text3;
 
-  // Return the full JSX (identical to your original, but wrapped in ErrorBoundary)
   return (
     <ErrorBoundary>
       <div style={{minHeight:"100vh",background:T.bg,color:T.text}}>
-        {/* ── HEADER ── (same as original) */}
         <header style={{background:T.bg2,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:20,boxShadow:T.shadow}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",gap:8,flexWrap:"wrap"}}>
-            {/* Logo SVG – same as original */}
             <div style={{display:"flex",alignItems:"center",gap:0,flexShrink:0}}>
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 56" width={isMob?160:210} height={isMob?44:56} style={{display:"block"}}>
                 <defs><linearGradient id="hbg" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stopColor="#22c55e"/><stop offset="55%" stopColor="#10b981"/><stop offset="100%" stopColor="#06b6d4"/></linearGradient>
@@ -2006,7 +1871,6 @@ function App(){
                 <text x="59" y="46" fontFamily="'Roboto',sans-serif" fontWeight="500" fontSize="7" letterSpacing="2.5" fill="#4dd08a" opacity="0.75">PORTFOLIO TRACKER</text>
               </svg>
             </div>
-            {/* Desktop stats */}
             <div className="hdr-desktop" style={{display:"flex",alignItems:"stretch",flex:1,overflow:"hidden"}}>
               {[["VALUE",FC(totVal,true),T.text],["TOTAL G/L",`${FG(totGain)} (${fmtPct(totPct)})`,pColor(totGain)],["DAY G/L",`${FG(totDayGain)} (${fmtPct(totDayPct)})`,pColor(totDayGain)],["DIV YLD (div only)",fmtPct(divYieldOnly),T.teal],["DIV CAGR",divCAGR ? `${divCAGR.cagr>=0?"+":""}${divCAGR.cagr.toFixed(1)}%`:"—",T.teal],["PASSIVE",monthlyPassivePercent !== null ? `${monthlyPassivePercent.toFixed(1)}% of ${targetDisplay}` : "Set target", monthlyPassivePercent !== null && monthlyPassivePercent >= 100 ? T.green : T.amber],["HOLDINGS",String(holdings.length),T.text2]].map(([l,v,c],i)=>(
                 <div key={l} style={{display:"flex",flexDirection:"column",padding:"0 12px",borderLeft:i>0?`1px solid ${T.border}`:"none",minWidth:0}}>
@@ -2015,13 +1879,11 @@ function App(){
                 </div>
               ))}
             </div>
-            {/* Mobile stats */}
             <div className="hdr-mobile" style={{display:"none",gap:10,flex:1,justifyContent:"center",flexWrap:"wrap"}}>
               {[["VALUE",FC(totVal,true),T.text],["G/L",fmtPct(totPct),pColor(totGain)],["DAY",fmtPct(totDayPct),pColor(totDayGain)],["DIV YLD",fmtPct(divYieldOnly),T.teal],["PASSIVE",monthlyPassivePercent !== null ? `${monthlyPassivePercent.toFixed(0)}%` : "Set", monthlyPassivePercent !== null && monthlyPassivePercent >= 100 ? T.green : T.amber]].map(([l,v,c])=>(
                 <div key={l} style={{textAlign:"center"}}><div style={{fontSize:8,color:T.text3,letterSpacing:1.5,textTransform:"uppercase"}}>{l}</div><div style={{fontFamily:"'Space Mono',monospace",fontSize:12,fontWeight:700,color:c}}>{v}</div></div>
               ))}
             </div>
-            {/* Controls */}
             <div style={{display:"flex",gap:5,alignItems:"center",flexShrink:0,flexWrap:"wrap",justifyContent:isMob?"flex-end":"flex-end"}}>
               <div style={{display:"flex",background:T.bg4,borderRadius:8,padding:2,border:`1px solid ${T.border}`}}>
                 {CURRENCIES.map(c=><button key={c} onClick={()=>setDisplayCur(c)} style={{padding:"4px 8px",borderRadius:6,border:"none",background:displayCur===c?T.bg2:"transparent",color:displayCur===c?T.text:T.text3,fontSize:10,fontWeight:displayCur===c?700:400,fontFamily:"'Space Mono',monospace"}}>{c}</button>)}
@@ -2071,7 +1933,6 @@ function App(){
               <button onClick={openAdd} style={{...bS(T.greenBtn,"#fff",{padding:"7px 12px",fontSize:11})}}>+ Add</button>
             </div>
           </div>
-          {/* Status bar */}
           <div style={{display:"flex",alignItems:"center",gap:10,padding:"4px 14px",background:T.bg,borderTop:`1px solid ${T.border}`,fontSize:10,color:T.text3,flexWrap:"wrap",minHeight:26}}>
             <span>1 AUD = {rates.AUD_IDR.toLocaleString("en-AU")} IDR</span>
             <span style={{color:T.border}}>·</span>
@@ -2103,7 +1964,6 @@ function App(){
           </div>
         </header>
 
-        {/* ── CONTROLS ── */}
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 14px",borderBottom:`1px solid ${T.border}`,background:T.bg2,flexWrap:"wrap",gap:8}}>
           <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
             {view==="treemap"&&tmMode==="performance"&&<>
@@ -2146,7 +2006,6 @@ function App(){
           </div>
         </div>
 
-        {/* ── MAIN ── */}
         <main style={{padding:"12px 14px"}}>
           {view==="treemap"&&(
             <div className="tm-wrap" style={{display:"flex",gap:12,alignItems:"flex-start",flexWrap:isMob?"wrap":"nowrap"}}>
@@ -2273,7 +2132,6 @@ function App(){
           )}
           {view==="chart"&&(
             <div style={{display:"flex",flexDirection:"column",gap:14}}>
-              {/* Summary cards */}
               <div style={{display:"grid",gridTemplateColumns:isMob?"1fr 1fr":"repeat(5,1fr)",gap:10}}>
                 {(()=>{
                   const totROI=totInv>0?((totVal+totDivs-totInv)/totInv)*100:0;
@@ -2294,7 +2152,6 @@ function App(){
                   ));
                 })()}
               </div>
-              {/* Period selector */}
               <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                 <span style={{fontSize:11,color:T.text3,fontWeight:500}}>Time period:</span>
                 <div style={{display:"flex",gap:3,background:T.bg3,padding:3,borderRadius:10,border:`1px solid ${T.border}`}}>
@@ -2304,7 +2161,6 @@ function App(){
                 </div>
                 <span style={{fontSize:10,color:T.text3,marginLeft:4}}>{chartData.labels.length} data points</span>
               </div>
-              {/* Row 1: Portfolio value + Allocation */}
               <div className="chart-row" style={{display:"flex",gap:12,flexWrap:isMob?"wrap":"nowrap"}}>
                 <div style={{flex:"2 1 280px",...card({padding:16})}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
@@ -2328,7 +2184,6 @@ function App(){
                   <ChartDoughnut labels={chartData.tLabels} data={chartData.tVals} colors={chartData.palette} T={T} height={isMob?180:230}/>
                 </div>
               </div>
-              {/* Row 2: Income by month + Currency split */}
               <div className="chart-row" style={{display:"flex",gap:12,flexWrap:isMob?"wrap":"nowrap"}}>
                 <div style={{flex:"2 1 280px",...card({padding:16})}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
@@ -2350,7 +2205,6 @@ function App(){
                   <ChartDoughnut labels={chartData.byCurLabels} data={chartData.byCurVals} colors={chartData.byCurColors} T={T} height={isMob?160:210}/>
                 </div>
               </div>
-              {/* Row 3: Growth Contributors Waterfall */}
               <div style={{...card({padding:16})}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12,flexWrap:"wrap",gap:8}}>
                   <div>
@@ -2391,7 +2245,6 @@ function App(){
                   );
                 })()}
               </div>
-              {/* Row 4: Benchmark Comparison */}
               <div style={{...card({padding:16})}}>
                 <div style={{marginBottom:12}}>
                   <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>📐 Benchmark Comparison — {chartPeriod}</div>
@@ -2487,13 +2340,9 @@ function App(){
           )}
         </main>
 
-        {/* ── MODALS ── (same as original, omitted for brevity but would be placed here) */}
-             {/* ── MODALS ── */}
         {modal && (
           <div onClick={closeModal} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.78)",backdropFilter:"blur(8px)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:12}}>
             <div onClick={e=>e.stopPropagation()} style={{background:T.bg2,border:`1px solid ${T.border}`,borderRadius:14,padding:22,width:"100%",maxWidth:modal?.mode==="import"?720:520,maxHeight:"92vh",overflowY:"auto",boxShadow:T.shadow}}>
-
-              {/* ADD MODAL */}
               {modal.mode==="add" && (
                 <>
                   <h2 style={{fontFamily:"'Space Mono',monospace",fontSize:15,fontWeight:700,color:T.text,marginBottom:16}}>Add New Position</h2>
@@ -2527,8 +2376,6 @@ function App(){
                   <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}><button style={bO(T.text2)} onClick={closeModal}>Cancel</button><button style={bS(T.greenBtn,"#fff")} onClick={submitAdd}>Add Position</button></div>
                 </>
               )}
-
-              {/* BUY / SELL MODAL */}
               {modal.mode==="trade" && (
                 <>
                   <h2 style={{fontFamily:"'Space Mono',monospace",fontSize:15,fontWeight:700,color:T.text,marginBottom:6}}>{modal.tradeType==="buy"?"Buy More —":"Sell —"} {modal.holding.ticker}</h2>
@@ -2542,8 +2389,6 @@ function App(){
                   <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}><button style={bO(T.text2)} onClick={closeModal}>Cancel</button><button style={bS(modal.tradeType==="buy"?T.greenBtn:T.redBtn,"#fff")} onClick={submitTrade}>Confirm {modal.tradeType==="buy"?"Purchase":"Sale"}</button></div>
                 </>
               )}
-
-              {/* DIVIDEND / COUPON MODAL */}
               {modal.mode==="dividend" && (
                 <>
                   <h2 style={{fontFamily:"'Space Mono',monospace",fontSize:15,fontWeight:700,color:T.text,marginBottom:4}}>{modal.holding.isBondPct?"🏦 Record Coupon":"💰 Record Dividend"} — {modal.holding.ticker}</h2>
@@ -2558,8 +2403,6 @@ function App(){
                   <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}><button style={bO(T.text2)} onClick={closeModal}>Cancel</button><button style={bS(T.tealBtn,"#fff")} onClick={submitDiv} disabled={!form.amountPerShare||!form.entitledQty} onMouseEnter={e=>e.currentTarget.style.opacity=".85"} onMouseLeave={e=>e.currentTarget.style.opacity="1"}>Record {modal.holding.isBondPct?"Coupon":"Dividend"}</button></div>
                 </>
               )}
-
-              {/* MANUAL PRICE OVERRIDE */}
               {modal.mode==="price" && (
                 <>
                   <h2 style={{fontFamily:"'Space Mono',monospace",fontSize:15,fontWeight:700,color:T.text,marginBottom:4}}>✏️ Manual Price Override</h2>
@@ -2570,18 +2413,14 @@ function App(){
                   <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:4}}><button style={bO(T.text2)} onClick={closeModal}>Cancel</button><button style={bS(T.greenBtn,"#fff")} onClick={submitManualPrice}>💾 Save & Snapshot</button></div>
                 </>
               )}
-
-              {/* HISTORY MODAL */}
               {modal.mode==="history" && histH && histC && (
                 <>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14,gap:10}}><div><h2 style={{fontFamily:"'Space Mono',monospace",fontSize:15,fontWeight:700,color:T.text,marginBottom:4}}>📋 Transaction History</h2><p style={{fontSize:11,color:T.text3}}>{modal.holding.ticker} — {modal.holding.name}</p></div></div>
                   <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>{[["Market Value",FC(histC.currentValue),T.text],["Total G/L",`${FG(histC.totalGain)} (${fmtPct(histC.gainPct)})`,pColor(histC.totalGain)],["Div/Coupons",FC(histC.totalDividends),T.teal]].map(([l,v,c])=>(<div key={l} style={{background:T.bg4,border:`1px solid ${T.border}`,borderRadius:8,padding:"7px 12px",flex:"1 1 100px"}}><div style={{fontSize:8,color:T.text3,letterSpacing:1.2,textTransform:"uppercase"}}>{l}</div><div style={{fontFamily:"'Space Mono',monospace",fontSize:11,fontWeight:700,color:c,marginTop:3}}>{v}</div></div>))}</div>
-                  <div style={{overflowX:"auto",borderRadius:8,border:`1px solid ${T.border}`}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr>{["Date","Type","Units / Div","Price / Div","Total",""].map(c=>(<th key={c} style={{padding:"8px 10px",textAlign:"left",fontSize:8,letterSpacing:1.5,color:T.text3,textTransform:"uppercase",background:T.bg,borderBottom:`1px solid ${T.border}`,whiteSpace:"nowrap"}}>{c}</th>))}<tr></thead><tbody>{[...histH.transactions].sort((a,b)=>new Date(b.date)-new Date(a.date)).map((tx,i)=>{const origIdx=histH.transactions.indexOf(tx);const tmap={buy:{l:"BUY",c:T.green,bg:dark?"#0d3d2833":"#dcfce7"},sell:{l:"SELL",c:T.red,bg:dark?"#3d0a0a33":"#fee2e2"},dividend:{l:histH.isBondPct?"COUPON":"DIV",c:T.teal,bg:dark?"#04182833":"#cffafe"}};const t=tmap[tx.type]||tmap.buy;const cur=histH.currency;const fL=(v)=>cur==="IDR"?`Rp ${fmtIDR(v)}`:cur==="USD"?`US$${v.toFixed(2)}`:`A$${v.toFixed(2)}`;const units=tx.type==="dividend"?`${(tx.amountPerShare||0).toFixed(tx.amountPerShare>1?2:4)}/unit${tx.entitledQty!=null?` · ${tx.entitledQty} entitled`:""}`:String(tx.qty||"—");const price=fL(tx.type==="dividend"?(tx.amountPerShare||0):(tx.price||0));const total=fL(tx.type==="dividend"?(tx.totalAmount||0):((tx.qty||0)*(tx.price||0)));return(<tr key={i} style={{background:i%2===0?T.bg3:T.bg2}}><td style={{padding:"8px 10px",fontFamily:"'Space Mono',monospace",fontSize:10,color:T.text2,borderBottom:`1px solid ${T.border}`,whiteSpace:"nowrap"}}>{fmtDate(tx.date)}</td><td style={{padding:"8px 10px",borderBottom:`1px solid ${T.border}`}}><span style={{padding:"2px 7px",borderRadius:4,background:t.bg,color:t.c,fontFamily:"'Space Mono',monospace",fontSize:9,fontWeight:700}}>{t.l}</span></td><td style={{padding:"8px 10px",fontFamily:"'Space Mono',monospace",fontSize:10,color:T.text2,borderBottom:`1px solid ${T.border}`}}>{units}</td><td style={{padding:"8px 10px",fontFamily:"'Space Mono',monospace",fontSize:10,color:T.text2,borderBottom:`1px solid ${T.border}`}}>{price}</td><td style={{padding:"8px 10px",fontFamily:"'Space Mono',monospace",fontSize:11,fontWeight:700,color:t.c,borderBottom:`1px solid ${T.border}`}}>{total}</td><td style={{padding:"4px 8px",borderBottom:`1px solid ${T.border}`}}><div style={{display:"flex",gap:4}}><button onClick={()=>setEditTx({holdingId:histH.id,txIndex:origIdx,tx:{...tx}})} style={{fontSize:10,padding:"2px 7px",borderRadius:4,border:`1px solid ${T.border}`,background:T.bg4,color:T.text2,cursor:"pointer"}}>✏️</button><button onClick={()=>{if(!confirm("Delete this transaction?"))return;setPortfolio(p=>p.map(h=>h.id===histH.id?{...h,transactions:h.transactions.filter((_,j)=>j!==origIdx)}:h));}} style={{fontSize:10,padding:"2px 7px",borderRadius:4,border:`1px solid ${T.red}44`,background:T.bg4,color:T.red,cursor:"pointer"}}>🗑️</button></div></td></tr>);})}</tbody></table></div>
+                  <div style={{overflowX:"auto",borderRadius:8,border:`1px solid ${T.border}`}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr>{["Date","Type","Units / Div","Price / Div","Total",""].map(c=>(<th key={c} style={{padding:"8px 10px",textAlign:"left",fontSize:8,letterSpacing:1.5,color:T.text3,textTransform:"uppercase",background:T.bg,borderBottom:`1px solid ${T.border}`,whiteSpace:"nowrap"}}>{c}</th>))}</tr></thead><tbody>{[...histH.transactions].sort((a,b)=>new Date(b.date)-new Date(a.date)).map((tx,i)=>{const origIdx=histH.transactions.indexOf(tx);const tmap={buy:{l:"BUY",c:T.green,bg:dark?"#0d3d2833":"#dcfce7"},sell:{l:"SELL",c:T.red,bg:dark?"#3d0a0a33":"#fee2e2"},dividend:{l:histH.isBondPct?"COUPON":"DIV",c:T.teal,bg:dark?"#04182833":"#cffafe"}};const t=tmap[tx.type]||tmap.buy;const cur=histH.currency;const fL=(v)=>cur==="IDR"?`Rp ${fmtIDR(v)}`:cur==="USD"?`US$${v.toFixed(2)}`:`A$${v.toFixed(2)}`;const units=tx.type==="dividend"?`${(tx.amountPerShare||0).toFixed(tx.amountPerShare>1?2:4)}/unit${tx.entitledQty!=null?` · ${tx.entitledQty} entitled`:""}`:String(tx.qty||"—");const price=fL(tx.type==="dividend"?(tx.amountPerShare||0):(tx.price||0));const total=fL(tx.type==="dividend"?(tx.totalAmount||0):((tx.qty||0)*(tx.price||0)));return(<tr key={i} style={{background:i%2===0?T.bg3:T.bg2}}><td style={{padding:"8px 10px",fontFamily:"'Space Mono',monospace",fontSize:10,color:T.text2,borderBottom:`1px solid ${T.border}`,whiteSpace:"nowrap"}}>{fmtDate(tx.date)}</td><td style={{padding:"8px 10px",borderBottom:`1px solid ${T.border}`}}><span style={{padding:"2px 7px",borderRadius:4,background:t.bg,color:t.c,fontFamily:"'Space Mono',monospace",fontSize:9,fontWeight:700}}>{t.l}</span></td><td style={{padding:"8px 10px",fontFamily:"'Space Mono',monospace",fontSize:10,color:T.text2,borderBottom:`1px solid ${T.border}`}}>{units}</td><td style={{padding:"8px 10px",fontFamily:"'Space Mono',monospace",fontSize:10,color:T.text2,borderBottom:`1px solid ${T.border}`}}>{price}</td><td style={{padding:"8px 10px",fontFamily:"'Space Mono',monospace",fontSize:11,fontWeight:700,color:t.c,borderBottom:`1px solid ${T.border}`}}>{total}</td><td style={{padding:"4px 8px",borderBottom:`1px solid ${T.border}`}}><div style={{display:"flex",gap:4}}><button onClick={()=>setEditTx({holdingId:histH.id,txIndex:origIdx,tx:{...tx}})} style={{fontSize:10,padding:"2px 7px",borderRadius:4,border:`1px solid ${T.border}`,background:T.bg4,color:T.text2,cursor:"pointer"}}>✏️</button><button onClick={()=>{if(!confirm("Delete this transaction?"))return;setPortfolio(p=>p.map(h=>h.id===histH.id?{...h,transactions:h.transactions.filter((_,j)=>j!==origIdx)}:h));}} style={{fontSize:10,padding:"2px 7px",borderRadius:4,border:`1px solid ${T.red}44`,background:T.bg4,color:T.red,cursor:"pointer"}}>🗑️</button></div></td></tr>);})}</tbody></table></div>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:12}}><span style={{fontSize:10,color:T.text3}}>{histH.transactions.length} transactions total</span><button style={bO(T.text2)} onClick={closeModal}>Close</button></div>
                 </>
               )}
-
-              {/* IMPORT MODAL */}
               {modal.mode==="import" && (()=>{
                 const IS=importSt;
                 const valid=IS.parsed.filter(r=>!r._errors.length);
@@ -2599,18 +2438,13 @@ function App(){
                   {IS.step==="done"&&(<div style={{textAlign:"center",padding:"24px 0"}}><div style={{fontSize:48,marginBottom:12}}>🎉</div><div style={{fontSize:18,fontWeight:700,color:T.green,marginBottom:8}}>Import complete!</div><div style={{fontSize:13,color:T.text2,marginBottom:8}}>{IS.importedCount} transactions imported.</div><div style={{fontSize:11,color:T.text3,marginBottom:24}}>Click the 🔄 Live Prices button to fetch current prices for new holdings.</div><button style={bS(T.greenBtn,"#fff",{padding:"9px 28px",fontSize:13})} onClick={closeModal}>Done</button></div>)}
                 </>);
               })()}
-
-              {/* FIREBASE SETUP MODAL */}
               {modal.mode==="firebaseSetup" && (()=>{
                 const [cfg,setCfg]=React.useState({apiKey:"",authDomain:"",projectId:"",storageBucket:"",messagingSenderId:"",appId:""});
                 const fields=[["apiKey","API Key","AIzaSy..."],["authDomain","Auth Domain","your-project.firebaseapp.com"],["projectId","Project ID","your-project-id"],["storageBucket","Storage Bucket","your-project.appspot.com"],["messagingSenderId","Messaging Sender ID","123456789"],["appId","App ID","1:123456789:web:abc123"]];
                 return(<div style={{maxWidth:500,width:"100%",...card({padding:24})}}><h2 style={{fontFamily:"'Space Mono',monospace",fontSize:15,fontWeight:700,color:T.text,marginBottom:4}}>☁️ Set Up Cloud Sync</h2><p style={{fontSize:11,color:T.text3,marginBottom:16,lineHeight:1.6}}>Enter your Firebase project credentials below. These are saved only in your browser's localStorage — never sent anywhere except Firebase itself.</p><div style={{background:T.bg4,border:`1px solid ${T.border}`,borderRadius:8,padding:12,marginBottom:16,fontSize:11,color:T.text2,lineHeight:1.7}}><b style={{color:T.teal}}>Don't have a Firebase project yet?</b><br/>1. Go to <b>console.firebase.google.com</b><br/>2. Click <b>Add project</b> → name it (e.g. "folio-sync") → Continue<br/>3. Go to <b>Project Settings</b> (⚙️) → <b>Your apps</b> → click <b>&lt;/&gt;</b> (web)<br/>4. Register app → copy the config values below<br/>5. In Firebase console → <b>Authentication</b> → Sign-in method → enable <b>Google</b><br/>6. In Firebase console → <b>Firestore Database</b> → Create database → Start in test mode</div><div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>{fields.map(([key,label,ph])=>(<div key={key}><label style={{fontSize:10,color:T.text3,letterSpacing:1,textTransform:"uppercase"}}>{label}</label><input style={{...inp(),marginTop:2}} placeholder={ph} value={cfg[key]} onChange={e=>setCfg(c=>({...c,[key]:e.target.value}))}/></div>))}</div><div style={{fontSize:10,color:T.amber,marginBottom:12}}>⚠️ After saving, you need to <b>reload the page</b> for Firebase to initialise.</div><div style={{display:"flex",gap:8,justifyContent:"flex-end"}}><button style={bO(T.text2)} onClick={closeModal}>Cancel</button><button style={bS(T.teal,"#fff")} onClick={()=>{try{localStorage.setItem("f6_fbcfg",JSON.stringify(cfg));const src=document.documentElement.outerHTML;const updated=src.replace(/"YOUR_API_KEY"/,`"${cfg.apiKey}"`).replace(/"YOUR_PROJECT_ID\.firebaseapp\.com"/,`"${cfg.authDomain}"`).replace(/("YOUR_PROJECT_ID")/g,`"${cfg.projectId}"`).replace(/"YOUR_PROJECT_ID\.appspot\.com"/,`"${cfg.storageBucket}"`).replace(/"YOUR_MESSAGING_SENDER_ID"/,`"${cfg.messagingSenderId}"`).replace(/"YOUR_APP_ID"/,`"${cfg.appId}"`);const blob=new Blob([updated],{type:"text/html"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="folio-dashboard.html";a.click();alert("✅ New file downloaded with your Firebase config!\n\nOpen the downloaded file — cloud sync will be ready.");closeModal();}catch(e){alert("Error: "+e.message);}}}>💾 Save & Download</button></div></div>);})()}
-
             </div>
           </div>
         )}
-
-        {/* EDIT TRANSACTION OVERLAY */}
         {editTx && (()=>{
           const h=portfolio.find(p=>p.id===editTx.holdingId);
           if(!h)return null;
@@ -2620,7 +2454,6 @@ function App(){
           const fi=(field,label,type="text",placeholder="")=>(<div key={field}><label style={{fontSize:10,color:T.text3,letterSpacing:1,textTransform:"uppercase"}}>{label}</label><input type={type} style={{...inp(),marginTop:2}} value={tx[field]??""} placeholder={placeholder} onChange={e=>{const v=type==="number"?(parseFloat(e.target.value)||0):e.target.value;setEditTx(s=>({...s,tx:{...s.tx,[field]:v}}));}}/></div>);
           return(<div onClick={()=>setEditTx(null)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.82)",backdropFilter:"blur(8px)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:12}}><div onClick={e=>e.stopPropagation()} style={{background:T.bg2,border:`1px solid ${T.border}`,borderRadius:14,padding:22,width:"100%",maxWidth:400,boxShadow:T.shadow}}><h2 style={{fontFamily:"'Space Mono',monospace",fontSize:14,fontWeight:700,color:T.text,marginBottom:4}}>✏️ Edit Transaction</h2><p style={{fontSize:11,color:T.text3,marginBottom:16}}>{h.ticker} — {tx.type?.toUpperCase()}</p><div style={{display:"flex",flexDirection:"column",gap:10}}>{fi("date","Date","date")}{tx.type!=="dividend"&&fi("qty","Units / Quantity","number","0")}{tx.type!=="dividend"&&fi("price",`Price (${cur})`,"number","0")}{tx.type==="dividend"&&fi("amountPerShare",`Amount per Unit (${cur})`,"number","0")}{tx.type==="dividend"&&fi("entitledQty","Entitled Units","number","0")}{tx.type==="dividend"&&fi("totalAmount",`Total Amount (${cur})`,"number","0")}</div><div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:16}}><button style={bO(T.text2)} onClick={()=>setEditTx(null)}>Cancel</button><button style={bS(T.greenBtn,"#fff")} onClick={save}>Save Changes</button></div></div></div>);
         })()}
-        {/* Passive Income Settings Modal */}
         {showPassiveModal && (
           <div onClick={() => setShowPassiveModal(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.78)",backdropFilter:"blur(8px)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:12}}>
             <div onClick={e=>e.stopPropagation()} style={{background:T.bg2,border:`1px solid ${T.border}`,borderRadius:14,padding:22,width:"100%",maxWidth:400,boxShadow:T.shadow}}>
