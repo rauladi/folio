@@ -815,12 +815,12 @@ function ChartLine({labels,datasets,T,yFmt,y2Fmt,height=220,spanGaps=false}){
         position:"right",
       };
     }
-    inst.current=new Chart(ref.current,{type:"line",data:{labels,datasets},options:{spanGaps:spanGaps,responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:T.text2,font:{family:"Roboto",size:11},boxWidth:10,padding:12}},tooltip:{backgroundColor:T.bg3,borderColor:T.border,borderWidth:1,titleColor:T.text,bodyColor:T.text2,padding:10,cornerRadius:8,callbacks:{label:(ctx)=>{const fmt=ctx.dataset.yAxisID==="y2"&&y2Fmt?y2Fmt:yFmt||(v=>`${v}`);return` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)}`;}}},scales,elements:{line:{tension:.4},point:{radius:2,hoverRadius:5}}}});
+    inst.current=new Chart(ref.current,{type:"line",data:{labels,datasets},options:{spanGaps:spanGaps,responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:T.text2,font:{family:"Roboto",size:11},boxWidth:10,padding:12}},tooltip:{backgroundColor:T.bg3,borderColor:T.border,borderWidth:1,titleColor:T.text,bodyColor:T.text2,padding:10,cornerRadius:8,callbacks:{label:(ctx)=>{const fmt=ctx.dataset.yAxisID==="y2"&&y2Fmt?y2Fmt:yFmt||(v=>`${v}`);return` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)}`;}}}},scales:scales,elements:{line:{tension:.4},point:{radius:2,hoverRadius:5}}}});
     return()=>{if(inst.current)inst.current.destroy();};
   },[labels,datasets,T,yFmt,y2Fmt]);
   return <div style={{height,position:"relative"}}><canvas ref={ref}/></div>;
 }
-function ChartBar({labels,datasets,T,yFmt,height=200,stacked=false}){
+  function ChartBar({labels,datasets,T,yFmt,height=200,stacked=false}){
   const ref=useRef(null);const inst=useRef(null);
   useEffect(()=>{
     if(!ref.current||typeof Chart==="undefined")return;
