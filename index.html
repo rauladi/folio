@@ -1156,6 +1156,8 @@ function App(){
   const[monthlyTargetAud, setMonthlyTargetAud] = useState(()=>ld("f6_targetAud", 0));
   const[superDrawRate, setSuperDrawRate] = useState(()=>ld("f6_superRate", 0));
   const[showPassiveModal, setShowPassiveModal] = useState(false);
+  // New state for average super benchmark
+  const[avgSuperBalanceAud, setAvgSuperBalanceAud] = useState(()=>ld("f6_avgSuper", 0));
 
   const T=dark?DARK:LIGHT;
   const winW=useWindowSize();
@@ -1170,6 +1172,7 @@ function App(){
   useEffect(()=>{localStorage.setItem("f6_dark",JSON.stringify(dark));},[dark]);
   useEffect(()=>{localStorage.setItem("f6_targetAud", JSON.stringify(monthlyTargetAud));},[monthlyTargetAud]);
   useEffect(()=>{localStorage.setItem("f6_superRate", JSON.stringify(superDrawRate));},[superDrawRate]);
+  useEffect(()=>{localStorage.setItem("f6_avgSuper", JSON.stringify(avgSuperBalanceAud));},[avgSuperBalanceAud]);
 
   useEffect(()=>{document.body.style.background=T.bg;document.body.style.color=T.text;},[T]);
 
@@ -1196,11 +1199,12 @@ function App(){
         dark,
         monthlyTargetAud,
         superDrawRate,
+        avgSuperBalanceAud,
         savedAt:new Date().toISOString(),
       });
       setSyncSt("ok");setSyncMsg("Saved ✓ "+new Date().toLocaleTimeString());
     }catch(e){setSyncSt("error");setSyncMsg("Save failed: "+e.message);}
-  },[fbUser,portfolio,prices,prevPrices,history,displayCur,dark,monthlyTargetAud,superDrawRate]);
+  },[fbUser,portfolio,prices,prevPrices,history,displayCur,dark,monthlyTargetAud,superDrawRate,avgSuperBalanceAud]);
 
   const cloudLoadAll=useCallback(async()=>{
     if(!fbUser){setSyncMsg("Sign in first");return;}
@@ -1216,6 +1220,7 @@ function App(){
       if(typeof data.dark==="boolean")setDark(data.dark);
       if(typeof data.monthlyTargetAud === "number") setMonthlyTargetAud(data.monthlyTargetAud);
       if(typeof data.superDrawRate === "number") setSuperDrawRate(data.superDrawRate);
+      if(typeof data.avgSuperBalanceAud === "number") setAvgSuperBalanceAud(data.avgSuperBalanceAud);
       setSyncSt("ok");setSyncMsg("Loaded ✓ saved "+new Date(data.savedAt).toLocaleString());
     }catch(e){setSyncSt("error");setSyncMsg("Load failed: "+e.message);}
   },[fbUser]);
@@ -1301,15 +1306,21 @@ function App(){
     return fmtCur(monthlyTargetAud, displayCur, rates, true);
   }, [monthlyTargetAud, displayCur, rates]);
   
+  // Super benchmark percentage
+  const superBenchmarkPercent = useMemo(() => {
+    if (avgSuperBalanceAud <= 0) return null;
+    return (superFundsValueAUD / avgSuperBalanceAud) * 100;
+  }, [superFundsValueAUD, avgSuperBalanceAud]);
+
   function isDividendPayingHolding(holding) {
-  // Exclude specific superannuation funds that do not pay cash dividends
-  if (holding.ticker === "NUL5339AU" || holding.ticker === "NUL7270AU") return false;
-  
-  if (!holding.assetType) return false;
-  if (DIVIDEND_PAYING_TYPES.has(holding.assetType)) return true;
-  if (holding.assetType.includes("Bond") || holding.assetType.includes("REIT")) return true;
-  return false;
-}
+    // Exclude specific superannuation funds that do not pay cash dividends
+    if (holding.ticker === "NUL5339AU" || holding.ticker === "NUL7270AU") return false;
+    
+    if (!holding.assetType) return false;
+    if (DIVIDEND_PAYING_TYPES.has(holding.assetType)) return true;
+    if (holding.assetType.includes("Bond") || holding.assetType.includes("REIT")) return true;
+    return false;
+  }
   function computeMonthlyDividendsToDate(portfolio, rates) {
     const now = new Date();
     const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
@@ -1835,6 +1846,8 @@ function App(){
     const hs = portfolio.map(h => computeHolding(h, { ...prices, ...c }, { ...prevPrices, ...p }, rates)).filter(h => h.qty > 0);
     const snap = { date, totalValueAUD: hs.reduce((s, h) => s + h.currentValue, 0), totalDividendsAUD: hs.reduce((s, h) => s + h.totalDividends, 0) };
     setHistory(prev => [...prev.filter(s => s.date !== date), snap].sort((a, b) => new Date(a.date) - new Date(b.date)).slice(-90));
+    // Immediately save to cloud if user is signed in
+    if (fbUser) cloudSaveAll();
     closeModal();
   };
   const histH=modal?.mode==="history"?portfolio.find(p=>p.id===modal.holding.id):null;
@@ -1874,7 +1887,7 @@ function App(){
               </svg>
             </div>
             <div className="hdr-desktop" style={{display:"flex",alignItems:"stretch",flex:1,overflow:"hidden"}}>
-              {[["VALUE",FC(totVal,true),T.text],["TOTAL G/L",`${FG(totGain)} (${fmtPct(totPct)})`,pColor(totGain)],["DAY G/L",`${FG(totDayGain)} (${fmtPct(totDayPct)})`,pColor(totDayGain)],["DIV YLD (div only)",fmtPct(divYieldOnly),T.teal],["DIV CAGR",divCAGR ? `${divCAGR.cagr>=0?"+":""}${divCAGR.cagr.toFixed(1)}%`:"—",T.teal],["PASSIVE",monthlyPassivePercent !== null ? `${monthlyPassivePercent.toFixed(1)}% of ${targetDisplay}` : "Set target", monthlyPassivePercent !== null && monthlyPassivePercent >= 100 ? T.green : T.amber],["HOLDINGS",String(holdings.length),T.text2]].map(([l,v,c],i)=>(
+              {[["VALUE",FC(totVal,true),T.text],["TOTAL G/L",`${FG(totGain)} (${fmtPct(totPct)})`,pColor(totGain)],["DAY G/L",`${FG(totDayGain)} (${fmtPct(totDayPct)})`,pColor(totDayGain)],["DIV YLD (div only)",fmtPct(divYieldOnly),T.teal],["DIV CAGR",divCAGR ? `${divCAGR.cagr>=0?"+":""}${divCAGR.cagr.toFixed(1)}%`:"—",T.teal],["PASSIVE",monthlyPassivePercent !== null ? `${monthlyPassivePercent.toFixed(1)}% of ${targetDisplay}` : "Set target", monthlyPassivePercent !== null && monthlyPassivePercent >= 100 ? T.green : T.amber],["SUPER BENCH",superBenchmarkPercent !== null ? `${superBenchmarkPercent.toFixed(0)}% of avg` : "Set avg", superBenchmarkPercent !== null && superBenchmarkPercent >= 100 ? T.green : T.amber],["HOLDINGS",String(holdings.length),T.text2]].map(([l,v,c],i)=>(
                 <div key={l} style={{display:"flex",flexDirection:"column",padding:"0 12px",borderLeft:i>0?`1px solid ${T.border}`:"none",minWidth:0}}>
                 <span style={{fontSize:8,letterSpacing:1.8,color:T.text3,textTransform:"uppercase",marginBottom:2,whiteSpace:"nowrap"}}>{l}</span>
                 <span style={{fontSize:11,fontFamily:"'Space Mono',monospace",fontWeight:700,color:c,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{v}</span>
@@ -1882,7 +1895,7 @@ function App(){
               ))}
             </div>
             <div className="hdr-mobile" style={{display:"none",gap:10,flex:1,justifyContent:"center",flexWrap:"wrap"}}>
-              {[["VALUE",FC(totVal,true),T.text],["G/L",fmtPct(totPct),pColor(totGain)],["DAY",fmtPct(totDayPct),pColor(totDayGain)],["DIV YLD",fmtPct(divYieldOnly),T.teal],["PASSIVE",monthlyPassivePercent !== null ? `${monthlyPassivePercent.toFixed(0)}%` : "Set", monthlyPassivePercent !== null && monthlyPassivePercent >= 100 ? T.green : T.amber]].map(([l,v,c])=>(
+              {[["VALUE",FC(totVal,true),T.text],["G/L",fmtPct(totPct),pColor(totGain)],["DAY",fmtPct(totDayPct),pColor(totDayGain)],["DIV YLD",fmtPct(divYieldOnly),T.teal],["PASSIVE",monthlyPassivePercent !== null ? `${monthlyPassivePercent.toFixed(0)}%` : "Set", monthlyPassivePercent !== null && monthlyPassivePercent >= 100 ? T.green : T.amber],["SUPER",superBenchmarkPercent !== null ? `${superBenchmarkPercent.toFixed(0)}%` : "Set avg", superBenchmarkPercent !== null && superBenchmarkPercent >= 100 ? T.green : T.amber]].map(([l,v,c])=>(
                 <div key={l} style={{textAlign:"center"}}><div style={{fontSize:8,color:T.text3,letterSpacing:1.5,textTransform:"uppercase"}}>{l}</div><div style={{fontFamily:"'Space Mono',monospace",fontSize:12,fontWeight:700,color:c}}>{v}</div></div>
               ))}
             </div>
@@ -1891,7 +1904,7 @@ function App(){
                 {CURRENCIES.map(c=><button key={c} onClick={()=>setDisplayCur(c)} style={{padding:"4px 8px",borderRadius:6,border:"none",background:displayCur===c?T.bg2:"transparent",color:displayCur===c?T.text:T.text3,fontSize:10,fontWeight:displayCur===c?700:400,fontFamily:"'Space Mono',monospace"}}>{c}</button>)}
               </div>
               <button onClick={()=>setValuesHidden(v=>!v)} title={valuesHidden?"Show values":"Hide values"} style={{...bO(T.text2,{padding:"6px 9px",fontSize:14,lineHeight:1,borderRadius:8})}}>{valuesHidden?"🙈":"👁️"}</button>
-              <button onClick={()=>setShowPassiveModal(true)} title="Passive income target & super rate" style={{...bO(T.text2,{padding:"6px 9px",fontSize:14,lineHeight:1,borderRadius:8})}}>⚙️</button>
+              <button onClick={()=>setShowPassiveModal(true)} title="Passive income target & super rate & average super balance" style={{...bO(T.text2,{padding:"6px 9px",fontSize:14,lineHeight:1,borderRadius:8})}}>⚙️</button>
               <button onClick={()=>setDark(d=>!d)} style={{...bO(T.text2,{padding:"6px 9px",fontSize:15,lineHeight:1,borderRadius:8})}}>{dark?"☀️":"🌙"}</button>
               <button onClick={autoRefresh} disabled={fetchSt.loading} style={{...bO(fetchBarColor,{padding:"6px 10px",fontSize:11,borderColor:fetchBarColor+"66",opacity:fetchSt.loading?.7:1})}}>
                 <span className={fetchSt.loading?"spin":""} style={{marginRight:4,fontSize:12}}>{fetchSt.loading?"⟳":"🔄"}</span>
@@ -2436,7 +2449,7 @@ function App(){
                   <input ref={importFileRef} type="file" accept=".csv,.xlsx,.xls,.ods,.txt" style={{display:"none"}} onChange={e=>{if(e.target.files[0])handleImportFile(e.target.files[0]);e.target.value="";}}/>
                   {(IS.step==="idle"||IS.step==="parsing")&&(<div style={dropZoneStyle} onDragOver={e=>{e.preventDefault();setImportSt(s=>({...s,dragOver:true}));}} onDragLeave={()=>setImportSt(s=>({...s,dragOver:false}))} onDrop={e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f)handleImportFile(f);}} onClick={()=>importFileRef.current&&importFileRef.current.click()}><div style={{fontSize:36,marginBottom:10,opacity:.5}}>📂</div><div style={{fontSize:14,fontWeight:600,color:T.text,marginBottom:4}}>{IS.step==="parsing"?"⟳ Parsing file…":"Drag & drop your file here"}</div><div style={{fontSize:12,color:T.text3,marginBottom:16}}>or click to browse · CSV, XLSX, XLS supported</div>{IS.step!=="parsing"&&(<button style={{...bS(T.greenBtn,"#fff",{fontSize:12,padding:"8px 20px"})}} onClick={e=>{e.stopPropagation();importFileRef.current&&importFileRef.current.click();}}>Choose File</button>)}</div>)}
                   {IS.step==="error"&&(<div style={{background:dark?"#2d0a0a":"#fee2e2",border:`1px solid ${T.redBtn}55`,borderRadius:10,padding:"14px 16px",color:T.red}}><div style={{fontWeight:700,marginBottom:4}}>Could not read file</div><div style={{fontSize:12}}>{IS.errorMsg}</div><button style={{...bO(T.red,{fontSize:11,marginTop:10})}} onClick={()=>setImportSt(s=>({...s,step:"idle"}))}>Try again</button></div>)}
-                  {IS.step==="preview"&&(<div>{IS.fieldMap&&Object.keys(IS.fieldMap).length>0&&(<div style={{background:T.bg4,border:`1px solid ${T.border}`,borderRadius:10,padding:"10px 14px",marginBottom:14}}><div style={{fontSize:10,fontWeight:700,color:T.text2,letterSpacing:1.2,textTransform:"uppercase",marginBottom:7}}>Detected Column Mapping</div><div style={{display:"flex",flexWrap:"wrap",gap:6}}>{Object.entries(IS.fieldMap).map(([field,col])=>(<span key={field} style={{fontSize:10,background:T.bg2,border:`1px solid ${T.border2}`,borderRadius:5,padding:"2px 8px",color:T.text2}}><span style={{color:T.text3}}>{col}</span><span style={{color:T.border2,margin:"0 4px"}}>→</span><span style={{color:T.teal,fontWeight:600}}>{field}</span></span>))}</div>{!IS.fieldMap.ticker&&(<div style={{marginTop:8,fontSize:11,color:T.amber}}>⚠️ No <b>ticker</b> column detected — rename your ticker column to exactly <code style={{background:T.bg3,padding:"1px 4px",borderRadius:3}}>ticker</code></div>)}{!IS.fieldMap.type&&(<div style={{marginTop:4,fontSize:11,color:T.amber}}>⚠️ No <b>type</b> column detected — rename your transaction type column to <code style={{background:T.bg3,padding:"1px 4px",borderRadius:3}}>type</code> with values: buy, sell, dividend</div>)}</div>)}<div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>{[[IS.parsed.length+" rows",T.text],[valid.length+" valid",T.green],...(invalid.length?[[invalid.length+" errors",T.amber]]:[]),[tickers.length+" tickers",T.teal],[valid.filter(r=>r.type==="buy").length+" buys",T.text2],[valid.filter(r=>r.type==="sell").length+" sells",T.text2],[valid.filter(r=>r.type==="dividend").length+" dividends",T.teal]].map(([l,c])=>(<span key={l} style={{fontSize:11,fontWeight:600,color:c,background:T.bg4,border:`1px solid ${T.border}`,borderRadius:6,padding:"3px 10px"}}>{l}</span>))}</div><div style={{display:"flex",alignItems:"center",gap:10,background:T.bg4,border:`1px solid ${T.border}`,borderRadius:10,padding:"10px 14px",marginBottom:14,flexWrap:"wrap"}}><span style={{fontSize:12,fontWeight:600,color:T.text}}>Import mode:</span>{[["merge","Merge with existing"],["replace","Replace all data"]].map(([v,l])=>(<button key={v} onClick={()=>setImportSt(s=>({...s,mergeMode:v}))} style={{padding:"5px 14px",borderRadius:7,border:`1px solid ${IS.mergeMode===v?T.greenBtn:T.border}`,background:IS.mergeMode===v?(dark?"#0a2e1e":"#dcfce7"):"transparent",color:IS.mergeMode===v?T.greenBtn:T.text3,fontSize:12,fontWeight:IS.mergeMode===v?700:400}}>{l}</button>))}<span style={{fontSize:10,color:IS.mergeMode==="replace"?T.amber:T.text3}}>{IS.mergeMode==="merge"?"Adds new tickers, appends transactions to existing":"Clears ALL current portfolio data first"}</span></div>{IS.errors.length>0&&(<div style={{background:dark?"#1a1200":"#fffbeb",border:`1px solid ${T.amber}55`,borderRadius:10,padding:"10px 14px",marginBottom:14}}><div style={{fontSize:12,fontWeight:700,color:T.amber,marginBottom:6}}>{IS.errors.length} rows will be skipped</div><div style={{maxHeight:80,overflowY:"auto"}}>{IS.errors.map(e=>(<div key={e.rowNum} style={{fontSize:10,color:T.amber,marginBottom:2}}>Row {e.rowNum}{e.ticker?" ["+e.ticker+"]":""}: {e.errs.join(" · ")}</div>))}</div></div>)}<div style={{overflowX:"auto",borderRadius:8,border:`1px solid ${T.border}`,marginBottom:14,maxHeight:260,overflowY:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}><thead style={{position:"sticky",top:0}}><tr>{["","Row","Ticker","Type","Date","Qty","Price","Ccy","Div/Unit","Entitled"].map(c=>(<th key={c} style={{padding:"7px 10px",textAlign:"left",fontSize:8,letterSpacing:1.2,color:T.text3,textTransform:"uppercase",background:T.bg2,borderBottom:`1px solid ${T.border}`,whiteSpace:"nowrap"}}>{c}</th>))}</tr></thead><tbody>{IS.parsed.map((r,i)=>{const ok=!r._errors.length;const bg=ok?(i%2===0?T.bg3:T.bg2):(dark?"#2a1500":"#fff7ed");const typeColor=r.type==="buy"?T.green:r.type==="sell"?T.red:T.teal;const typeBg=r.type==="buy"?(dark?"#0a2e1e":"#dcfce7"):r.type==="sell"?(dark?"#2d0a0a":"#fee2e2"):(dark?"#041824":"#cffafe");return(<tr key={i} style={{background:bg}}><td style={{padding:"6px 8px",borderBottom:`1px solid ${T.border}`}}>{ok?"✅":"⚠️"}</td><td style={{padding:"6px 8px",color:T.text3,fontSize:9,borderBottom:`1px solid ${T.border}`}}>{r._rowNum}</td><td style={{padding:"6px 8px",fontFamily:"'Space Mono',monospace",fontWeight:700,color:T.text,borderBottom:`1px solid ${T.border}`}}>{r.ticker}</td><td style={{padding:"6px 8px",borderBottom:`1px solid ${T.border}`}}>{r.type&&<span style={{padding:"1px 6px",borderRadius:4,fontSize:9,fontWeight:700,background:typeBg,color:typeColor}}>{r.type.toUpperCase()}</span>}</td><td style={{padding:"6px 8px",color:T.text2,borderBottom:`1px solid ${T.border}`,whiteSpace:"nowrap"}}>{r.date}</td><td style={{padding:"6px 8px",fontFamily:"'Space Mono',monospace",color:T.text2,borderBottom:`1px solid ${T.border}`}}>{r.qty||"—"}</td><td style={{padding:"6px 8px",fontFamily:"'Space Mono',monospace",color:T.text2,borderBottom:`1px solid ${T.border}`}}>{r.price||"—"}</td><td style={{padding:"6px 8px",color:T.text3,borderBottom:`1px solid ${T.border}`}}>{r.currency}</td><td style={{padding:"6px 8px",fontFamily:"'Space Mono',monospace",color:T.teal,borderBottom:`1px solid ${T.border}`}}>{r.amountPerShare||"—"}</td><td style={{padding:"6px 8px",color:T.text2,borderBottom:`1px solid ${T.border}`}}>{r.entitledQty||"—"}</td></tr>);})}</tbody></table></div>{valid.length===0&&(<div style={{textAlign:"center",padding:"8px 0",color:T.red,fontSize:12,marginBottom:12}}>No valid rows found. Fix the errors and re-upload.</div>)}<div style={{display:"flex",gap:8,justifyContent:"space-between",alignItems:"center",flexWrap:"wrap"}}><button style={bO(T.text2,{fontSize:11})} onClick={()=>setImportSt(s=>({...s,step:"idle",parsed:[],rows:[],errors:[]}))}>Upload different file</button><div style={{display:"flex",gap:8}}><button style={bO(T.text2)} onClick={closeModal}>Cancel</button><button style={{...bS(T.greenBtn,"#fff"),opacity:valid.length?1:.4,cursor:valid.length?"pointer":"not-allowed"}} disabled={!valid.length} onClick={confirmImport}>Import {valid.length} rows {IS.mergeMode==="replace"?"(replace all)":"(merge)"}</button></div></div></div>)}
+                  {IS.step==="preview"&&(<div>{IS.fieldMap&&Object.keys(IS.fieldMap).length>0&&(<div style={{background:T.bg4,border:`1px solid ${T.border}`,borderRadius:10,padding:"10px 14px",marginBottom:14}}><div style={{fontSize:10,fontWeight:700,color:T.text2,letterSpacing:1.2,textTransform:"uppercase",marginBottom:7}}>Detected Column Mapping</div><div style={{display:"flex",flexWrap:"wrap",gap:6}}>{Object.entries(IS.fieldMap).map(([field,col])=>(<span key={field} style={{fontSize:10,background:T.bg2,border:`1px solid ${T.border2}`,borderRadius:5,padding:"2px 8px",color:T.text2}}><span style={{color:T.text3}}>{col}</span><span style={{color:T.border2,margin:"0 4px"}}>→</span><span style={{color:T.teal,fontWeight:600}}>{field}</span></span>))}</div>{!IS.fieldMap.ticker&&(<div style={{marginTop:8,fontSize:11,color:T.amber}}>⚠️ No <b>ticker</b> column detected — rename your ticker column to exactly <code style={{background:T.bg3,padding:"1px 4px",borderRadius:3}}>ticker</code></div>)}{!IS.fieldMap.type&&(<div style={{marginTop:4,fontSize:11,color:T.amber}}>⚠️ No <b>type</b> column detected — rename your transaction type column to <code style={{background:T.bg3,padding:"1px 4px",borderRadius:3}}>type</code> with values: buy, sell, dividend</div>)}</div>)}<div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>{[[IS.parsed.length+" rows",T.text],[valid.length+" valid",T.green],...(invalid.length?[[invalid.length+" errors",T.amber]]:[]),[tickers.length+" tickers",T.teal],[valid.filter(r=>r.type==="buy").length+" buys",T.text2],[valid.filter(r=>r.type==="sell").length+" sells",T.text2],[valid.filter(r=>r.type==="dividend").length+" dividends",T.teal]].map(([l,c])=>(<span key={l} style={{fontSize:11,fontWeight:600,color:c,background:T.bg4,border:`1px solid ${T.border}`,borderRadius:6,padding:"3px 10px"}}>{l}</span>))}</div><div style={{display:"flex",alignItems:"center",gap:10,background:T.bg4,border:`1px solid ${T.border}`,borderRadius:10,padding:"10px 14px",marginBottom:14,flexWrap:"wrap"}}><span style={{fontSize:12,fontWeight:600,color:T.text}}>Import mode:</span>{[["merge","Merge with existing"],["replace","Replace all data"]].map(([v,l])=>(<button key={v} onClick={()=>setImportSt(s=>({...s,mergeMode:v}))} style={{padding:"5px 14px",borderRadius:7,border:`1px solid ${IS.mergeMode===v?T.greenBtn:T.border}`,background:IS.mergeMode===v?(dark?"#0a2e1e":"#dcfce7"):"transparent",color:IS.mergeMode===v?T.greenBtn:T.text3,fontSize:12,fontWeight:IS.mergeMode===v?700:400}}>{l}</button>))}<span style={{fontSize:10,color:IS.mergeMode==="replace"?T.amber:T.text3}}>{IS.mergeMode==="merge"?"Adds new tickers, appends transactions to existing":"Clears ALL current portfolio data first"}</span></div>{IS.errors.length>0&&(<div style={{background:dark?"#1a1200":"#fffbeb",border:`1px solid ${T.amber}55`,borderRadius:10,padding:"10px 14px",marginBottom:14}}><div style={{fontSize:12,fontWeight:700,color:T.amber,marginBottom:6}}>{IS.errors.length} rows will be skipped</div><div style={{maxHeight:80,overflowY:"auto"}}>{IS.errors.map(e=>(<div key={e.rowNum} style={{fontSize:10,color:T.amber,marginBottom:2}}>Row {e.rowNum}{e.ticker?" ["+e.ticker+"]":""}: {e.errs.join(" · ")}</div>))}</div></div>)}<div style={{overflowX:"auto",borderRadius:8,border:`1px solid ${T.border}`,marginBottom:14,maxHeight:260,overflowY:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}><thead style={{position:"sticky",top:0}}><tr>{["","Row","Ticker","Type","Date","Qty","Price","Ccy","Div/Unit","Entitled"].map(c=>(<th key={c} style={{padding:"7px 10px",textAlign:"left",fontSize:8,letterSpacing:1.2,color:T.text3,textTransform:"uppercase",background:T.bg2,borderBottom:`1px solid ${T.border}`,whiteSpace:"nowrap"}}>{c}</th>))}<tr></thead><tbody>{IS.parsed.map((r,i)=>{const ok=!r._errors.length;const bg=ok?(i%2===0?T.bg3:T.bg2):(dark?"#2a1500":"#fff7ed");const typeColor=r.type==="buy"?T.green:r.type==="sell"?T.red:T.teal;const typeBg=r.type==="buy"?(dark?"#0a2e1e":"#dcfce7"):r.type==="sell"?(dark?"#2d0a0a":"#fee2e2"):(dark?"#041824":"#cffafe");return(<tr key={i} style={{background:bg}}><td style={{padding:"6px 8px",borderBottom:`1px solid ${T.border}`}}>{ok?"✅":"⚠️"}</td><td style={{padding:"6px 8px",color:T.text3,fontSize:9,borderBottom:`1px solid ${T.border}`}}>{r._rowNum}</td><td style={{padding:"6px 8px",fontFamily:"'Space Mono',monospace",fontWeight:700,color:T.text,borderBottom:`1px solid ${T.border}`}}>{r.ticker}</td><td style={{padding:"6px 8px",borderBottom:`1px solid ${T.border}`}}>{r.type&&<span style={{padding:"1px 6px",borderRadius:4,fontSize:9,fontWeight:700,background:typeBg,color:typeColor}}>{r.type.toUpperCase()}</span>}</td><td style={{padding:"6px 8px",color:T.text2,borderBottom:`1px solid ${T.border}`,whiteSpace:"nowrap"}}>{r.date}</td><td style={{padding:"6px 8px",fontFamily:"'Space Mono',monospace",color:T.text2,borderBottom:`1px solid ${T.border}`}}>{r.qty||"—"}</td><td style={{padding:"6px 8px",fontFamily:"'Space Mono',monospace",color:T.text2,borderBottom:`1px solid ${T.border}`}}>{r.price||"—"}</td><td style={{padding:"6px 8px",color:T.text3,borderBottom:`1px solid ${T.border}`}}>{r.currency}</td><td style={{padding:"6px 8px",fontFamily:"'Space Mono',monospace",color:T.teal,borderBottom:`1px solid ${T.border}`}}>{r.amountPerShare||"—"}</td><td style={{padding:"6px 8px",color:T.text2,borderBottom:`1px solid ${T.border}`}}>{r.entitledQty||"—"}</td></tr>);})}</tbody></table></div>{valid.length===0&&(<div style={{textAlign:"center",padding:"8px 0",color:T.red,fontSize:12,marginBottom:12}}>No valid rows found. Fix the errors and re-upload.</div>)}<div style={{display:"flex",gap:8,justifyContent:"space-between",alignItems:"center",flexWrap:"wrap"}}><button style={bO(T.text2,{fontSize:11})} onClick={()=>setImportSt(s=>({...s,step:"idle",parsed:[],rows:[],errors:[]}))}>Upload different file</button><div style={{display:"flex",gap:8}}><button style={bO(T.text2)} onClick={closeModal}>Cancel</button><button style={{...bS(T.greenBtn,"#fff"),opacity:valid.length?1:.4,cursor:valid.length?"pointer":"not-allowed"}} disabled={!valid.length} onClick={confirmImport}>Import {valid.length} rows {IS.mergeMode==="replace"?"(replace all)":"(merge)"}</button></div></div></div>)}
                   {IS.step==="done"&&(<div style={{textAlign:"center",padding:"24px 0"}}><div style={{fontSize:48,marginBottom:12}}>🎉</div><div style={{fontSize:18,fontWeight:700,color:T.green,marginBottom:8}}>Import complete!</div><div style={{fontSize:13,color:T.text2,marginBottom:8}}>{IS.importedCount} transactions imported.</div><div style={{fontSize:11,color:T.text3,marginBottom:24}}>Click the 🔄 Live Prices button to fetch current prices for new holdings.</div><button style={bS(T.greenBtn,"#fff",{padding:"9px 28px",fontSize:13})} onClick={closeModal}>Done</button></div>)}
                 </>);
               })()}
@@ -2459,16 +2472,21 @@ function App(){
         {showPassiveModal && (
           <div onClick={() => setShowPassiveModal(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.78)",backdropFilter:"blur(8px)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:12}}>
             <div onClick={e=>e.stopPropagation()} style={{background:T.bg2,border:`1px solid ${T.border}`,borderRadius:14,padding:22,width:"100%",maxWidth:400,boxShadow:T.shadow}}>
-              <h2 style={{fontFamily:"'Space Mono',monospace",fontSize:15,fontWeight:700,color:T.text,marginBottom:4}}>⚙️ Passive Income Settings</h2>
-              <p style={{fontSize:11,color:T.text3,marginBottom:16}}>Set your monthly income target &amp; super draw rate.</p>
+              <h2 style={{fontFamily:"'Space Mono',monospace",fontSize:15,fontWeight:700,color:T.text,marginBottom:4}}>⚙️ Passive Income & Super Benchmark Settings</h2>
+              <p style={{fontSize:11,color:T.text3,marginBottom:16}}>Set your monthly target, super draw rate, and average super balance for your age.</p>
               <div style={{marginBottom:12}}>
                 <label style={{fontSize:10,color:T.text3,letterSpacing:1,textTransform:"uppercase"}}>Monthly Target (AUD)</label>
                 <input type="number" step="100" value={monthlyTargetAud} onChange={e=>setMonthlyTargetAud(parseFloat(e.target.value)||0)} style={{...inp(),marginTop:4}} placeholder="e.g. 5000"/>
               </div>
-              <div style={{marginBottom:20}}>
+              <div style={{marginBottom:12}}>
                 <label style={{fontSize:10,color:T.text3,letterSpacing:1,textTransform:"uppercase"}}>Superannuation Annual Draw Rate (%)</label>
                 <input type="number" step="0.1" value={superDrawRate} onChange={e=>setSuperDrawRate(parseFloat(e.target.value)||0)} style={{...inp(),marginTop:4}} placeholder="e.g. 4.0"/>
                 <div style={{fontSize:10,color:T.text3,marginTop:4}}>Applied to NUL5339AU + NUL7270AU market value</div>
+              </div>
+              <div style={{marginBottom:20}}>
+                <label style={{fontSize:10,color:T.text3,letterSpacing:1,textTransform:"uppercase"}}>Average Super Balance for Your Age (AUD)</label>
+                <input type="number" step="1000" value={avgSuperBalanceAud} onChange={e=>setAvgSuperBalanceAud(parseFloat(e.target.value)||0)} style={{...inp(),marginTop:4}} placeholder="e.g. 100000"/>
+                <div style={{fontSize:10,color:T.text3,marginTop:4}}>Used to calculate how your super compares to the average (e.g., 128% = above average)</div>
               </div>
               <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
                 <button style={bO(T.text2)} onClick={()=>setShowPassiveModal(false)}>Cancel</button>
