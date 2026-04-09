@@ -1302,12 +1302,14 @@ function App(){
   }, [monthlyTargetAud, displayCur, rates]);
   
   function isDividendPayingHolding(holding) {
-    if (!holding.assetType) return false;
-    if (DIVIDEND_PAYING_TYPES.has(holding.assetType)) return true;
-    if (holding.assetType.includes("Bond") || holding.assetType.includes("REIT")) return true;
-    return false;
-  }
-
+  // Exclude specific superannuation funds that do not pay cash dividends
+  if (holding.ticker === "NUL5339AU" || holding.ticker === "NUL7270AU") return false;
+  
+  if (!holding.assetType) return false;
+  if (DIVIDEND_PAYING_TYPES.has(holding.assetType)) return true;
+  if (holding.assetType.includes("Bond") || holding.assetType.includes("REIT")) return true;
+  return false;
+}
   function computeMonthlyDividendsToDate(portfolio, rates) {
     const now = new Date();
     const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
