@@ -50,7 +50,7 @@ button:active{transform:scale(.97)}
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
 <script>
-// Firebase config
+// Firebase config (unchanged)
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyBp20SC2Yt9IWkevpLgU6-nXZtA7HuNbN0",
   authDomain: "folio-sync.firebaseapp.com",
@@ -344,10 +344,6 @@ function App(){
   const[valuesHidden,setValuesHidden]=useState(false);
   const[fetchSt,setFetchSt]=useState({loading:false});
   const[fbUser,setFbUser]=useState(null);
-  const[monthlyTargetAud, setMonthlyTargetAud]=useState(0);
-  const[superDrawRate, setSuperDrawRate]=useState(0);
-  const[avgSuperBalanceAud, setAvgSuperBalanceAud]=useState(0);
-  const[showPassiveModal, setShowPassiveModal]=useState(false);
   const T=dark?DARK:LIGHT;
   const isMob=useWindowSize()<768;
 
@@ -356,7 +352,6 @@ function App(){
   
   const holdings=useMemo(()=>portfolio.map(h=>computeHolding(h,prices,prevPrices,rates)).filter(h=>h.qty>0),[portfolio,prices,prevPrices,rates]);
   const totVal=holdings.reduce((s,h)=>s+h.currentValue,0);
-  const totDayGain=holdings.reduce((s,h)=>s+h.dayGain,0);
   const FC=(a,compact=false)=>valuesHidden?"••••••":fmtCur(a,displayCur,rates,compact);
   const FG=(a)=>valuesHidden?"••••••":fmtGain(a,displayCur,rates);
   const periodCutoff = useCallback((period) => { const now=new Date(); if(period==="1M"){const d=new Date(now);d.setMonth(d.getMonth()-1);return d;} if(period==="3M"){const d=new Date(now);d.setMonth(d.getMonth()-3);return d;} if(period==="6M"){const d=new Date(now);d.setMonth(d.getMonth()-6);return d;} if(period==="YTD"){return new Date(now.getFullYear(),0,1);} if(period==="1Y"){const d=new Date(now);d.setFullYear(d.getFullYear()-1);return d;} if(period==="5Y"){const d=new Date(now);d.setFullYear(d.getFullYear()-5);return d;} return new Date(0); },[]);
@@ -503,7 +498,7 @@ function App(){
                   <ChartBar labels={divContributionData.labels} datasets={divContributionData.datasets} T={T} yFmt={v=>fmtCur(v,displayCur,rates,true)} height={250} stacked={true}/>
                 ) : <div style={{height:200,display:"flex",alignItems:"center",justifyContent:"center",color:T.text3}}>No dividend data for this period</div>}
               </div>
-              {/* Simple portfolio value line chart */}
+              {/* Portfolio value line chart */}
               <div style={card({padding:16})}>
                 <div style={{fontSize:14,fontWeight:700,marginBottom:8}}>📊 Portfolio Value</div>
                 <ChartLine labels={history.map(s=>s.date.slice(5))} datasets={[{label:"Value",data:history.map(s=>fromAUD(s.totalValueAUD,displayCur,rates)),borderColor:T.green,fill:false}]} T={T} yFmt={v=>fmtCur(v,displayCur,rates,true)} height={200}/>
