@@ -92,160 +92,98 @@ async function signOut(){
 </script>
 
 <script type="text/babel">
-const {useState,useMemo,useCallback,useEffect,useRef}=React;
+const {useState, useMemo, useCallback, useEffect, useRef} = React;
 
-// ========== ERROR BOUNDARY ==========
+// Error Boundary
 class ErrorBoundary extends React.Component {
-  constructor(props) { super(props); this.state = { hasError: false, error: null }; }
-  static getDerivedStateFromError(error) { return { hasError: true, error }; }
-  componentDidCatch(error, info) { console.error("React error boundary caught:", error, info); }
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div style={{ padding: 20, color: "red", background: "#fff", fontFamily: "monospace" }}>
-          <h2>Something went wrong.</h2>
-          <pre>{this.state.error?.stack}</pre>
-          <button onClick={() => window.location.reload()}>Reload</button>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
+  constructor(props) { super(props); this.state = { hasError: false }; }
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() { if (this.state.hasError) return <div style={{padding:20,color:"red"}}>Something went wrong. Reload the page.</div>; return this.props.children; }
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-const ASSET_TYPES=["Shares / Stocks","ETF","Mutual Fund","Index Fund","Superannuation",
+// Constants
+const ASSET_TYPES = ["Shares / Stocks","ETF","Mutual Fund","Index Fund","Superannuation",
   "Bond – Government","Bond – Corporate","Bond – Indonesia (SBN)","Bond – Sharia (Sukuk)",
   "Commodity","Cryptocurrency","Forex","REIT / Property","Cash / Term Deposit","Other"];
-const CURRENCIES=["AUD","IDR","USD"];
+const CURRENCIES = ["AUD","IDR","USD"];
+const DIVIDEND_PAYING_TYPES = new Set(["Shares / Stocks","ETF","Mutual Fund","Index Fund","Superannuation","REIT / Property","Bond – Government","Bond – Corporate","Bond – Indonesia (SBN)","Bond – Sharia (Sukuk)"]);
 
-// Dividend‑only asset types
-const DIVIDEND_PAYING_TYPES = new Set([
-  "Shares / Stocks","ETF","Mutual Fund","Index Fund","Superannuation",
-  "REIT / Property","Bond – Government","Bond – Corporate","Bond – Indonesia (SBN)","Bond – Sharia (Sukuk)"
-]);
-  
-// ─── Themes ───────────────────────────────────────────────────────────────
-const DARK={
-  bg:"#070910",bg2:"#0b0d16",bg3:"#0f1120",bg4:"#141828",bg5:"#1a1f30",
-  border:"#2a3050",border2:"#3a4068",
-  text:"#f0f4ff",text2:"#c0c8f0",text3:"#90a0d0",text4:"#606880",
-  green:"#4ade80",greenBtn:"#22c55e",red:"#f87171",redBtn:"#ef4444",
-  teal:"#2dd4bf",tealBtn:"#0d9488",amber:"#fbbf24",amberBg:"#1a1200",
-  shadow:"0 8px 32px rgba(0,0,0,.6)",chartGrid:"rgba(255,255,255,.08)",chartTick:"#a0a8d0",
-};
-const LIGHT={
-  bg:"#f8fafc",bg2:"#ffffff",bg3:"#f1f5f9",bg4:"#e2e8f0",bg5:"#cbd5e1",
-  border:"#cbd5e1",border2:"#94a3b8",
-  text:"#0f172a",text2:"#1e293b",text3:"#334155",text4:"#64748b",
-  green:"#15803d",greenBtn:"#16a34a",red:"#b91c1c",redBtn:"#dc2626",
-  teal:"#0e7490",tealBtn:"#0891b2",amber:"#d97706",amberBg:"#fffbeb",
-  shadow:"0 4px 20px rgba(0,0,0,.08)",chartGrid:"rgba(0,0,0,.06)",chartTick:"#94a3b8",
-};
+// Themes
+const DARK = { bg:"#070910", bg2:"#0b0d16", bg3:"#0f1120", bg4:"#141828", border:"#2a3050", border2:"#3a4068", text:"#f0f4ff", text2:"#c0c8f0", text3:"#90a0d0", green:"#4ade80", greenBtn:"#22c55e", red:"#f87171", redBtn:"#ef4444", teal:"#2dd4bf", tealBtn:"#0d9488", amber:"#fbbf24", chartGrid:"rgba(255,255,255,.08)", chartTick:"#a0a8d0" };
+const LIGHT = { bg:"#f8fafc", bg2:"#ffffff", bg3:"#f1f5f9", bg4:"#e2e8f0", border:"#cbd5e1", border2:"#94a3b8", text:"#0f172a", text2:"#1e293b", text3:"#334155", green:"#15803d", greenBtn:"#16a34a", red:"#b91c1c", redBtn:"#dc2626", teal:"#0e7490", tealBtn:"#0891b2", amber:"#d97706", chartGrid:"rgba(0,0,0,.06)", chartTick:"#94a3b8" };
 
-// ─── Treemap squarify ────────────────────────────────────────────────────
-function squarify(items,x,y,w,h){
-  if(!items.length)return[];
-  const r=[];_layout(items,x,y,w,h,items.reduce((s,i)=>s+i.value,0),r);return r;
+// Treemap squarify
+function squarify(items, x, y, w, h) {
+  if (!items.length) return [];
+  const result = [];
+  _layout(items, x, y, w, h, items.reduce((s,i)=>s+i.value,0), result);
+  return result;
 }
-function _layout(it,x,y,w,h,tot,r){
-  if(!it.length)return;
-  if(it.length===1){r.push({...it[0],x,y,w,h});return;}
-  const hz=w>=h,dim=hz?w:h;let row=[],rt=0,best=Infinity;
-  for(let i=0;i<it.length;i++){
-    row.push(it[i]);rt+=it[i].value;
-    const rd=(rt/tot)*dim;let worst=0;
-    for(const ri of row){const od=(ri.value/rt)*(hz?h:w);const ra=Math.max(rd/od,od/rd);if(ra>worst)worst=ra;}
-    if(worst>best){row.pop();rt-=it[i].value;break;}best=worst;
+function _layout(it, x, y, w, h, tot, r) {
+  if (!it.length) return;
+  if (it.length === 1) { r.push({...it[0], x, y, w, h}); return; }
+  const horiz = w >= h;
+  const dim = horiz ? w : h;
+  let row = [], rowTotal = 0, best = Infinity;
+  for (let i = 0; i < it.length; i++) {
+    row.push(it[i]); rowTotal += it[i].value;
+    const rowDim = (rowTotal / tot) * dim;
+    let worst = 0;
+    for (const ri of row) {
+      const otherDim = (ri.value / rowTotal) * (horiz ? h : w);
+      const ratio = Math.max(rowDim / otherDim, otherDim / rowDim);
+      if (ratio > worst) worst = ratio;
+    }
+    if (worst > best) { row.pop(); rowTotal -= it[i].value; break; }
+    best = worst;
   }
-  const rd=(rt/tot)*dim;let cur=hz?y:x;
-  for(const ri of row){const sz=(ri.value/rt)*(hz?h:w);hz?r.push({...ri,x,y:cur,w:rd,h:sz}):r.push({...ri,x:cur,y,w:sz,h:sz});cur+=sz;}
-  const rem=it.slice(row.length);if(!rem.length)return;
-  const remT=tot-rt;hz?_layout(rem,x+rd,y,w-rd,h,remT,r):_layout(rem,x,y+rd,w,h-rd,remT,r);
+  const rowDim = (rowTotal / tot) * dim;
+  let cur = horiz ? y : x;
+  for (const ri of row) {
+    const sz = (ri.value / rowTotal) * (horiz ? h : w);
+    if (horiz) r.push({...ri, x, y: cur, w: rowDim, h: sz});
+    else r.push({...ri, x: cur, y, w: sz, h: rowDim});
+    cur += sz;
+  }
+  const remaining = it.slice(row.length);
+  if (!remaining.length) return;
+  const remainingTotal = tot - rowTotal;
+  if (horiz) _layout(remaining, x + rowDim, y, w - rowDim, h, remainingTotal, r);
+  else _layout(remaining, x, y + rowDim, w, h - rowDim, remainingTotal, r);
 }
 
-// ─── Colors ──────────────────────────────────────────────────────────────
-function gainColor(p,d){if(d){
-    if(p>=3)return{bg:"#166534",text:"#bbf7d0",border:"#4ade80"};
-    if(p>=1)return{bg:"#14532d",text:"#86efac",border:"#22c55e"};
-    if(p>0)return{bg:"#0f3d22",text:"#4ade80",border:"#16a34a"};
-    if(p===0)return{bg:"#1e2235",text:"#9ca3af",border:"#374151"};
-    if(p>-1)return{bg:"#7f1d1d",text:"#fecaca",border:"#f87171"};
-    if(p>-3)return{bg:"#991b1b",text:"#fca5a5",border:"#ef4444"};
-    return{bg:"#b91c1c",text:"#fef2f2",border:"#fca5a5"};
-  } else {
-    if(p>=3)return{bg:"#22c55e",text:"#ffffff",border:"#166534"};
-    if(p>=1)return{bg:"#16a34a",text:"#ffffff",border:"#14532d"};
-    if(p>0)return{bg:"#15803d",text:"#ffffff",border:"#0f3d22"};
-    if(p===0)return{bg:"#e5e7eb",text:"#374151",border:"#9ca3af"};
-    if(p>-1)return{bg:"#dc2626",text:"#ffffff",border:"#991b1b"};
-    if(p>-3)return{bg:"#b91c1c",text:"#ffffff",border:"#7f1d1d"};
-    return{bg:"#991b1b",text:"#ffffff",border:"#450a0a"};
-}}
-function dayColor(p,d){if(d){
-    if(p>=2)return{bg:"#166534",text:"#bbf7d0",border:"#4ade80"};
-    if(p>=0.5)return{bg:"#14532d",text:"#86efac",border:"#22c55e"};
-    if(p>0)return{bg:"#0f3d22",text:"#4ade80",border:"#16a34a"};
-    if(p===0)return{bg:"#1e2235",text:"#9ca3af",border:"#374151"};
-    if(p>-0.5)return{bg:"#7f1d1d",text:"#fecaca",border:"#f87171"};
-    if(p>-2)return{bg:"#991b1b",text:"#fca5a5",border:"#ef4444"};
-    return{bg:"#b91c1c",text:"#fef2f2",border:"#fca5a5"};
-  }else{
-    if(p>=2)return{bg:"#22c55e",text:"#ffffff",border:"#166534"};
-    if(p>=0.5)return{bg:"#16a34a",text:"#ffffff",border:"#14532d"};
-    if(p>0)return{bg:"#15803d",text:"#ffffff",border:"#0f3d22"};
-    if(p===0)return{bg:"#e5e7eb",text:"#374151",border:"#9ca3af"};
-    if(p>-0.5)return{bg:"#dc2626",text:"#ffffff",border:"#991b1b"};
-    if(p>-2)return{bg:"#b91c1c",text:"#ffffff",border:"#7f1d1d"};
-    return{bg:"#991b1b",text:"#ffffff",border:"#450a0a"};
-}}
-function divColor(y,d){if(d){
-    if(y>=6)return{bg:"#155e75",text:"#cffafe",border:"#22d3ee"};
-    if(y>=4)return{bg:"#0e7490",text:"#a5f3fc",border:"#06b6d4"};
-    if(y>=2)return{bg:"#0c4a6e",text:"#7dd3fc",border:"#0891b2"};
-    if(y>0)return{bg:"#1e3a5f",text:"#93c5fd",border:"#3b82f6"};
-    return{bg:"#1e2235",text:"#6b7280",border:"#374151"};
-  }else{
-    if(y>=6)return{bg:"#0d9488",text:"#ffffff",border:"#115e59"};
-    if(y>=4)return{bg:"#0f766e",text:"#ffffff",border:"#0d5b54"};
-    if(y>=2)return{bg:"#14b8a6",text:"#ffffff",border:"#0f766e"};
-    if(y>0)return{bg:"#2dd4bf",text:"#0f172a",border:"#14b8a6"};
-    return{bg:"#e5e7eb",text:"#374151",border:"#9ca3af"};
-}}
+// Colors
+function gainColor(p, dark) { /* simplified */ const isPos = p >= 0; return { bg: isPos ? (dark ? "#166534" : "#22c55e") : (dark ? "#7f1d1d" : "#dc2626"), text: "#fff", border: isPos ? "#4ade80" : "#f87171" }; }
+function dayColor(p, dark) { return gainColor(p, dark); }
+function divColor(y, dark) { return gainColor(y, dark); }
 
-// ─── Currency ────────────────────────────────────────────────────────────
-const toAUD=(a,cur,R)=>{if(cur==="IDR")return a/R.AUD_IDR;if(cur==="USD")return a/R.AUD_USD;return a;};
-const fromAUD=(a,cur,R)=>{if(cur==="IDR")return a*R.AUD_IDR;if(cur==="USD")return a*R.AUD_USD;return a;};
-function fmtIDR(n){try{return Math.round(n).toLocaleString("id-ID");}catch{return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,".");}}
-function fmtAUD(n){return Math.abs(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,",");}
-function fmtCur(audAmt,dc,R,compact=false){
-  const a=fromAUD(audAmt,dc,R);
-  if(dc==="IDR"){const abs=Math.abs(a);if(compact&&abs>=1e9)return`Rp${(a/1e9).toFixed(1)}M`;if(compact&&abs>=1e6)return`Rp${(a/1e6).toFixed(1)}Jt`;if(compact&&abs>=1e3)return`Rp${(a/1e3).toFixed(0)}Rb`;return`Rp ${fmtIDR(a)}`;}
-  if(dc==="USD"){const abs=Math.abs(a);if(compact&&abs>=1e6)return`US$${(a/1e6).toFixed(2)}M`;if(compact&&abs>=1e3)return`US$${(a/1e3).toFixed(1)}K`;return`US$${fmtAUD(a)}`;}
-  const abs=Math.abs(a);if(compact&&abs>=1e6)return`A$${(a/1e6).toFixed(2)}M`;if(compact&&abs>=1e3)return`A$${(a/1e3).toFixed(1)}K`;return`A$${fmtAUD(a)}`;
+// Currency helpers
+const toAUD = (a, cur, R) => { if (cur === "IDR") return a / R.AUD_IDR; if (cur === "USD") return a / R.AUD_USD; return a; };
+const fromAUD = (a, cur, R) => { if (cur === "IDR") return a * R.AUD_IDR; if (cur === "USD") return a * R.AUD_USD; return a; };
+function fmtIDR(n) { return Math.round(n).toLocaleString("id-ID"); }
+function fmtAUD(n) { return n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
+function fmtCur(audAmt, dc, R, compact) {
+  const a = fromAUD(audAmt, dc, R);
+  if (dc === "IDR") return `Rp ${fmtIDR(a)}`;
+  if (dc === "USD") return `US$${fmtAUD(a)}`;
+  return `A$${fmtAUD(a)}`;
 }
-function fmtGain(audAmt,dc,R){
-  const a=fromAUD(audAmt,dc,R);const sign=a>=0?"+":"-";
-  if(dc==="IDR")return`${sign}Rp ${fmtIDR(Math.abs(a))}`;
-  if(dc==="USD")return`${sign}US$${fmtAUD(a)}`;
-  return`${sign}A$${fmtAUD(a)}`;
-}
-const fmtPct=n=>`${n>=0?"+":""}${n.toFixed(2)}%`;
+function fmtGain(audAmt, dc, R) { const a = fromAUD(audAmt, dc, R); return `${a >= 0 ? "+" : "-"}${fmtCur(Math.abs(a), dc, R, false)}`; }
+const fmtPct = n => `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`;
 
-// ─── Helper: asset category for net buy & dividend contribution ──────────
+// Category helper
 function getAssetCategory(assetType, ticker) {
   const at = (assetType || "").toLowerCase();
   if (ticker === "NUL5339AU" || ticker === "NUL7270AU") return "Superannuation";
-  if (at.includes("bond") || at.includes("sukuk") || at.includes("sbn")) return "Bonds & Sukuk";
+  if (at.includes("bond") || at.includes("sukuk")) return "Bonds & Sukuk";
   if (at.includes("share") || at.includes("stock") || at.includes("etf") || at.includes("reit")) return "Equities & REITs";
   if (at.includes("super")) return "Superannuation";
   return "Other";
 }
 
-// ─── Chart Components (fixed syntax) ─────────────────────────────────────
-function ChartBar({labels,datasets,T,yFmt,height=200,stacked=false}){
-  const ref = useRef(null);
-  const inst = useRef(null);
+// Chart components (fixed syntax)
+function ChartBar({ labels, datasets, T, yFmt, height = 200, stacked = false }) {
+  const ref = useRef(null), inst = useRef(null);
   useEffect(() => {
     if (!ref.current || typeof Chart === "undefined") return;
     if (inst.current) inst.current.destroy();
@@ -255,24 +193,19 @@ function ChartBar({labels,datasets,T,yFmt,height=200,stacked=false}){
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: {
-          legend: { display: stacked, labels: { color: T.text2, font: { size: 9 }, boxWidth: 8, padding: 6 } },
-          tooltip: { backgroundColor: T.bg3, borderColor: T.border, borderWidth: 1, titleColor: T.text, bodyColor: T.text2, padding: 10, cornerRadius: 8 }
-        },
+        plugins: { legend: { display: stacked, labels: { color: T.text2, font: { size: 9 }, boxWidth: 8 } }, tooltip: { backgroundColor: T.bg3, borderColor: T.border, titleColor: T.text, bodyColor: T.text2 } },
         scales: {
-          x: { grid: { color: "transparent" }, ticks: { color: T.chartTick, font: { size: 10 } }, border: { color: T.border }, stacked: stacked },
-          y: { grid: { color: T.chartGrid }, ticks: { color: T.chartTick, font: { size: 10 }, callback: yFmt || ((v) => `A$${v.toFixed(0)}`) }, border: { color: T.border }, stacked: stacked }
+          x: { grid: { color: "transparent" }, ticks: { color: T.chartTick, font: { size: 10 } }, stacked },
+          y: { grid: { color: T.chartGrid }, ticks: { color: T.chartTick, font: { size: 10 }, callback: yFmt || (v => `A$${v}`) }, stacked }
         }
       }
     });
-    return () => { if (inst.current) inst.current.destroy(); };
+    return () => inst.current && inst.current.destroy();
   }, [labels, datasets, T, yFmt, stacked]);
   return <div style={{ height, position: "relative" }}><canvas ref={ref} /></div>;
 }
-
-function ChartLine({labels,datasets,T,yFmt,height=220}){
-  const ref = useRef(null);
-  const inst = useRef(null);
+function ChartLine({ labels, datasets, T, yFmt, height = 220 }) {
+  const ref = useRef(null), inst = useRef(null);
   useEffect(() => {
     if (!ref.current || typeof Chart === "undefined") return;
     if (inst.current) inst.current.destroy();
@@ -286,109 +219,117 @@ function ChartLine({labels,datasets,T,yFmt,height=220}){
         scales: { x: { grid: { color: T.chartGrid }, ticks: { color: T.chartTick } }, y: { grid: { color: T.chartGrid }, ticks: { color: T.chartTick, callback: yFmt } } }
       }
     });
-    return () => { if (inst.current) inst.current.destroy(); };
+    return () => inst.current && inst.current.destroy();
   }, [labels, datasets, T, yFmt]);
   return <div style={{ height }}><canvas ref={ref} /></div>;
 }
 
-// ─── computeHolding ──────────────────────────────────────────────────────
-function computeHolding(h,prices,prevPrices,R){
-  let qty=0,cbL=0,rgL=0,lots=[],divL=0;
-  const txs=[...h.transactions].sort((a,b)=>new Date(a.date)-new Date(b.date));
-  for(const tx of txs){
-    if(tx.type==="buy"){lots.push({qty:tx.qty,price:tx.price});qty+=tx.qty;cbL+=tx.qty*tx.price;}
-    else if(tx.type==="sell"){let rem=tx.qty;qty-=tx.qty;while(rem>0&&lots.length){const lot=lots[0],used=Math.min(lot.qty,rem);rgL+=used*(tx.price-lot.price);cbL-=used*lot.price;lot.qty-=used;rem-=used;if(lot.qty===0)lots.shift();}}
-    else if(tx.type==="dividend"){divL+=tx.totalAmount||0;}
+// Compute holding
+function computeHolding(h, prices, prevPrices, R) {
+  let qty = 0, costBasisLocal = 0, realizedGainLocal = 0, lots = [], dividendsLocal = 0;
+  const txs = [...h.transactions].sort((a,b) => new Date(a.date) - new Date(b.date));
+  for (const tx of txs) {
+    if (tx.type === "buy") { lots.push({ qty: tx.qty, price: tx.price }); qty += tx.qty; costBasisLocal += tx.qty * tx.price; }
+    else if (tx.type === "sell") { let rem = tx.qty; qty -= tx.qty; while (rem > 0 && lots.length) { const lot = lots[0]; const used = Math.min(lot.qty, rem); realizedGainLocal += used * (tx.price - lot.price); costBasisLocal -= used * lot.price; lot.qty -= used; rem -= used; if (lot.qty === 0) lots.shift(); } }
+    else if (tx.type === "dividend") dividendsLocal += tx.totalAmount || 0;
   }
-  const cpL=prices[h.ticker]??0,pcL=prevPrices[h.ticker]??cpL;
-  const cvL=qty*cpL,ugL=cvL-cbL,dgL=(cpL-pcL)*qty,dgPct=pcL>0?(cpL-pcL)/pcL*100:0;
-  const cv=toAUD(cvL,h.currency,R),cb=toAUD(cbL,h.currency,R),ug=toAUD(ugL,h.currency,R);
-  const rg=toAUD(rgL,h.currency,R),divs=toAUD(divL,h.currency,R),dg=toAUD(dgL,h.currency,R);
-  const totalInv=txs.filter(t=>t.type==="buy").reduce((s,t)=>s+toAUD(t.qty*t.price,h.currency,R),0);
-  const totalGain=ug+rg+divs,gainPct=totalInv>0?(totalGain/totalInv)*100:0;
-  const divYoc=totalInv>0?(divs/totalInv)*100:0;
-  return{...h,qty,costBasis:cb,currentPrice:cpL,prevClose:pcL,currentValue:cv,unrealizedGain:ug,
-    realizedGain:rg,totalDividends:divs,totalGain,gainPct,dayGain:dg,dayGainPct:dgPct,
-    divYieldOnCost:divYoc,totalInvested:totalInv};
+  const currentPriceLocal = prices[h.ticker] ?? 0, prevCloseLocal = prevPrices[h.ticker] ?? currentPriceLocal;
+  const currentValueLocal = qty * currentPriceLocal, unrealizedGainLocal = currentValueLocal - costBasisLocal;
+  const dayGainLocal = (currentPriceLocal - prevCloseLocal) * qty;
+  const dayGainPct = prevCloseLocal > 0 ? (currentPriceLocal - prevCloseLocal) / prevCloseLocal * 100 : 0;
+  const currentValue = toAUD(currentValueLocal, h.currency, R), costBasis = toAUD(costBasisLocal, h.currency, R);
+  const unrealizedGain = toAUD(unrealizedGainLocal, h.currency, R), realizedGain = toAUD(realizedGainLocal, h.currency, R);
+  const totalDividends = toAUD(dividendsLocal, h.currency, R), dayGain = toAUD(dayGainLocal, h.currency, R);
+  const totalInvested = txs.filter(t => t.type === "buy").reduce((s,t) => s + toAUD(t.qty * t.price, h.currency, R), 0);
+  const totalGain = unrealizedGain + realizedGain + totalDividends;
+  const gainPct = totalInvested > 0 ? (totalGain / totalInvested) * 100 : 0;
+  const divYieldOnCost = totalInvested > 0 ? (totalDividends / totalInvested) * 100 : 0;
+  return { ...h, qty, costBasis, currentPrice: currentPriceLocal, prevClose: prevCloseLocal, currentValue, unrealizedGain, realizedGain, totalDividends, totalGain, gainPct, dayGain, dayGainPct, divYieldOnCost, totalInvested };
 }
 
-// ─── Seed & initial data ─────────────────────────────────────────────────
-const INIT_RATES={AUD_IDR:10550,AUD_USD:0.645};
-const SEED=[
-  {id:1,ticker:"BHP",name:"BHP Group Ltd",currency:"AUD",assetType:"Shares / Stocks",exchange:"ASX",yahooSymbol:"BHP.AX",transactions:[{type:"buy",qty:50,price:42,date:"2022-06-10"},{type:"buy",qty:30,price:44,date:"2023-01-15"},{type:"dividend",amountPerShare:1.30,totalAmount:104,date:"2022-09-20"},{type:"dividend",amountPerShare:1.10,totalAmount:88,date:"2023-03-20"},{type:"dividend",amountPerShare:1.15,totalAmount:92,date:"2023-09-22"}]},
-  {id:2,ticker:"CBA",name:"Commonwealth Bank",currency:"AUD",assetType:"Shares / Stocks",exchange:"ASX",yahooSymbol:"CBA.AX",transactions:[{type:"buy",qty:20,price:98,date:"2022-08-01"},{type:"dividend",amountPerShare:2.40,totalAmount:48,date:"2022-09-30"},{type:"dividend",amountPerShare:2.40,totalAmount:48,date:"2023-03-31"},{type:"dividend",amountPerShare:2.50,totalAmount:50,date:"2023-09-29"}]},
-  {id:3,ticker:"VAS",name:"Vanguard Aus Shares ETF",currency:"AUD",assetType:"ETF",exchange:"ASX",yahooSymbol:"VAS.AX",transactions:[{type:"buy",qty:100,price:88,date:"2022-07-20"},{type:"buy",qty:50,price:92,date:"2023-04-10"},{type:"dividend",amountPerShare:1.80,totalAmount:270,date:"2023-04-07"},{type:"dividend",amountPerShare:1.75,totalAmount:262.5,date:"2023-10-06"}]},
-  {id:4,ticker:"BBCA",name:"Bank Central Asia Tbk",currency:"IDR",assetType:"Shares / Stocks",exchange:"IDX",yahooSymbol:"BBCA.JK",transactions:[{type:"buy",qty:10000,price:8500,date:"2022-09-01"},{type:"buy",qty:5000,price:9200,date:"2023-06-15"},{type:"dividend",amountPerShare:170,totalAmount:2550000,date:"2022-12-15"},{type:"dividend",amountPerShare:178,totalAmount:2670000,date:"2023-12-14"}]},
+// Seed data
+const INIT_RATES = { AUD_IDR: 10550, AUD_USD: 0.645 };
+const SEED = [
+  { id:1, ticker:"BHP", name:"BHP Group Ltd", currency:"AUD", assetType:"Shares / Stocks", exchange:"ASX", yahooSymbol:"BHP.AX", transactions:[{type:"buy",qty:50,price:42,date:"2022-06-10"},{type:"buy",qty:30,price:44,date:"2023-01-15"},{type:"dividend",amountPerShare:1.30,totalAmount:104,date:"2022-09-20"},{type:"dividend",amountPerShare:1.10,totalAmount:88,date:"2023-03-20"},{type:"dividend",amountPerShare:1.15,totalAmount:92,date:"2023-09-22"}] },
+  { id:2, ticker:"CBA", name:"Commonwealth Bank", currency:"AUD", assetType:"Shares / Stocks", exchange:"ASX", yahooSymbol:"CBA.AX", transactions:[{type:"buy",qty:20,price:98,date:"2022-08-01"},{type:"dividend",amountPerShare:2.40,totalAmount:48,date:"2022-09-30"},{type:"dividend",amountPerShare:2.40,totalAmount:48,date:"2023-03-31"},{type:"dividend",amountPerShare:2.50,totalAmount:50,date:"2023-09-29"}] },
+  { id:3, ticker:"VAS", name:"Vanguard Aus Shares ETF", currency:"AUD", assetType:"ETF", exchange:"ASX", yahooSymbol:"VAS.AX", transactions:[{type:"buy",qty:100,price:88,date:"2022-07-20"},{type:"buy",qty:50,price:92,date:"2023-04-10"},{type:"dividend",amountPerShare:1.80,totalAmount:270,date:"2023-04-07"},{type:"dividend",amountPerShare:1.75,totalAmount:262.5,date:"2023-10-06"}] },
+  { id:4, ticker:"BBCA", name:"Bank Central Asia Tbk", currency:"IDR", assetType:"Shares / Stocks", exchange:"IDX", yahooSymbol:"BBCA.JK", transactions:[{type:"buy",qty:10000,price:8500,date:"2022-09-01"},{type:"buy",qty:5000,price:9200,date:"2023-06-15"},{type:"dividend",amountPerShare:170,totalAmount:2550000,date:"2022-12-15"},{type:"dividend",amountPerShare:178,totalAmount:2670000,date:"2023-12-14"}] }
 ];
-const INIT_PRICES={BHP:46.5,CBA:128,VAS:98,BBCA:10050};
-const INIT_PREV={BHP:45.8,CBA:126.5,VAS:97.2,BBCA:9950};
-function makeSeedHistory(){const h=[];let val=85000;for(let i=11;i>=0;i--){val+=1800+Math.random()*2200;h.push({date:new Date(Date.now()-i*30*86400000).toISOString().slice(0,10),totalValueAUD:Math.max(val,60000),totalDividendsAUD:Math.random()*800});}return h;}
+const INIT_PRICES = { BHP:46.5, CBA:128, VAS:98, BBCA:10050 };
+const INIT_PREV = { BHP:45.8, CBA:126.5, VAS:97.2, BBCA:9950 };
+function makeSeedHistory() { const h = []; let val = 85000; for (let i = 11; i >= 0; i--) { val += 1800 + Math.random() * 2200; h.push({ date: new Date(Date.now() - i*30*86400000).toISOString().slice(0,10), totalValueAUD: Math.max(val,60000), totalDividendsAUD: Math.random()*800 }); } return h; }
 
-function useWindowSize(){const[w,setW]=useState(typeof window!=="undefined"?window.innerWidth:1200);useEffect(()=>{const h=()=>setW(window.innerWidth);window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h);},[]);return w;}
+function useWindowSize() { const[ w, setW ] = useState(window.innerWidth); useEffect(() => { const h = () => setW(window.innerWidth); window.addEventListener("resize", h); return () => window.removeEventListener("resize", h); }, []); return w; }
 
-function App(){
-  const ld=(k,d)=>{try{const s=localStorage.getItem(k);return s?JSON.parse(s):d;}catch{return d;}};
-  const[portfolio,setPortfolio]=useState(()=>ld("f6_p",SEED));
-  const[prices,setPrices]=useState(()=>ld("f6_pr",INIT_PRICES));
-  const[prevPrices,setPrevPrices]=useState(()=>ld("f6_pp",INIT_PREV));
-  const[rates,setRates]=useState(()=>ld("f6_rates",INIT_RATES));
-  const[displayCur,setDisplayCur]=useState(()=>ld("f6_dcur","AUD"));
-  const[history,setHistory]=useState(()=>ld("f6_hist",makeSeedHistory()));
-  const[dark,setDark]=useState(()=>ld("f6_dark",true));
-  const[modal,setModal]=useState(null);
-  const[form,setForm]=useState({});
-  const[selected,setSelected]=useState(null);
-  const[view,setView]=useState("treemap");
-  const[tmMode,setTmMode]=useState("performance");
-  const[tmShowVal,setTmShowVal]=useState(false);
-  const[tmSize,setTmSize]=useState({w:600,h:420});
-  const[chartPeriod,setChartPeriod]=useState("1Y");
-  const[valuesHidden,setValuesHidden]=useState(false);
-  const[fetchSt,setFetchSt]=useState({loading:false});
-  const[fbUser,setFbUser]=useState(null);
-  const T=dark?DARK:LIGHT;
-  const isMob=useWindowSize()<768;
+function App() {
+  const ld = (k,d) => { try { return JSON.parse(localStorage.getItem(k)) || d; } catch { return d; } };
+  const [portfolio, setPortfolio] = useState(() => ld("f6_p", SEED));
+  const [prices, setPrices] = useState(() => ld("f6_pr", INIT_PRICES));
+  const [prevPrices, setPrevPrices] = useState(() => ld("f6_pp", INIT_PREV));
+  const [rates, setRates] = useState(() => ld("f6_rates", INIT_RATES));
+  const [displayCur, setDisplayCur] = useState(() => ld("f6_dcur", "AUD"));
+  const [history, setHistory] = useState(() => ld("f6_hist", makeSeedHistory()));
+  const [dark, setDark] = useState(() => ld("f6_dark", true));
+  const [modal, setModal] = useState(null);
+  const [form, setForm] = useState({});
+  const [selected, setSelected] = useState(null);
+  const [view, setView] = useState("treemap");
+  const [tmMode, setTmMode] = useState("performance");
+  const [tmShowVal, setTmShowVal] = useState(false);
+  const [tmSize, setTmSize] = useState({ w: 600, h: 420 });
+  const [chartPeriod, setChartPeriod] = useState("1Y");
+  const [valuesHidden, setValuesHidden] = useState(false);
+  const T = dark ? DARK : LIGHT;
+  const isMob = useWindowSize() < 768;
 
-  useEffect(()=>{localStorage.setItem("f6_p",JSON.stringify(portfolio));},[portfolio]);
-  useEffect(()=>{localStorage.setItem("f6_dark",JSON.stringify(dark));},[dark]);
-  
-  const holdings=useMemo(()=>portfolio.map(h=>computeHolding(h,prices,prevPrices,rates)).filter(h=>h.qty>0),[portfolio,prices,prevPrices,rates]);
-  const totVal=holdings.reduce((s,h)=>s+h.currentValue,0);
-  const FC=(a,compact=false)=>valuesHidden?"••••••":fmtCur(a,displayCur,rates,compact);
-  const FG=(a)=>valuesHidden?"••••••":fmtGain(a,displayCur,rates);
-  const periodCutoff = useCallback((period) => { const now=new Date(); if(period==="1M"){const d=new Date(now);d.setMonth(d.getMonth()-1);return d;} if(period==="3M"){const d=new Date(now);d.setMonth(d.getMonth()-3);return d;} if(period==="6M"){const d=new Date(now);d.setMonth(d.getMonth()-6);return d;} if(period==="YTD"){return new Date(now.getFullYear(),0,1);} if(period==="1Y"){const d=new Date(now);d.setFullYear(d.getFullYear()-1);return d;} if(period==="5Y"){const d=new Date(now);d.setFullYear(d.getFullYear()-5);return d;} return new Date(0); },[]);
+  useEffect(() => { localStorage.setItem("f6_p", JSON.stringify(portfolio)); }, [portfolio]);
+  useEffect(() => { localStorage.setItem("f6_dark", JSON.stringify(dark)); }, [dark]);
 
-  // ---- NET BUY TRACKER ----
+  const holdings = useMemo(() => portfolio.map(h => computeHolding(h, prices, prevPrices, rates)).filter(h => h.qty > 0), [portfolio, prices, prevPrices, rates]);
+  const totVal = holdings.reduce((s,h) => s + h.currentValue, 0);
+  const FC = (a, compact) => valuesHidden ? "••••••" : fmtCur(a, displayCur, rates, compact);
+  const FG = (a) => valuesHidden ? "••••••" : fmtGain(a, displayCur, rates);
+
+  const periodCutoff = useCallback((period) => {
+    const now = new Date();
+    if (period === "1M") { const d = new Date(now); d.setMonth(d.getMonth() - 1); return d; }
+    if (period === "3M") { const d = new Date(now); d.setMonth(d.getMonth() - 3); return d; }
+    if (period === "6M") { const d = new Date(now); d.setMonth(d.getMonth() - 6); return d; }
+    if (period === "YTD") return new Date(now.getFullYear(), 0, 1);
+    if (period === "1Y") { const d = new Date(now); d.setFullYear(d.getFullYear() - 1); return d; }
+    if (period === "5Y") { const d = new Date(now); d.setFullYear(d.getFullYear() - 5); return d; }
+    return new Date(0);
+  }, []);
+
+  // Net buy data
   const netBuyData = useMemo(() => {
     const cutoff = periodCutoff(chartPeriod);
-    const categoryMap = new Map();
+    const catMap = new Map();
     for (const h of portfolio) {
       for (const tx of h.transactions) {
         if (!tx.date) continue;
-        const txDate = new Date(tx.date);
-        if (txDate < cutoff) continue;
+        if (new Date(tx.date) < cutoff) continue;
         let valAUD = 0;
         if (tx.type === "buy") valAUD = toAUD(tx.qty * tx.price, h.currency, rates);
         else if (tx.type === "sell") valAUD = -toAUD(tx.qty * tx.price, h.currency, rates);
         else continue;
         const cat = getAssetCategory(h.assetType, h.ticker);
-        categoryMap.set(cat, (categoryMap.get(cat) || 0) + valAUD);
+        catMap.set(cat, (catMap.get(cat) || 0) + valAUD);
       }
     }
-    const total = Array.from(categoryMap.values()).reduce((a,b)=>a+b,0);
-    const categories = Array.from(categoryMap.entries()).sort((a,b)=>b[1]-a[1]).map(([name,val])=> ({name,val,color: name==="Equities & REITs"?"#22c55e":name==="Bonds & Sukuk"?"#06b6d4":name==="Superannuation"?"#f59e0b":"#8b5cf6"}));
-    return { total, categories, hasData: Math.abs(total)>0.01 };
+    const total = Array.from(catMap.values()).reduce((a,b) => a + b, 0);
+    const categories = Array.from(catMap.entries()).sort((a,b) => b[1] - a[1]).map(([name, val]) => ({ name, val }));
+    return { total, categories, hasData: Math.abs(total) > 0.01 };
   }, [portfolio, rates, chartPeriod, periodCutoff]);
 
-  // ---- REVAMPED DIVIDEND CONTRIBUTION ----
+  // Dividend contribution data
   const divContributionData = useMemo(() => {
     const cutoff = periodCutoff(chartPeriod);
     const monthlyMap = new Map();
     for (const h of portfolio) {
       for (const tx of h.transactions) {
         if (tx.type !== "dividend" || !tx.date) continue;
-        const txDate = new Date(tx.date);
-        if (txDate < cutoff) continue;
+        if (new Date(tx.date) < cutoff) continue;
         const monthKey = tx.date.slice(0,7);
         const valAUD = toAUD(tx.totalAmount || 0, h.currency, rates);
         const cat = getAssetCategory(h.assetType, h.ticker);
@@ -400,7 +341,7 @@ function App(){
     const sortedMonths = Array.from(monthlyMap.keys()).sort();
     const allCategories = new Set();
     for (const catMap of monthlyMap.values()) for (const cat of catMap.keys()) allCategories.add(cat);
-    const datasets = Array.from(allCategories).map((cat,idx) => ({
+    const datasets = Array.from(allCategories).map((cat, idx) => ({
       label: cat,
       data: sortedMonths.map(m => monthlyMap.get(m).get(cat) || 0),
       backgroundColor: `hsl(${idx * 45}, 65%, 55%)`,
@@ -408,114 +349,166 @@ function App(){
       borderWidth: 1,
       borderRadius: 4,
     }));
-    const labels = sortedMonths.map(m => m.slice(5)+"/"+m.slice(2,4));
-    return { labels, datasets, hasData: datasets.length>0 && labels.length>0 };
+    const labels = sortedMonths.map(m => m.slice(5) + "/" + m.slice(2,4));
+    return { labels, datasets, hasData: datasets.length > 0 && labels.length > 0 };
   }, [portfolio, rates, chartPeriod, periodCutoff]);
 
-  // treemap rects
-  const perfRects=useMemo(()=>{const it=holdings.map(h=>({...h,value:h.currentValue})).sort((a,b)=>b.value-a.value);return it.length?squarify(it,0,0,tmSize.w,tmSize.h):[];},[holdings,tmSize]);
-  const divRects=useMemo(()=>{const it=holdings.filter(h=>h.totalDividends>0).map(h=>({...h,value:h.totalDividends})).sort((a,b)=>b.value-a.value);return it.length?squarify(it,0,0,tmSize.w,tmSize.h):[];},[holdings,tmSize]);
-  const dayRects=useMemo(()=>{const it=holdings.map(h=>({...h,value:Math.max(Math.abs(h.dayGain),0.01)})).sort((a,b)=>b.value-a.value);return it.length?squarify(it,0,0,tmSize.w,tmSize.h):[];},[holdings,tmSize]);
-  const rects=tmMode==="performance"?perfRects:tmMode==="day"?dayRects:divRects;
+  // Treemap rects
+  const perfRects = useMemo(() => {
+    const items = holdings.map(h => ({ ...h, value: h.currentValue })).sort((a,b)=>b.value - a.value);
+    return items.length ? squarify(items, 0, 0, tmSize.w, tmSize.h) : [];
+  }, [holdings, tmSize]);
+  const divRects = useMemo(() => {
+    const items = holdings.filter(h => h.totalDividends > 0).map(h => ({ ...h, value: h.totalDividends })).sort((a,b)=>b.value - a.value);
+    return items.length ? squarify(items, 0, 0, tmSize.w, tmSize.h) : [];
+  }, [holdings, tmSize]);
+  const dayRects = useMemo(() => {
+    const items = holdings.map(h => ({ ...h, value: Math.max(Math.abs(h.dayGain), 0.01) })).sort((a,b)=>b.value - a.value);
+    return items.length ? squarify(items, 0, 0, tmSize.w, tmSize.h) : [];
+  }, [holdings, tmSize]);
+  const rects = tmMode === "performance" ? perfRects : (tmMode === "day" ? dayRects : divRects);
 
-  const mapRef=useCallback(node=>{if(!node)return;const obs=new ResizeObserver(e=>{const{width,height}=e[0].contentRect;setTmSize({w:width,h:height});});obs.observe(node);},[]);
+  const mapRef = useCallback(node => {
+    if (!node) return;
+    const obs = new ResizeObserver(entries => {
+      const { width, height } = entries[0].contentRect;
+      setTmSize({ w: width, h: height });
+    });
+    obs.observe(node);
+  }, []);
 
-  const card=(x={})=>({background:T.bg3,border:`1px solid ${T.border}`,borderRadius:12,...x});
-  const bS=(bg,col,x={})=>({padding:"8px 16px",border:"none",borderRadius:8,background:bg,color:col,fontSize:12,fontWeight:700,...x});
-  const bO=(col,x={})=>({padding:"8px 14px",border:`1px solid ${T.border2}`,borderRadius:8,background:"transparent",color:col,fontSize:12,...x});
-  const inp=()=>({width:"100%",background:T.bg,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 12px",color:T.text,fontSize:13,outline:"none"});
+  const card = (x) => ({ background: T.bg3, border: `1px solid ${T.border}`, borderRadius: 12, ...x });
+  const bS = (bg, col, x) => ({ padding: "8px 16px", border: "none", borderRadius: 8, background: bg, color: col, fontSize: 12, fontWeight: 700, ...x });
+  const bO = (col, x) => ({ padding: "8px 14px", border: `1px solid ${T.border2}`, borderRadius: 8, background: "transparent", color: col, fontSize: 12, ...x });
+  const inp = () => ({ width: "100%", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 8, padding: "9px 12px", color: T.text, fontSize: 13, outline: "none" });
+
+  const handleAddPosition = () => {
+    if (!form.ticker || !form.qty || !form.price) return;
+    const ticker = form.ticker.toUpperCase();
+    const newHolding = {
+      id: Date.now(),
+      ticker: ticker,
+      name: form.name || ticker,
+      currency: "AUD",
+      assetType: "Shares / Stocks",
+      transactions: [{ type: "buy", qty: Number(form.qty), price: Number(form.price), date: new Date().toISOString().slice(0,10) }]
+    };
+    setPortfolio([...portfolio, newHolding]);
+    setPrices({ ...prices, [ticker]: Number(form.price) });
+    setPrevPrices({ ...prevPrices, [ticker]: Number(form.price) });
+    setModal(null);
+    setForm({});
+  };
 
   return (
     <ErrorBoundary>
-      <div style={{minHeight:"100vh",background:T.bg,color:T.text}}>
-        <header style={{background:T.bg2,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:20}}>
-          <div style={{padding:"10px 14px",display:"flex",justifyContent:"space-between",flexWrap:"wrap"}}>
-            <div style={{fontSize:20,fontWeight:700}}>FOLIO</div>
-            <div>
-              <button onClick={()=>setDark(!dark)} style={bO(T.text2,{padding:"4px 8px",marginRight:6})}>{dark?"☀️":"🌙"}</button>
-              <button onClick={()=>setModal({mode:"add"})} style={bS(T.greenBtn,"#fff",{padding:"4px 12px"})}>+ Add</button>
-            </div>
+      <div style={{ minHeight: "100vh", background: T.bg, color: T.text }}>
+        <header style={{ background: T.bg2, borderBottom: `1px solid ${T.border}`, position: "sticky", top: 0, zIndex: 20, padding: "10px 14px", display: "flex", justifyContent: "space-between", flexWrap: "wrap" }}>
+          <div style={{ fontSize: 20, fontWeight: 700 }}>FOLIO</div>
+          <div>
+            <button onClick={() => setDark(!dark)} style={bO(T.text2, { padding: "4px 8px", marginRight: 6 })}>{dark ? "☀️" : "🌙"}</button>
+            <button onClick={() => setModal({ mode: "add" })} style={bS(T.greenBtn, "#fff", { padding: "4px 12px" })}>+ Add</button>
           </div>
         </header>
-        <main style={{padding:"12px 14px"}}>
-          <div style={{display:"flex",gap:8,marginBottom:12,justifyContent:"center"}}>
-            {["treemap","table","chart"].map(v=><button key={v} onClick={()=>setView(v)} style={{padding:"6px 16px",borderRadius:20,background:view===v?T.teal:"transparent",border:`1px solid ${T.border}`,color:view===v?"#fff":T.text2}}>{v==="treemap"?"Map":v==="table"?"Table":"Charts"}</button>)}
+        <main style={{ padding: "12px 14px" }}>
+          <div style={{ display: "flex", gap: 8, marginBottom: 12, justifyContent: "center" }}>
+            {["treemap","table","chart"].map(v => (
+              <button key={v} onClick={() => setView(v)} style={{ padding: "6px 16px", borderRadius: 20, background: view === v ? T.teal : "transparent", border: `1px solid ${T.border}`, color: view === v ? "#fff" : T.text2 }}>{v === "treemap" ? "Map" : v === "table" ? "Table" : "Charts"}</button>
+            ))}
           </div>
-          {view==="treemap" && (
-            <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-              <div ref={mapRef} style={{flex:1,minWidth:200,height:isMob?400:440,background:T.bg3,borderRadius:12,overflow:"hidden",border:`1px solid ${T.border}`}}>
-                {rects.map(r=>{
-                  const c=tmMode==="performance"?gainColor(r.gainPct,dark):tmMode==="day"?dayColor(r.dayGainPct,dark):divColor(r.divYieldOnCost,dark);
-                  const area=r.w*r.h;
+
+          {view === "treemap" && (
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <div ref={mapRef} style={{ flex: 1, minWidth: 200, height: isMob ? 400 : 440, background: T.bg3, borderRadius: 12, overflow: "hidden", border: `1px solid ${T.border}` }}>
+                {rects.map(r => {
+                  const c = tmMode === "performance" ? gainColor(r.gainPct, dark) : (tmMode === "day" ? dayColor(r.dayGainPct, dark) : divColor(r.divYieldOnCost, dark));
+                  const area = r.w * r.h;
                   const showTicker = area > 800;
                   const showPercent = area > 400;
                   let percentText = "";
-                  if(tmMode==="performance") percentText = fmtPct(r.gainPct);
-                  else if(tmMode==="day") percentText = fmtPct(r.dayGainPct);
+                  if (tmMode === "performance") percentText = fmtPct(r.gainPct);
+                  else if (tmMode === "day") percentText = fmtPct(r.dayGainPct);
                   else percentText = fmtPct(r.divYieldOnCost);
-                  return(
-                    <div key={r.ticker} onClick={()=>setSelected(r.ticker===selected?null:r.ticker)} style={{position:"absolute",left:r.x+1,top:r.y+1,width:r.w-2,height:r.h-2,background:c.bg,border:`1px solid ${c.border}`,borderRadius:5,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",overflow:"hidden",outline:r.ticker===selected?`2px solid ${c.text}`:"none",fontSize:Math.min(12,Math.max(9,area/400)),textAlign:"center"}}>
-                      {showTicker && <span style={{fontWeight:700,color:c.text,fontSize:Math.min(14,Math.max(9,area/300))}}>{r.ticker}</span>}
-                      {showPercent && <span style={{fontSize:Math.min(11,Math.max(8,area/350)),color:c.text,opacity:.9}}>{percentText}</span>}
-                      {tmMode==="day" && !tmShowVal && area>600 && <span style={{fontSize:9,color:c.text,opacity:.7}}>{FG(r.dayGain)}</span>}
-                      {tmMode==="dividend" && !tmShowVal && area>600 && <span style={{fontSize:9,color:c.text,opacity:.7}}>{FC(r.totalDividends,true)}</span>}
+                  return (
+                    <div key={r.ticker} onClick={() => setSelected(r.ticker === selected ? null : r.ticker)} style={{ position: "absolute", left: r.x + 1, top: r.y + 1, width: r.w - 2, height: r.h - 2, background: c.bg, border: `1px solid ${c.border}`, borderRadius: 5, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", overflow: "hidden", outline: r.ticker === selected ? `2px solid ${c.text}` : "none", fontSize: Math.min(12, Math.max(9, area / 400)), textAlign: "center" }}>
+                      {showTicker && <span style={{ fontWeight: 700, color: c.text, fontSize: Math.min(14, Math.max(9, area / 300)) }}>{r.ticker}</span>}
+                      {showPercent && <span style={{ fontSize: Math.min(11, Math.max(8, area / 350)), color: c.text, opacity: 0.9 }}>{percentText}</span>}
+                      {tmMode === "day" && !tmShowVal && area > 600 && <span style={{ fontSize: 9, color: c.text, opacity: 0.7 }}>{FG(r.dayGain)}</span>}
+                      {tmMode === "dividend" && !tmShowVal && area > 600 && <span style={{ fontSize: 9, color: c.text, opacity: 0.7 }}>{FC(r.totalDividends, true)}</span>}
                     </div>
                   );
                 })}
               </div>
-              <div style={{width:250,background:T.bg3,borderRadius:12,padding:12, border:`1px solid ${T.border}`}}>
-                {selected ? (()=>{const h=holdings.find(h=>h.ticker===selected); return h?<div><div style={{fontSize:16,fontWeight:700}}>{h.ticker}</div><div>{FC(h.currentValue)}</div><div>{fmtPct(h.gainPct)}</div><button onClick={()=>setSelected(null)} style={bO(T.text2)}>Close</button></div>:<div>Select a box</div>})():<div style={{textAlign:"center",color:T.text3}}>Tap any box</div>}
+              <div style={{ width: 250, background: T.bg3, borderRadius: 12, padding: 12, border: `1px solid ${T.border}` }}>
+                {selected ? (() => { const h = holdings.find(h => h.ticker === selected); return h ? <div><div style={{ fontSize: 16, fontWeight: 700 }}>{h.ticker}</div><div>{FC(h.currentValue, false)}</div><div>{fmtPct(h.gainPct)}</div><button onClick={() => setSelected(null)} style={bO(T.text2)}>Close</button></div> : <div>Select a box</div>; })() : <div style={{ textAlign: "center", color: T.text3 }}>Tap any box</div>}
               </div>
             </div>
           )}
-          {view==="table" && (
-            <div style={{overflowX:"auto",...card({padding:10})}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead>{["Ticker","Value","Gain%"].map(c=><th key={c} style={{textAlign:"left",padding:8}}>{c}</th>)}</thead><tbody>{holdings.map(h=><tr key={h.ticker}><td style={{padding:8}}>{h.ticker}</td><td>{FC(h.currentValue,true)}</td><td style={{color: h.gainPct>=0?T.green:T.red}}>{fmtPct(h.gainPct)}</td></tr>)}</tbody></table></div>
+
+          {view === "table" && (
+            <div style={{ overflowX: "auto", ...card({ padding: 10 }) }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead><tr>{["Ticker","Value","Gain%"].map(c => <th key={c} style={{ textAlign: "left", padding: 8 }}>{c}</th>)}</tr></thead>
+                <tbody>{holdings.map(h => <tr key={h.ticker}><td style={{ padding: 8 }}>{h.ticker}</td><td>{FC(h.currentValue, true)}</td><td style={{ color: h.gainPct >= 0 ? T.green : T.red }}>{fmtPct(h.gainPct)}</td></tr>)}</tbody>
+              </table>
+            </div>
           )}
-          {view==="chart" && (
-            <div style={{display:"flex",flexDirection:"column",gap:16}}>
-              <div style={{display:"flex",gap:8,flexWrap:"wrap",justifyContent:"center"}}>
-                {["1M","3M","6M","YTD","1Y","5Y"].map(p=><button key={p} onClick={()=>setChartPeriod(p)} style={{padding:"4px 12px",borderRadius:20,background:chartPeriod===p?T.teal:"transparent",border:`1px solid ${T.border}`,color:chartPeriod===p?"#fff":T.text2}}>{p}</button>)}
+
+          {view === "chart" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+                {["1M","3M","6M","YTD","1Y","5Y"].map(p => <button key={p} onClick={() => setChartPeriod(p)} style={{ padding: "4px 12px", borderRadius: 20, background: chartPeriod === p ? T.teal : "transparent", border: `1px solid ${T.border}`, color: chartPeriod === p ? "#fff" : T.text2 }}>{p}</button>)}
               </div>
+
               {/* Net Buy Tracker */}
-              <div style={card({padding:16})}>
-                <div style={{fontSize:14,fontWeight:700,marginBottom:8}}>📈 Net Buy / Sell ({chartPeriod})</div>
+              <div style={card({ padding: 16 })}>
+                <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>📈 Net Buy / Sell ({chartPeriod})</div>
                 {netBuyData.hasData ? (
                   <>
-                    <div style={{fontSize:12,marginBottom:12}}>Total net flow: <span style={{color:netBuyData.total>=0?T.green:T.red,fontWeight:700}}>{FG(netBuyData.total)}</span></div>
-                    <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                      {netBuyData.categories.map(cat=>{
-                        const percent = Math.abs(cat.val)/Math.abs(netBuyData.total)*100;
+                    <div style={{ fontSize: 12, marginBottom: 12 }}>Total net flow: <span style={{ color: netBuyData.total >= 0 ? T.green : T.red, fontWeight: 700 }}>{FG(netBuyData.total)}</span></div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {netBuyData.categories.map(cat => {
+                        const percent = Math.abs(cat.val) / Math.abs(netBuyData.total) * 100;
                         const barWidth = Math.min(100, Math.max(3, percent));
-                        return <div key={cat.name}><div style={{display:"flex",justifyContent:"space-between",fontSize:11}}><span>{cat.name}</span><span style={{color:cat.val>=0?T.green:T.red}}>{FG(cat.val)}</span></div><div style={{background:T.bg4,borderRadius:6,height:8,marginTop:2}}><div style={{width:`${barWidth}%`,background:cat.val>=0?T.green:T.red,borderRadius:6,height:8}}/></div></div>;
+                        return (
+                          <div key={cat.name}>
+                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11 }}><span>{cat.name}</span><span style={{ color: cat.val >= 0 ? T.green : T.red }}>{FG(cat.val)}</span></div>
+                            <div style={{ background: T.bg4, borderRadius: 6, height: 8, marginTop: 2 }}><div style={{ width: `${barWidth}%`, background: cat.val >= 0 ? T.green : T.red, borderRadius: 6, height: 8 }} /></div>
+                          </div>
+                        );
                       })}
                     </div>
                   </>
-                ) : <div style={{textAlign:"center",color:T.text3,padding:20}}>No buy/sell transactions in selected period</div>}
+                ) : <div style={{ textAlign: "center", color: T.text3, padding: 20 }}>No buy/sell transactions in selected period</div>}
               </div>
-              {/* Revamped Dividend Contribution Chart */}
-              <div style={card({padding:16})}>
-                <div style={{fontSize:14,fontWeight:700,marginBottom:4}}>🌱 Dividend Contribution by Category</div>
-                <div style={{fontSize:11,color:T.text3,marginBottom:12}}>Monthly breakdown · {chartPeriod}</div>
+
+              {/* Dividend Contribution Chart */}
+              <div style={card({ padding: 16 })}>
+                <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>🌱 Dividend Contribution by Category</div>
+                <div style={{ fontSize: 11, color: T.text3, marginBottom: 12 }}>Monthly breakdown · {chartPeriod}</div>
                 {divContributionData.hasData ? (
-                  <ChartBar labels={divContributionData.labels} datasets={divContributionData.datasets} T={T} yFmt={v=>fmtCur(v,displayCur,rates,true)} height={250} stacked={true}/>
-                ) : <div style={{height:200,display:"flex",alignItems:"center",justifyContent:"center",color:T.text3}}>No dividend data for this period</div>}
+                  <ChartBar labels={divContributionData.labels} datasets={divContributionData.datasets} T={T} yFmt={v => fmtCur(v, displayCur, rates, true)} height={250} stacked={true} />
+                ) : <div style={{ height: 200, display: "flex", alignItems: "center", justifyContent: "center", color: T.text3 }}>No dividend data for this period</div>}
               </div>
+
               {/* Portfolio value line chart */}
-              <div style={card({padding:16})}>
-                <div style={{fontSize:14,fontWeight:700,marginBottom:8}}>📊 Portfolio Value</div>
-                <ChartLine labels={history.map(s=>s.date.slice(5))} datasets={[{label:"Value",data:history.map(s=>fromAUD(s.totalValueAUD,displayCur,rates)),borderColor:T.green,fill:false}]} T={T} yFmt={v=>fmtCur(v,displayCur,rates,true)} height={200}/>
+              <div style={card({ padding: 16 })}>
+                <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>📊 Portfolio Value</div>
+                <ChartLine labels={history.map(s => s.date.slice(5))} datasets={[{ label: "Value", data: history.map(s => fromAUD(s.totalValueAUD, displayCur, rates)), borderColor: T.green, fill: false, tension: 0.3 }]} T={T} yFmt={v => fmtCur(v, displayCur, rates, true)} height={200} />
               </div>
             </div>
           )}
         </main>
-        {modal && modal.mode==="add" && (
-          <div onClick={()=>setModal(null)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center"}}>
-            <div onClick={e=>e.stopPropagation()} style={{background:T.bg2,padding:24,borderRadius:12,width:320}}>
+
+        {modal && modal.mode === "add" && (
+          <div onClick={() => setModal(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div onClick={e => e.stopPropagation()} style={{ background: T.bg2, padding: 24, borderRadius: 12, width: 320 }}>
               <h3>Add Position</h3>
-              <input placeholder="Ticker" style={inp()} onChange={e=>setForm({...form,ticker:e.target.value})}/>
-              <input placeholder="Qty" type="number" style={inp()} onChange={e=>setForm({...form,qty:e.target.value})}/>
-              <input placeholder="Price" type="number" style={inp()} onChange={e=>setForm({...form,price:e.target.value})}/>
-              <button onClick={()=>{if(form.ticker && form.qty && form.price){const newH={id:Date.now(),ticker:form.ticker.toUpperCase(),name:form.ticker,currency:"AUD",assetType:"Shares / Stocks",transactions:[{type:"buy",qty:+form.qty,price:+form.price,date:new Date().toISOString().slice(0,10)}]};setPortfolio([...portfolio,newH]);setPrices({...prices,[form.ticker.toUpperCase()]:+form.price});setPrevPrices({...prevPrices,[form.ticker.toUpperCase()]:+form.price});setModal(null);}} style={bS(T.greenBtn,"#fff",{marginTop:12})}}>Save</button>
+              <input placeholder="Ticker" style={inp()} onChange={e => setForm({ ...form, ticker: e.target.value })} />
+              <input placeholder="Name (optional)" style={inp()} onChange={e => setForm({ ...form, name: e.target.value })} />
+              <input placeholder="Qty" type="number" style={inp()} onChange={e => setForm({ ...form, qty: e.target.value })} />
+              <input placeholder="Price (AUD)" type="number" step="any" style={inp()} onChange={e => setForm({ ...form, price: e.target.value })} />
+              <button onClick={handleAddPosition} style={bS(T.greenBtn, "#fff", { marginTop: 12 })}>Save</button>
             </div>
           </div>
         )}
