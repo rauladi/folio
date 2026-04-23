@@ -119,13 +119,13 @@ const ASSET_TYPES=["Shares / Stocks","ETF","Mutual Fund","Index Fund","Superannu
   "Commodity","Cryptocurrency","Forex","REIT / Property","Cash / Term Deposit","Other"];
 const CURRENCIES=["AUD","IDR","USD"];
 
-// Dividend‑only asset types for yield calculation (exclude crypto, non-div assets)
+// Dividend‑only asset types
 const DIVIDEND_PAYING_TYPES = new Set([
   "Shares / Stocks","ETF","Mutual Fund","Index Fund","Superannuation",
   "REIT / Property","Bond – Government","Bond – Corporate","Bond – Indonesia (SBN)","Bond – Sharia (Sukuk)"
 ]);
   
-// ─── Themes (improved contrast) ───────────────────────────────────────────────
+// ─── Themes ───────────────────────────────────────────────────────────────
 const DARK={
   bg:"#070910",bg2:"#0b0d16",bg3:"#0f1120",bg4:"#141828",bg5:"#1a1f30",
   border:"#2a3050",border2:"#3a4068",
@@ -143,7 +143,7 @@ const LIGHT={
   shadow:"0 4px 20px rgba(0,0,0,.08)",chartGrid:"rgba(0,0,0,.06)",chartTick:"#94a3b8",
 };
 
-// ─── Treemap ──────────────────────────────────────────────────────────────────
+// ─── Treemap squarify ────────────────────────────────────────────────────
 function squarify(items,x,y,w,h){
   if(!items.length)return[];
   const r=[];_layout(items,x,y,w,h,items.reduce((s,i)=>s+i.value,0),r);return r;
@@ -164,7 +164,7 @@ function _layout(it,x,y,w,h,tot,r){
   const remT=tot-rt;hz?_layout(rem,x+rd,y,w-rd,h,remT,r):_layout(rem,x,y+rd,w,h-rd,remT,r);
 }
 
-// ─── Colors (more solid for light mode) ──────────────────────────────────────
+// ─── Colors ──────────────────────────────────────────────────────────────
 function gainColor(p,d){if(d){
     if(p>=3)return{bg:"#166534",text:"#bbf7d0",border:"#4ade80"};
     if(p>=1)return{bg:"#14532d",text:"#86efac",border:"#22c55e"};
@@ -213,7 +213,7 @@ function divColor(y,d){if(d){
     return{bg:"#e5e7eb",text:"#374151",border:"#9ca3af"};
 }}
 
-// ─── Currency ─────────────────────────────────────────────────────────────────
+// ─── Currency ────────────────────────────────────────────────────────────
 const toAUD=(a,cur,R)=>{if(cur==="IDR")return a/R.AUD_IDR;if(cur==="USD")return a/R.AUD_USD;return a;};
 const fromAUD=(a,cur,R)=>{if(cur==="IDR")return a*R.AUD_IDR;if(cur==="USD")return a*R.AUD_USD;return a;};
 function fmtIDR(n){try{return Math.round(n).toLocaleString("id-ID");}catch{return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,".");}}
@@ -232,7 +232,7 @@ function fmtGain(audAmt,dc,R){
 }
 const fmtPct=n=>`${n>=0?"+":""}${n.toFixed(2)}%`;
 
-// ─── Helper: asset category for net buy & dividend contribution ─────────────────
+// ─── Helper: asset category for net buy & dividend contribution ──────────
 function getAssetCategory(assetType, ticker) {
   const at = (assetType || "").toLowerCase();
   if (ticker === "NUL5339AU" || ticker === "NUL7270AU") return "Superannuation";
@@ -242,29 +242,54 @@ function getAssetCategory(assetType, ticker) {
   return "Other";
 }
 
-// ─── Chart Components (condensed but functional) ──────────────────────────
+// ─── Chart Components ────────────────────────────────────────────────────
 function ChartBar({labels,datasets,T,yFmt,height=200,stacked=false}){
   const ref=useRef(null);const inst=useRef(null);
   useEffect(()=>{
     if(!ref.current||typeof Chart==="undefined")return;
     if(inst.current)inst.current.destroy();
-    inst.current=new Chart(ref.current,{type:"bar",data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:stacked,labels:{color:T.text2,font:{family:"Roboto",size:9},boxWidth:8,padding:6}},tooltip:{backgroundColor:T.bg3,borderColor:T.border,borderWidth:1,titleColor:T.text,bodyColor:T.text2,padding:10,cornerRadius:8}},scales:{x:{grid:{color:"transparent"},ticks:{color:T.chartTick,font:{size:10}},border:{color:T.border},stacked:stacked},y:{grid:{color:T.chartGrid},ticks:{color:T.chartTick,font:{size:10},callback:yFmt||(v=>`A$${v.toFixed(0)}`),border:{color:T.border},stacked:stacked}}}});
+    inst.current=new Chart(ref.current,{
+      type:"bar",
+      data:{labels,datasets},
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        plugins:{
+          legend:{display:stacked,labels:{color:T.text2,font:{size:9},boxWidth:8,padding:6}},
+          tooltip:{backgroundColor:T.bg3,borderColor:T.border,borderWidth:1,titleColor:T.text,bodyColor:T.text2,padding:10,cornerRadius:8}
+        },
+        scales:{
+          x:{grid:{color:"transparent"},ticks:{color:T.chartTick,font:{size:10}},border:{color:T.border},stacked:stacked},
+          y:{grid:{color:T.chartGrid},ticks:{color:T.chartTick,font:{size:10},callback:yFmt||(v=>`A$${v.toFixed(0)}`),border:{color:T.border},stacked:stacked}
+        }
+      }
+    });
     return()=>{if(inst.current)inst.current.destroy();};
   },[labels,datasets,T,yFmt,stacked]);
   return <div style={{height,position:"relative"}}><canvas ref={ref}/></div>;
 }
-function ChartLine({labels,datasets,T,yFmt,height=220,spanGaps=false}){
+
+function ChartLine({labels,datasets,T,yFmt,height=220}){
   const ref=useRef(null);const inst=useRef(null);
   useEffect(()=>{
     if(!ref.current||typeof Chart==="undefined")return;
     if(inst.current)inst.current.destroy();
-    inst.current=new Chart(ref.current,{type:"line",data:{labels,datasets},options:{spanGaps:spanGaps,responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:T.text2,font:{size:11}}},tooltip:{backgroundColor:T.bg3,borderColor:T.border}},scales:{x:{grid:{color:T.chartGrid},ticks:{color:T.chartTick}},y:{grid:{color:T.chartGrid},ticks:{color:T.chartTick,callback:yFmt}}}});
+    inst.current=new Chart(ref.current,{
+      type:"line",
+      data:{labels,datasets},
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        plugins:{legend:{labels:{color:T.text2,font:{size:11}}},tooltip:{backgroundColor:T.bg3,borderColor:T.border}},
+        scales:{x:{grid:{color:T.chartGrid},ticks:{color:T.chartTick}},y:{grid:{color:T.chartGrid},ticks:{color:T.chartTick,callback:yFmt}}}
+      }
+    });
     return()=>{if(inst.current)inst.current.destroy();};
   },[labels,datasets,T,yFmt]);
   return <div style={{height}}><canvas ref={ref}/></div>;
 }
 
-// ─── computeHolding (unchanged but required) ───────────────────────────────
+// ─── computeHolding ──────────────────────────────────────────────────────
 function computeHolding(h,prices,prevPrices,R){
   let qty=0,cbL=0,rgL=0,lots=[],divL=0;
   const txs=[...h.transactions].sort((a,b)=>new Date(a.date)-new Date(b.date));
@@ -285,7 +310,7 @@ function computeHolding(h,prices,prevPrices,R){
     divYieldOnCost:divYoc,totalInvested:totalInv};
 }
 
-// ─── Seed & initial data ────────────────────────────────────────────────────
+// ─── Seed & initial data ─────────────────────────────────────────────────
 const INIT_RATES={AUD_IDR:10550,AUD_USD:0.645};
 const SEED=[
   {id:1,ticker:"BHP",name:"BHP Group Ltd",currency:"AUD",assetType:"Shares / Stocks",exchange:"ASX",yahooSymbol:"BHP.AX",transactions:[{type:"buy",qty:50,price:42,date:"2022-06-10"},{type:"buy",qty:30,price:44,date:"2023-01-15"},{type:"dividend",amountPerShare:1.30,totalAmount:104,date:"2022-09-20"},{type:"dividend",amountPerShare:1.10,totalAmount:88,date:"2023-03-20"},{type:"dividend",amountPerShare:1.15,totalAmount:92,date:"2023-09-22"}]},
@@ -313,21 +338,15 @@ function App(){
   const[selected,setSelected]=useState(null);
   const[view,setView]=useState("treemap");
   const[tmMode,setTmMode]=useState("performance");
-  const[tmShowVal,setTmShowVal]=useState(false); // changed: default show % only for day/div to keep ticker visible
+  const[tmShowVal,setTmShowVal]=useState(false);
   const[tmSize,setTmSize]=useState({w:600,h:420});
-  const[tmSlider,setTmSlider]=useState(null);
   const[chartPeriod,setChartPeriod]=useState("1Y");
-  const[benchmarks,setBenchmarks]=useState({labels:[],series:{},holdingPrices:{}});
-  const[bmVisible,setBmVisible]=useState({sp500:true,brk:false,jkse:true,eido:true,vas:false});
   const[valuesHidden,setValuesHidden]=useState(false);
-  const[fetchSt,setFetchSt]=useState({loading:false,lastUpdate:null,errors:{},successes:0,total:0});
+  const[fetchSt,setFetchSt]=useState({loading:false});
   const[fbUser,setFbUser]=useState(null);
-  const[syncSt,setSyncSt]=useState("idle");
-  const[syncMsg,setSyncMsg]=useState("");
-  const[importSt,setImportSt]=useState({step:"idle"});
-  const[monthlyTargetAud, setMonthlyTargetAud]=useState(()=>ld("f6_targetAud",0));
-  const[superDrawRate, setSuperDrawRate]=useState(()=>ld("f6_superRate",0));
-  const[avgSuperBalanceAud, setAvgSuperBalanceAud]=useState(()=>ld("f6_avgSuper",0));
+  const[monthlyTargetAud, setMonthlyTargetAud]=useState(0);
+  const[superDrawRate, setSuperDrawRate]=useState(0);
+  const[avgSuperBalanceAud, setAvgSuperBalanceAud]=useState(0);
   const[showPassiveModal, setShowPassiveModal]=useState(false);
   const T=dark?DARK:LIGHT;
   const isMob=useWindowSize()<768;
@@ -337,19 +356,15 @@ function App(){
   
   const holdings=useMemo(()=>portfolio.map(h=>computeHolding(h,prices,prevPrices,rates)).filter(h=>h.qty>0),[portfolio,prices,prevPrices,rates]);
   const totVal=holdings.reduce((s,h)=>s+h.currentValue,0);
-  const totGain=holdings.reduce((s,h)=>s+h.totalGain,0);
-  const totInv=holdings.reduce((s,h)=>s+h.totalInvested,0);
-  const totPct=totInv>0?(totGain/totInv)*100:0;
   const totDayGain=holdings.reduce((s,h)=>s+h.dayGain,0);
-  const totDivs=holdings.reduce((s,h)=>s+h.totalDividends,0);
   const FC=(a,compact=false)=>valuesHidden?"••••••":fmtCur(a,displayCur,rates,compact);
   const FG=(a)=>valuesHidden?"••••••":fmtGain(a,displayCur,rates);
   const periodCutoff = useCallback((period) => { const now=new Date(); if(period==="1M"){const d=new Date(now);d.setMonth(d.getMonth()-1);return d;} if(period==="3M"){const d=new Date(now);d.setMonth(d.getMonth()-3);return d;} if(period==="6M"){const d=new Date(now);d.setMonth(d.getMonth()-6);return d;} if(period==="YTD"){return new Date(now.getFullYear(),0,1);} if(period==="1Y"){const d=new Date(now);d.setFullYear(d.getFullYear()-1);return d;} if(period==="5Y"){const d=new Date(now);d.setFullYear(d.getFullYear()-5);return d;} return new Date(0); },[]);
 
-  // ---- NET BUY TRACKER (intuitive visual bar chart by category) ----
+  // ---- NET BUY TRACKER (by category, visual bar chart) ----
   const netBuyData = useMemo(() => {
     const cutoff = periodCutoff(chartPeriod);
-    const categoryMap = new Map(); // category -> net AUD
+    const categoryMap = new Map();
     for (const h of portfolio) {
       for (const tx of h.transactions) {
         if (!tx.date) continue;
@@ -368,10 +383,10 @@ function App(){
     return { total, categories, hasData: Math.abs(total)>0.01 };
   }, [portfolio, rates, chartPeriod, periodCutoff]);
 
-  // ---- REVAMPED DIVIDEND CONTRIBUTION OVER TIME (by asset categories) ----
+  // ---- REVAMPED DIVIDEND CONTRIBUTION OVER TIME (stacked by category) ----
   const divContributionData = useMemo(() => {
     const cutoff = periodCutoff(chartPeriod);
-    const monthlyMap = new Map(); // key: YYYY-MM -> Map<category, amount>
+    const monthlyMap = new Map();
     for (const h of portfolio) {
       for (const tx of h.transactions) {
         if (tx.type !== "dividend" || !tx.date) continue;
@@ -391,8 +406,8 @@ function App(){
     const datasets = Array.from(allCategories).map((cat,idx) => ({
       label: cat,
       data: sortedMonths.map(m => monthlyMap.get(m).get(cat) || 0),
-      backgroundColor: `hsl(${idx * 45}, 70%, 55%)`,
-      borderColor: `hsl(${idx * 45}, 70%, 40%)`,
+      backgroundColor: `hsl(${idx * 45}, 65%, 55%)`,
+      borderColor: `hsl(${idx * 45}, 65%, 40%)`,
       borderWidth: 1,
       borderRadius: 4,
     }));
@@ -400,7 +415,7 @@ function App(){
     return { labels, datasets, hasData: datasets.length>0 && labels.length>0 };
   }, [portfolio, rates, chartPeriod, periodCutoff]);
 
-  // treemap rects (with ticker priority: always show ticker for Day/Div modes even in small boxes)
+  // treemap rects
   const perfRects=useMemo(()=>{const it=holdings.map(h=>({...h,value:h.currentValue})).sort((a,b)=>b.value-a.value);return it.length?squarify(it,0,0,tmSize.w,tmSize.h):[];},[holdings,tmSize]);
   const divRects=useMemo(()=>{const it=holdings.filter(h=>h.totalDividends>0).map(h=>({...h,value:h.totalDividends})).sort((a,b)=>b.value-a.value);return it.length?squarify(it,0,0,tmSize.w,tmSize.h):[];},[holdings,tmSize]);
   const dayRects=useMemo(()=>{const it=holdings.map(h=>({...h,value:Math.max(Math.abs(h.dayGain),0.01)})).sort((a,b)=>b.value-a.value);return it.length?squarify(it,0,0,tmSize.w,tmSize.h):[];},[holdings,tmSize]);
@@ -408,33 +423,35 @@ function App(){
 
   const mapRef=useCallback(node=>{if(!node)return;const obs=new ResizeObserver(e=>{const{width,height}=e[0].contentRect;setTmSize({w:width,h:height});});obs.observe(node);},[]);
 
-  // inline styles
   const card=(x={})=>({background:T.bg3,border:`1px solid ${T.border}`,borderRadius:12,...x});
   const bS=(bg,col,x={})=>({padding:"8px 16px",border:"none",borderRadius:8,background:bg,color:col,fontSize:12,fontWeight:700,...x});
   const bO=(col,x={})=>({padding:"8px 14px",border:`1px solid ${T.border2}`,borderRadius:8,background:"transparent",color:col,fontSize:12,...x});
   const inp=()=>({width:"100%",background:T.bg,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 12px",color:T.text,fontSize:13,outline:"none"});
-  const lbl=(x={})=>({display:"block",fontSize:9,letterSpacing:1.2,color:T.text3,textTransform:"uppercase",marginBottom:5,fontWeight:600,...x});
 
   return (
     <ErrorBoundary>
       <div style={{minHeight:"100vh",background:T.bg,color:T.text}}>
-        {/* header (condensed but functional) */}
         <header style={{background:T.bg2,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:20}}>
-          <div style={{padding:"10px 14px"}}><div className="header-main-row" style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:8}}><div style={{fontSize:20,fontWeight:700}}>FOLIO</div><div><button onClick={()=>setDark(!dark)} style={bO(T.text2,{padding:"4px 8px",marginRight:6})}>{dark?"☀️":"🌙"}</button><button onClick={()=>setModal({mode:"add"})} style={bS(T.greenBtn,"#fff",{padding:"4px 12px"})}>+ Add</button></div></div></div>
+          <div style={{padding:"10px 14px",display:"flex",justifyContent:"space-between",flexWrap:"wrap"}}>
+            <div style={{fontSize:20,fontWeight:700}}>FOLIO</div>
+            <div>
+              <button onClick={()=>setDark(!dark)} style={bO(T.text2,{padding:"4px 8px",marginRight:6})}>{dark?"☀️":"🌙"}</button>
+              <button onClick={()=>setModal({mode:"add"})} style={bS(T.greenBtn,"#fff",{padding:"4px 12px"})}>+ Add</button>
+            </div>
+          </div>
         </header>
         <main style={{padding:"12px 14px"}}>
-          {/* view switcher */}
           <div style={{display:"flex",gap:8,marginBottom:12,justifyContent:"center"}}>
             {["treemap","table","chart"].map(v=><button key={v} onClick={()=>setView(v)} style={{padding:"6px 16px",borderRadius:20,background:view===v?T.teal:"transparent",border:`1px solid ${T.border}`,color:view===v?"#fff":T.text2}}>{v==="treemap"?"Map":v==="table"?"Table":"Charts"}</button>)}
           </div>
           {view==="treemap" && (
-            <div className="tm-wrap" style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+            <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
               <div ref={mapRef} style={{flex:1,minWidth:200,height:isMob?400:440,background:T.bg3,borderRadius:12,overflow:"hidden",border:`1px solid ${T.border}`}}>
                 {rects.map(r=>{
                   const c=tmMode==="performance"?gainColor(r.gainPct,dark):tmMode==="day"?dayColor(r.dayGainPct,dark):divColor(r.divYieldOnCost,dark);
                   const area=r.w*r.h;
-                  const showTicker = area>800; // always show ticker if any space
-                  const showPercent = area>400;
+                  const showTicker = area > 800;
+                  const showPercent = area > 400;
                   let percentText = "";
                   if(tmMode==="performance") percentText = fmtPct(r.gainPct);
                   else if(tmMode==="day") percentText = fmtPct(r.dayGainPct);
@@ -450,7 +467,7 @@ function App(){
                 })}
               </div>
               <div style={{width:250,background:T.bg3,borderRadius:12,padding:12, border:`1px solid ${T.border}`}}>
-                {selected ? holdings.find(h=>h.ticker===selected) ? (()=>{const h=holdings.find(h=>h.ticker===selected); return <div><div style={{fontSize:16,fontWeight:700}}>{h.ticker}</div><div>{FC(h.currentValue)}</div><div>{fmtPct(h.gainPct)}</div><button onClick={()=>setSelected(null)} style={bO(T.text2)}>Close</button></div>})():<div>Select a box</div>:<div>Tap a box</div>}
+                {selected ? (()=>{const h=holdings.find(h=>h.ticker===selected); return h?<div><div style={{fontSize:16,fontWeight:700}}>{h.ticker}</div><div>{FC(h.currentValue)}</div><div>{fmtPct(h.gainPct)}</div><button onClick={()=>setSelected(null)} style={bO(T.text2)}>Close</button></div>:<div>Select a box</div>})():<div style={{textAlign:"center",color:T.text3}}>Tap any box</div>}
               </div>
             </div>
           )}
@@ -459,12 +476,10 @@ function App(){
           )}
           {view==="chart" && (
             <div style={{display:"flex",flexDirection:"column",gap:16}}>
-              {/* Period selector */}
               <div style={{display:"flex",gap:8,flexWrap:"wrap",justifyContent:"center"}}>
                 {["1M","3M","6M","YTD","1Y","5Y"].map(p=><button key={p} onClick={()=>setChartPeriod(p)} style={{padding:"4px 12px",borderRadius:20,background:chartPeriod===p?T.teal:"transparent",border:`1px solid ${T.border}`,color:chartPeriod===p?"#fff":T.text2}}>{p}</button>)}
               </div>
-              
-              {/* NET BUY TRACKER - visual bar chart */}
+              {/* Net Buy Tracker */}
               <div style={card({padding:16})}>
                 <div style={{fontSize:14,fontWeight:700,marginBottom:8}}>📈 Net Buy / Sell ({chartPeriod})</div>
                 {netBuyData.hasData ? (
@@ -480,8 +495,7 @@ function App(){
                   </>
                 ) : <div style={{textAlign:"center",color:T.text3,padding:20}}>No buy/sell transactions in selected period</div>}
               </div>
-
-              {/* REVAMPED DIVIDEND CONTRIBUTION CHART */}
+              {/* Revamped Dividend Contribution Chart */}
               <div style={card({padding:16})}>
                 <div style={{fontSize:14,fontWeight:700,marginBottom:4}}>🌱 Dividend Contribution by Category</div>
                 <div style={{fontSize:11,color:T.text3,marginBottom:12}}>Monthly breakdown · {chartPeriod}</div>
@@ -489,8 +503,7 @@ function App(){
                   <ChartBar labels={divContributionData.labels} datasets={divContributionData.datasets} T={T} yFmt={v=>fmtCur(v,displayCur,rates,true)} height={250} stacked={true}/>
                 ) : <div style={{height:200,display:"flex",alignItems:"center",justifyContent:"center",color:T.text3}}>No dividend data for this period</div>}
               </div>
-
-              {/* original benchmark / portfolio line chart (optional, keep concise) */}
+              {/* Simple portfolio value line chart */}
               <div style={card({padding:16})}>
                 <div style={{fontSize:14,fontWeight:700,marginBottom:8}}>📊 Portfolio Value</div>
                 <ChartLine labels={history.map(s=>s.date.slice(5))} datasets={[{label:"Value",data:history.map(s=>fromAUD(s.totalValueAUD,displayCur,rates)),borderColor:T.green,fill:false}]} T={T} yFmt={v=>fmtCur(v,displayCur,rates,true)} height={200}/>
@@ -498,8 +511,17 @@ function App(){
             </div>
           )}
         </main>
-        {/* modals stubs for essential operations (add, price, etc) - simplified but functional */}
-        {modal && modal.mode==="add" && <div onClick={()=>setModal(null)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center"}}><div onClick={e=>e.stopPropagation()} style={{background:T.bg2,padding:24,borderRadius:12,width:320}}><h3>Add Position</h3><input placeholder="Ticker" style={inp()} onChange={e=>setForm({...form,ticker:e.target.value})}/><input placeholder="Qty" type="number" style={inp()} onChange={e=>setForm({...form,qty:e.target.value})}/><input placeholder="Price" type="number" style={inp()} onChange={e=>setForm({...form,price:e.target.value})}/><button onClick={()=>{if(form.ticker && form.qty && form.price){const newH={id:Date.now(),ticker:form.ticker.toUpperCase(),name:form.ticker,currency:"AUD",assetType:"Shares / Stocks",transactions:[{type:"buy",qty:+form.qty,price:+form.price,date:new Date().toISOString().slice(0,10)}]};setPortfolio([...portfolio,newH]);setPrices({...prices,[form.ticker.toUpperCase()]:+form.price});setPrevPrices({...prevPrices,[form.ticker.toUpperCase()]:+form.price});setModal(null);}} style={bS(T.greenBtn,"#fff",{marginTop:12})}}>Save</button></div></div>}
+        {modal && modal.mode==="add" && (
+          <div onClick={()=>setModal(null)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <div onClick={e=>e.stopPropagation()} style={{background:T.bg2,padding:24,borderRadius:12,width:320}}>
+              <h3>Add Position</h3>
+              <input placeholder="Ticker" style={inp()} onChange={e=>setForm({...form,ticker:e.target.value})}/>
+              <input placeholder="Qty" type="number" style={inp()} onChange={e=>setForm({...form,qty:e.target.value})}/>
+              <input placeholder="Price" type="number" style={inp()} onChange={e=>setForm({...form,price:e.target.value})}/>
+              <button onClick={()=>{if(form.ticker && form.qty && form.price){const newH={id:Date.now(),ticker:form.ticker.toUpperCase(),name:form.ticker,currency:"AUD",assetType:"Shares / Stocks",transactions:[{type:"buy",qty:+form.qty,price:+form.price,date:new Date().toISOString().slice(0,10)}]};setPortfolio([...portfolio,newH]);setPrices({...prices,[form.ticker.toUpperCase()]:+form.price});setPrevPrices({...prevPrices,[form.ticker.toUpperCase()]:+form.price});setModal(null);}} style={bS(T.greenBtn,"#fff",{marginTop:12})}}>Save</button>
+            </div>
+          </div>
+        )}
       </div>
     </ErrorBoundary>
   );
