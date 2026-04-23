@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>FOLIO — Investment Dashboard</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
@@ -11,12 +11,7 @@
   button{cursor:pointer}
   ::-webkit-scrollbar{width:5px}
   ::-webkit-scrollbar-thumb{background:#444;border-radius:3px}
-  .spin{animation:spin .9s linear infinite}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  @media(max-width:768px){
-    .tm-wrap{flex-direction:column}
-    .detail-panel{width:100%}
-  }
+  @media(max-width:768px){.tm-wrap{flex-direction:column}.detail-panel{width:100%}}
 </style>
 </head>
 <body>
@@ -33,7 +28,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
 <script>
-// Firebase config
+// Firebase config (preserved)
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyBp20SC2Yt9IWkevpLgU6-nXZtA7HuNbN0",
   authDomain: "folio-sync.firebaseapp.com",
@@ -127,7 +122,7 @@ function fmtCur(audAmt, dc, R, compact) {
 function fmtGain(audAmt, dc, R) { const a = fromAUD(audAmt, dc, R); return `${a >= 0 ? "+" : "-"}${fmtCur(Math.abs(a), dc, R, false)}`; }
 const fmtPct = n => `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`;
 
-// Category for net buy & dividend contribution
+// Category helper for net buy & dividend contribution
 function getAssetCategory(assetType, ticker) {
   const at = (assetType || "").toLowerCase();
   if (ticker === "NUL5339AU" || ticker === "NUL7270AU") return "Superannuation";
@@ -137,7 +132,7 @@ function getAssetCategory(assetType, ticker) {
   return "Other";
 }
 
-// Chart components (clean, no syntax errors)
+// Chart components (fixed syntax)
 const ChartBar = ({ labels, datasets, T, yFmt, height = 200, stacked = false }) => {
   const ref = useRef(null);
   const inst = useRef(null);
@@ -155,8 +150,8 @@ const ChartBar = ({ labels, datasets, T, yFmt, height = 200, stacked = false }) 
           tooltip: { backgroundColor: T.bg3, borderColor: T.border, titleColor: T.text, bodyColor: T.text2, padding: 10, cornerRadius: 8 }
         },
         scales: {
-          x: { grid: { color: "transparent" }, ticks: { color: T.chartTick, font: { size: 10 } }, stacked },
-          y: { grid: { color: T.chartGrid }, ticks: { color: T.chartTick, font: { size: 10 }, callback: yFmt || (v => `A$${v}`) }, stacked }
+          x: { grid: { color: "transparent" }, ticks: { color: T.chartTick, font: { size: 10 } }, stacked: stacked },
+          y: { grid: { color: T.chartGrid }, ticks: { color: T.chartTick, font: { size: 10 }, callback: yFmt || (v => `A$${v}`) }, stacked: stacked }
         }
       }
     });
@@ -411,8 +406,20 @@ function App() {
           {view === "table" && (
             <div style={{ overflowX: "auto", ...card({ padding: 10 }) }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead><tr>{["Ticker","Value","Gain%"].map(c => <th key={c} style={{ textAlign: "left", padding: 8 }}>{c}</th>)}</thead>
-                <tbody>{holdings.map(h => <tr key={h.ticker}><td style={{ padding: 8 }}>{h.ticker}</td><td>{FC(h.currentValue, true)}</td><td style={{ color: h.gainPct >= 0 ? T.green : T.red }}>{fmtPct(h.gainPct)}</td></tr>)}</tbody>
+                <thead>
+                  <tr>
+                    {["Ticker","Value","Gain%"].map(c => <th key={c} style={{ textAlign: "left", padding: 8 }}>{c}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {holdings.map(h => (
+                    <tr key={h.ticker}>
+                      <td style={{ padding: 8 }}>{h.ticker}</td>
+                      <td style={{ padding: 8 }}>{FC(h.currentValue, true)}</td>
+                      <td style={{ padding: 8, color: h.gainPct >= 0 ? T.green : T.red }}>{fmtPct(h.gainPct)}</td>
+                    </tr>
+                  ))}
+                </tbody>
               </table>
             </div>
           )}
@@ -432,7 +439,7 @@ function App() {
                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                       {netBuyData.categories.map(cat => {
                         const percent = Math.abs(cat.val) / Math.abs(netBuyData.total) * 100;
-                        const barWidth = Math.min(100, Math.max(3, percent));
+                        const barWidth = Math.min(100, Math.max(5, percent));
                         return (
                           <div key={cat.name}>
                             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11 }}><span>{cat.name}</span><span style={{ color: cat.val >= 0 ? T.green : T.red }}>{FG(cat.val)}</span></div>
@@ -445,7 +452,7 @@ function App() {
                 ) : <div style={{ textAlign: "center", color: T.text3, padding: 20 }}>No buy/sell transactions in selected period</div>}
               </div>
 
-              {/* Revamped Dividend Contribution */}
+              {/* Revamped Dividend Contribution Chart */}
               <div style={card({ padding: 16 })}>
                 <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>🌱 Dividend Contribution by Category</div>
                 <div style={{ fontSize: 11, color: T.text3, marginBottom: 12 }}>Monthly breakdown · {chartPeriod}</div>
@@ -454,7 +461,7 @@ function App() {
                 ) : <div style={{ height: 200, display: "flex", alignItems: "center", justifyContent: "center", color: T.text3 }}>No dividend data for this period</div>}
               </div>
 
-              {/* Portfolio value line */}
+              {/* Portfolio value line chart */}
               <div style={card({ padding: 16 })}>
                 <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>📊 Portfolio Value</div>
                 <ChartLine labels={history.map(s => s.date.slice(5))} datasets={[{ label: "Value", data: history.map(s => fromAUD(s.totalValueAUD, displayCur, rates)), borderColor: T.green, fill: false, tension: 0.3 }]} T={T} yFmt={v => fmtCur(v, displayCur, rates, true)} height={200} />
