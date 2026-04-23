@@ -50,7 +50,7 @@ button:active{transform:scale(.97)}
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
 <script>
-// Firebase config (unchanged)
+// Firebase config
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyBp20SC2Yt9IWkevpLgU6-nXZtA7HuNbN0",
   authDomain: "folio-sync.firebaseapp.com",
@@ -242,51 +242,53 @@ function getAssetCategory(assetType, ticker) {
   return "Other";
 }
 
-// ─── Chart Components ────────────────────────────────────────────────────
+// ─── Chart Components (fixed syntax) ─────────────────────────────────────
 function ChartBar({labels,datasets,T,yFmt,height=200,stacked=false}){
-  const ref=useRef(null);const inst=useRef(null);
-  useEffect(()=>{
-    if(!ref.current||typeof Chart==="undefined")return;
-    if(inst.current)inst.current.destroy();
-    inst.current=new Chart(ref.current,{
-      type:"bar",
-      data:{labels,datasets},
-      options:{
-        responsive:true,
-        maintainAspectRatio:false,
-        plugins:{
-          legend:{display:stacked,labels:{color:T.text2,font:{size:9},boxWidth:8,padding:6}},
-          tooltip:{backgroundColor:T.bg3,borderColor:T.border,borderWidth:1,titleColor:T.text,bodyColor:T.text2,padding:10,cornerRadius:8}
+  const ref = useRef(null);
+  const inst = useRef(null);
+  useEffect(() => {
+    if (!ref.current || typeof Chart === "undefined") return;
+    if (inst.current) inst.current.destroy();
+    inst.current = new Chart(ref.current, {
+      type: "bar",
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: stacked, labels: { color: T.text2, font: { size: 9 }, boxWidth: 8, padding: 6 } },
+          tooltip: { backgroundColor: T.bg3, borderColor: T.border, borderWidth: 1, titleColor: T.text, bodyColor: T.text2, padding: 10, cornerRadius: 8 }
         },
-        scales:{
-          x:{grid:{color:"transparent"},ticks:{color:T.chartTick,font:{size:10}},border:{color:T.border},stacked:stacked},
-          y:{grid:{color:T.chartGrid},ticks:{color:T.chartTick,font:{size:10},callback:yFmt||(v=>`A$${v.toFixed(0)}`),border:{color:T.border},stacked:stacked}
+        scales: {
+          x: { grid: { color: "transparent" }, ticks: { color: T.chartTick, font: { size: 10 } }, border: { color: T.border }, stacked: stacked },
+          y: { grid: { color: T.chartGrid }, ticks: { color: T.chartTick, font: { size: 10 }, callback: yFmt || ((v) => `A$${v.toFixed(0)}`) }, border: { color: T.border }, stacked: stacked }
         }
       }
     });
-    return()=>{if(inst.current)inst.current.destroy();};
-  },[labels,datasets,T,yFmt,stacked]);
-  return <div style={{height,position:"relative"}}><canvas ref={ref}/></div>;
+    return () => { if (inst.current) inst.current.destroy(); };
+  }, [labels, datasets, T, yFmt, stacked]);
+  return <div style={{ height, position: "relative" }}><canvas ref={ref} /></div>;
 }
 
 function ChartLine({labels,datasets,T,yFmt,height=220}){
-  const ref=useRef(null);const inst=useRef(null);
-  useEffect(()=>{
-    if(!ref.current||typeof Chart==="undefined")return;
-    if(inst.current)inst.current.destroy();
-    inst.current=new Chart(ref.current,{
-      type:"line",
-      data:{labels,datasets},
-      options:{
-        responsive:true,
-        maintainAspectRatio:false,
-        plugins:{legend:{labels:{color:T.text2,font:{size:11}}},tooltip:{backgroundColor:T.bg3,borderColor:T.border}},
-        scales:{x:{grid:{color:T.chartGrid},ticks:{color:T.chartTick}},y:{grid:{color:T.chartGrid},ticks:{color:T.chartTick,callback:yFmt}}}
+  const ref = useRef(null);
+  const inst = useRef(null);
+  useEffect(() => {
+    if (!ref.current || typeof Chart === "undefined") return;
+    if (inst.current) inst.current.destroy();
+    inst.current = new Chart(ref.current, {
+      type: "line",
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: T.text2, font: { size: 11 } } }, tooltip: { backgroundColor: T.bg3, borderColor: T.border } },
+        scales: { x: { grid: { color: T.chartGrid }, ticks: { color: T.chartTick } }, y: { grid: { color: T.chartGrid }, ticks: { color: T.chartTick, callback: yFmt } } }
       }
     });
-    return()=>{if(inst.current)inst.current.destroy();};
-  },[labels,datasets,T,yFmt]);
-  return <div style={{height}}><canvas ref={ref}/></div>;
+    return () => { if (inst.current) inst.current.destroy(); };
+  }, [labels, datasets, T, yFmt]);
+  return <div style={{ height }}><canvas ref={ref} /></div>;
 }
 
 // ─── computeHolding ──────────────────────────────────────────────────────
@@ -356,7 +358,7 @@ function App(){
   const FG=(a)=>valuesHidden?"••••••":fmtGain(a,displayCur,rates);
   const periodCutoff = useCallback((period) => { const now=new Date(); if(period==="1M"){const d=new Date(now);d.setMonth(d.getMonth()-1);return d;} if(period==="3M"){const d=new Date(now);d.setMonth(d.getMonth()-3);return d;} if(period==="6M"){const d=new Date(now);d.setMonth(d.getMonth()-6);return d;} if(period==="YTD"){return new Date(now.getFullYear(),0,1);} if(period==="1Y"){const d=new Date(now);d.setFullYear(d.getFullYear()-1);return d;} if(period==="5Y"){const d=new Date(now);d.setFullYear(d.getFullYear()-5);return d;} return new Date(0); },[]);
 
-  // ---- NET BUY TRACKER (by category, visual bar chart) ----
+  // ---- NET BUY TRACKER ----
   const netBuyData = useMemo(() => {
     const cutoff = periodCutoff(chartPeriod);
     const categoryMap = new Map();
@@ -378,7 +380,7 @@ function App(){
     return { total, categories, hasData: Math.abs(total)>0.01 };
   }, [portfolio, rates, chartPeriod, periodCutoff]);
 
-  // ---- REVAMPED DIVIDEND CONTRIBUTION OVER TIME (stacked by category) ----
+  // ---- REVAMPED DIVIDEND CONTRIBUTION ----
   const divContributionData = useMemo(() => {
     const cutoff = periodCutoff(chartPeriod);
     const monthlyMap = new Map();
