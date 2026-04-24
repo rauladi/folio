@@ -50,7 +50,7 @@ button:active{transform:scale(.97)}
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
 <script>
-// Firebase config (unchanged)
+// Firebase config
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyBp20SC2Yt9IWkevpLgU6-nXZtA7HuNbN0",
   authDomain: "folio-sync.firebaseapp.com",
@@ -815,7 +815,7 @@ function ChartLine({labels,datasets,T,yFmt,y2Fmt,height=220,spanGaps=false}){
     const hasY2=y2Fmt&&datasets.some(d=>d.yAxisID==="y2");
     const scales={
       x:{grid:{color:T.chartGrid},ticks:{color:T.chartTick,font:{size:10}},border:{color:T.border}},
-      y:{grid:{color:T.chartGrid},ticks:{color:T.chartTick,font:{size:10},callback:yFmt||(v=>`A$${(v/1000).toFixed(0)}K`),border:{color:T.border},position:"left"},
+      y:{grid:{color:T.chartGrid},ticks:{color:T.chartTick,font:{size:10},callback:yFmt||(v=>`A$${(v/1000).toFixed(0)}K`),border:{color:T.border},position:"left"}
     };
     if(hasY2){
       scales.y2={
@@ -1174,16 +1174,6 @@ function downloadTemplateXLSX(){
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="folio_import_template.xlsx";a.click();
 }
 
-// ─── Helper for net buy categories (NEW) ──────────────────────────────────────────
-function getAssetCategory(assetType, ticker) {
-  const at = (assetType || "").toLowerCase();
-  if (ticker === "NUL5339AU" || ticker === "NUL7270AU") return "Superannuation";
-  if (at.includes("bond") || at.includes("sukuk") || at.includes("sbn")) return "Bonds & Sukuk";
-  if (at.includes("share") || at.includes("stock") || at.includes("etf") || at.includes("reit")) return "Equities & REITs";
-  if (at.includes("super")) return "Superannuation";
-  return "Other";
-}
-
 // ─── App ──────────────────────────────────────────────────────────────────────
 function App(){
   const ld=(k,d)=>{try{const s=localStorage.getItem(k);return s?JSON.parse(s):d;}catch{return d;}};
@@ -1501,28 +1491,6 @@ function App(){
     return new Date(0);
   }, []);
   
-  // ---- NET BUY TRACKER (by category) ----
-  const netBuyData = useMemo(() => {
-    const cutoff = periodCutoff(chartPeriod);
-    const categoryMap = new Map();
-    for (const h of portfolio) {
-      for (const tx of h.transactions) {
-        if (!tx.date) continue;
-        const txDate = new Date(tx.date);
-        if (txDate < cutoff) continue;
-        let valAUD = 0;
-        if (tx.type === "buy") valAUD = toAUD(tx.qty * tx.price, h.currency, rates);
-        else if (tx.type === "sell") valAUD = -toAUD(tx.qty * tx.price, h.currency, rates);
-        else continue;
-        const cat = getAssetCategory(h.assetType, h.ticker);
-        categoryMap.set(cat, (categoryMap.get(cat) || 0) + valAUD);
-      }
-    }
-    const total = Array.from(categoryMap.values()).reduce((a,b)=>a+b,0);
-    const categories = Array.from(categoryMap.entries()).sort((a,b)=>b[1]-a[1]).map(([name,val])=> ({name,val,color: name==="Equities & REITs"?"#22c55e":name==="Bonds & Sukuk"?"#06b6d4":name==="Superannuation"?"#f59e0b":"#8b5cf6"}));
-    return { total, categories, hasData: Math.abs(total)>0.01 };
-  }, [portfolio, rates, chartPeriod, periodCutoff]);
-
   const autoRefresh = useCallback(async () => {
     setFetchSt(s => ({ ...s, loading: true, fetched: 0 }));
     let newRates = rates, rateOk = false;
@@ -2210,7 +2178,7 @@ function App(){
                       </tr>
                     );
                   })}
-                  {holdings.length===0&&<tr><td colSpan={16} style={{padding:48,textAlign:"center",color:T.text4,fontFamily:"'Space Mono',monospace",fontSize:11}}>No holdings — tap "+ Add" to get started</td></tr>}
+                  {holdings.length===0&&<td><td colSpan={16} style={{padding:48,textAlign:"center",color:T.text4,fontFamily:"'Space Mono',monospace",fontSize:11}}>No holdings — tap "+ Add" to get started</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -2270,24 +2238,7 @@ function App(){
                 </div>
               </div>
               <div className="chart-row" style={{display:"flex",gap:12,flexWrap:isMob?"wrap":"nowrap"}}>
-                {/* NET BUY TRACKER - visual bar chart (NEW) */}
                 <div style={{flex:"2 1 280px",...card({padding:16})}}>
-                  <div style={{fontSize:14,fontWeight:700,marginBottom:8}}>📈 Net Buy / Sell ({chartPeriod})</div>
-                  {netBuyData.hasData ? (
-                    <>
-                      <div style={{fontSize:12,marginBottom:12}}>Total net flow: <span style={{color:netBuyData.total>=0?T.green:T.red,fontWeight:700}}>{FG(netBuyData.total)}</span></div>
-                      <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                        {netBuyData.categories.map(cat=>{
-                          const percent = Math.abs(cat.val)/Math.abs(netBuyData.total)*100;
-                          const barWidth = Math.min(100, Math.max(3, percent));
-                          return <div key={cat.name}><div style={{display:"flex",justifyContent:"space-between",fontSize:11}}><span>{cat.name}</span><span style={{color:cat.val>=0?T.green:T.red}}>{FG(cat.val)}</span></div><div style={{background:T.bg4,borderRadius:6,height:8,marginTop:2}}><div style={{width:`${barWidth}%`,background:cat.val>=0?T.green:T.red,borderRadius:6,height:8}}/></div></div>;
-                        })}
-                      </div>
-                    </>
-                  ) : <div style={{textAlign:"center",color:T.text3,padding:20}}>No buy/sell transactions in selected period</div>}
-                </div>
-                {/* Original monthly income chart (kept as is) */}
-                <div style={{flex:"1 1 200px",...card({padding:16})}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
                     <div>
                       <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>Monthly Income — Div &amp; Coupons</div>
@@ -2299,7 +2250,12 @@ function App(){
                       <div style={{fontSize:9,color:T.text3}}>{chartData.divCAGRYears}yr growth</div>
                     </div>}
                   </div>
-                  <ChartBar labels={chartData.mLabels} datasets={chartData.mDatasets && chartData.mDatasets.length ? chartData.mDatasets : [{ label: "Income", data: chartData.mVals, backgroundColor: dark ? "rgba(6,182,212,.72)" : "rgba(8,145,178,.6)", borderColor: dark ? "#06b6d4" : "#0891b2", borderWidth: 1, borderRadius: 5 }]} T={T} yFmt={yFmtD} height={isMob?160:210} stacked={!!(chartData.mDatasets && chartData.mDatasets.length > 1)}/>
+                  <ChartBar labels={chartData.mLabels} datasets={chartData.mDatasets&&chartData.mDatasets.length?chartData.mDatasets:[{label:"Income",data:chartData.mVals,backgroundColor:dark?"rgba(6,182,212,.72)":"rgba(8,145,178,.6)",borderColor:dark?"#06b6d4":"#0891b2",borderWidth:1,borderRadius:5}]} T={T} yFmt={yFmtD} height={isMob?160:210} stacked={!!(chartData.mDatasets&&chartData.mDatasets.length>1)}/>
+                </div>
+                <div style={{flex:"1 1 200px",...card({padding:16})}}>
+                  <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>Currency Split</div>
+                  <div style={{fontSize:11,color:T.text3,marginBottom:12}}>by holding currency · {displayCur}</div>
+                  <ChartDoughnut labels={chartData.byCurLabels} data={chartData.byCurVals} colors={chartData.byCurColors} T={T} height={isMob?160:210}/>
                 </div>
               </div>
               <div style={{...card({padding:16})}}>
@@ -2574,7 +2530,7 @@ function App(){
                   <input ref={importFileRef} type="file" accept=".csv,.xlsx,.xls,.ods,.txt" style={{display:"none"}} onChange={e=>{if(e.target.files[0])handleImportFile(e.target.files[0]);e.target.value="";}}/>
                   {(IS.step==="idle"||IS.step==="parsing")&&(<div style={dropZoneStyle} onDragOver={e=>{e.preventDefault();setImportSt(s=>({...s,dragOver:true}));}} onDragLeave={()=>setImportSt(s=>({...s,dragOver:false}))} onDrop={e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f)handleImportFile(f);}} onClick={()=>importFileRef.current&&importFileRef.current.click()}><div style={{fontSize:36,marginBottom:10,opacity:.5}}>📂</div><div style={{fontSize:14,fontWeight:600,color:T.text,marginBottom:4}}>{IS.step==="parsing"?"⟳ Parsing file…":"Drag & drop your file here"}</div><div style={{fontSize:12,color:T.text3,marginBottom:16}}>or click to browse · CSV, XLSX, XLS supported</div>{IS.step!=="parsing"&&(<button style={{...bS(T.greenBtn,"#fff",{fontSize:12,padding:"8px 20px"})}} onClick={e=>{e.stopPropagation();importFileRef.current&&importFileRef.current.click();}}>Choose File</button>)}</div>)}
                   {IS.step==="error"&&(<div style={{background:dark?"#2d0a0a":"#fee2e2",border:`1px solid ${T.redBtn}55`,borderRadius:10,padding:"14px 16px",color:T.red}}><div style={{fontWeight:700,marginBottom:4}}>Could not read file</div><div style={{fontSize:12}}>{IS.errorMsg}</div><button style={{...bO(T.red,{fontSize:11,marginTop:10})}} onClick={()=>setImportSt(s=>({...s,step:"idle"}))}>Try again</button></div>)}
-                  {IS.step==="preview"&&(<div>{IS.fieldMap&&Object.keys(IS.fieldMap).length>0&&(<div style={{background:T.bg4,border:`1px solid ${T.border}`,borderRadius:10,padding:"10px 14px",marginBottom:14}}><div style={{fontSize:10,fontWeight:700,color:T.text2,letterSpacing:1.2,textTransform:"uppercase",marginBottom:7}}>Detected Column Mapping</div><div style={{display:"flex",flexWrap:"wrap",gap:6}}>{Object.entries(IS.fieldMap).map(([field,col])=>(<span key={field} style={{fontSize:10,background:T.bg2,border:`1px solid ${T.border2}`,borderRadius:5,padding:"2px 8px",color:T.text2}}><span style={{color:T.text3}}>{col}</span><span style={{color:T.border2,margin:"0 4px"}}>→</span><span style={{color:T.teal,fontWeight:600}}>{field}</span></span>))}</div>{!IS.fieldMap.ticker&&(<div style={{marginTop:8,fontSize:11,color:T.amber}}>⚠️ No <b>ticker</b> column detected — rename your ticker column to exactly <code style={{background:T.bg3,padding:"1px 4px",borderRadius:3}}>ticker</code></div>)}{!IS.fieldMap.type&&(<div style={{marginTop:4,fontSize:11,color:T.amber}}>⚠️ No <b>type</b> column detected — rename your transaction type column to <code style={{background:T.bg3,padding:"1px 4px",borderRadius:3}}>type</code> with values: buy, sell, dividend</div>)}</div>)}<div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>{[[IS.parsed.length+" rows",T.text],[valid.length+" valid",T.green],...(invalid.length?[[invalid.length+" errors",T.amber]]:[]),[tickers.length+" tickers",T.teal],[valid.filter(r=>r.type==="buy").length+" buys",T.text2],[valid.filter(r=>r.type==="sell").length+" sells",T.text2],[valid.filter(r=>r.type==="dividend").length+" dividends",T.teal]].map(([l,c])=>(<span key={l} style={{fontSize:11,fontWeight:600,color:c,background:T.bg4,border:`1px solid ${T.border}`,borderRadius:6,padding:"3px 10px"}}>{l}</span>))}</div><div style={{display:"flex",alignItems:"center",gap:10,background:T.bg4,border:`1px solid ${T.border}`,borderRadius:10,padding:"10px 14px",marginBottom:14,flexWrap:"wrap"}}><span style={{fontSize:12,fontWeight:600,color:T.text}}>Import mode:</span>{[["merge","Merge with existing"],["replace","Replace all data"]].map(([v,l])=>(<button key={v} onClick={()=>setImportSt(s=>({...s,mergeMode:v}))} style={{padding:"5px 14px",borderRadius:7,border:`1px solid ${IS.mergeMode===v?T.greenBtn:T.border}`,background:IS.mergeMode===v?(dark?"#0a2e1e":"#dcfce7"):"transparent",color:IS.mergeMode===v?T.greenBtn:T.text3,fontSize:12,fontWeight:IS.mergeMode===v?700:400}}>{l}</button>))}<span style={{fontSize:10,color:IS.mergeMode==="replace"?T.amber:T.text3}}>{IS.mergeMode==="merge"?"Adds new tickers, appends transactions to existing":"Clears ALL current portfolio data first"}</span></div>{IS.errors.length>0&&(<div style={{background:dark?"#1a1200":"#fffbeb",border:`1px solid ${T.amber}55`,borderRadius:10,padding:"10px 14px",marginBottom:14}}><div style={{fontSize:12,fontWeight:700,color:T.amber,marginBottom:6}}>{IS.errors.length} rows will be skipped</div><div style={{maxHeight:80,overflowY:"auto"}}>{IS.errors.map(e=>(<div key={e.rowNum} style={{fontSize:10,color:T.amber,marginBottom:2}}>Row {e.rowNum}{e.ticker?" ["+e.ticker+"]":""}: {e.errs.join(" · ")}</div>))}</div></div>)}<div style={{overflowX:"auto",borderRadius:8,border:`1px solid ${T.border}`,marginBottom:14,maxHeight:260,overflowY:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}><thead style={{position:"sticky",top:0}}><tr>{["","Row","Ticker","Type","Date","Qty","Price","Ccy","Div/Unit","Entitled"].map(c=>(<th key={c} style={{padding:"7px 10px",textAlign:"left",fontSize:8,letterSpacing:1.2,color:T.text3,textTransform:"uppercase",background:T.bg2,borderBottom:`1px solid ${T.border}`,whiteSpace:"nowrap"}}>{c}</th>))} </thead><tbody>{IS.parsed.map((r,i)=>{const ok=!r._errors.length;const bg=ok?(i%2===0?T.bg3:T.bg2):(dark?"#2a1500":"#fff7ed");const typeColor=r.type==="buy"?T.green:r.type==="sell"?T.red:T.teal;const typeBg=r.type==="buy"?(dark?"#0a2e1e":"#dcfce7"):r.type==="sell"?(dark?"#2d0a0a":"#fee2e2"):(dark?"#041824":"#cffafe");return(<tr key={i} style={{background:bg}}><td style={{padding:"6px 8px",borderBottom:`1px solid ${T.border}`}}>{ok?"✅":"⚠️"}</td><td style={{padding:"6px 8px",color:T.text3,fontSize:9,borderBottom:`1px solid ${T.border}`}}>{r._rowNum}</td><td style={{padding:"6px 8px",fontFamily:"'Space Mono',monospace",fontWeight:700,color:T.text,borderBottom:`1px solid ${T.border}`}}>{r.ticker}</td><td style={{padding:"6px 8px",borderBottom:`1px solid ${T.border}`}}>{r.type&&<span style={{padding:"1px 6px",borderRadius:4,fontSize:9,fontWeight:700,background:typeBg,color:typeColor}}>{r.type.toUpperCase()}</span>}</td><td style={{padding:"6px 8px",color:T.text2,borderBottom:`1px solid ${T.border}`,whiteSpace:"nowrap"}}>{r.date}</td><td style={{padding:"6px 8px",fontFamily:"'Space Mono',monospace",color:T.text2,borderBottom:`1px solid ${T.border}`}}>{r.qty||"—"}</td><td style={{padding:"6px 8px",fontFamily:"'Space Mono',monospace",color:T.text2,borderBottom:`1px solid ${T.border}`}}>{r.price||"—"}</td><td style={{padding:"6px 8px",color:T.text3,borderBottom:`1px solid ${T.border}`}}>{r.currency}</td><td style={{padding:"6px 8px",fontFamily:"'Space Mono',monospace",color:T.teal,borderBottom:`1px solid ${T.border}`}}>{r.amountPerShare||"—"}</td><td style={{padding:"6px 8px",color:T.text2,borderBottom:`1px solid ${T.border}`}}>{r.entitledQty||"—"}<tr></tr>);})}</tbody></table></div>{valid.length===0&&(<div style={{textAlign:"center",padding:"8px 0",color:T.red,fontSize:12,marginBottom:12}}>No valid rows found. Fix the errors and re-upload.</div>)}<div style={{display:"flex",gap:8,justifyContent:"space-between",alignItems:"center",flexWrap:"wrap"}}><button style={bO(T.text2,{fontSize:11})} onClick={()=>setImportSt(s=>({...s,step:"idle",parsed:[],rows:[],errors:[]}))}>Upload different file</button><div style={{display:"flex",gap:8}}><button style={bO(T.text2)} onClick={closeModal}>Cancel</button><button style={{...bS(T.greenBtn,"#fff"),opacity:valid.length?1:.4,cursor:valid.length?"pointer":"not-allowed"}} disabled={!valid.length} onClick={confirmImport}>Import {valid.length} rows {IS.mergeMode==="replace"?"(replace all)":"(merge)"}</button></div></div></div>)}
+                  {IS.step==="preview"&&(<div>{IS.fieldMap&&Object.keys(IS.fieldMap).length>0&&(<div style={{background:T.bg4,border:`1px solid ${T.border}`,borderRadius:10,padding:"10px 14px",marginBottom:14}}><div style={{fontSize:10,fontWeight:700,color:T.text2,letterSpacing:1.2,textTransform:"uppercase",marginBottom:7}}>Detected Column Mapping</div><div style={{display:"flex",flexWrap:"wrap",gap:6}}>{Object.entries(IS.fieldMap).map(([field,col])=>(<span key={field} style={{fontSize:10,background:T.bg2,border:`1px solid ${T.border2}`,borderRadius:5,padding:"2px 8px",color:T.text2}}><span style={{color:T.text3}}>{col}</span><span style={{color:T.border2,margin:"0 4px"}}>→</span><span style={{color:T.teal,fontWeight:600}}>{field}</span></span>))}</div>{!IS.fieldMap.ticker&&(<div style={{marginTop:8,fontSize:11,color:T.amber}}>⚠️ No <b>ticker</b> column detected — rename your ticker column to exactly <code style={{background:T.bg3,padding:"1px 4px",borderRadius:3}}>ticker</code></div>)}{!IS.fieldMap.type&&(<div style={{marginTop:4,fontSize:11,color:T.amber}}>⚠️ No <b>type</b> column detected — rename your transaction type column to <code style={{background:T.bg3,padding:"1px 4px",borderRadius:3}}>type</code> with values: buy, sell, dividend</div>)}</div>)}<div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>{[[IS.parsed.length+" rows",T.text],[valid.length+" valid",T.green],...(invalid.length?[[invalid.length+" errors",T.amber]]:[]),[tickers.length+" tickers",T.teal],[valid.filter(r=>r.type==="buy").length+" buys",T.text2],[valid.filter(r=>r.type==="sell").length+" sells",T.text2],[valid.filter(r=>r.type==="dividend").length+" dividends",T.teal]].map(([l,c])=>(<span key={l} style={{fontSize:11,fontWeight:600,color:c,background:T.bg4,border:`1px solid ${T.border}`,borderRadius:6,padding:"3px 10px"}}>{l}</span>))}</div><div style={{display:"flex",alignItems:"center",gap:10,background:T.bg4,border:`1px solid ${T.border}`,borderRadius:10,padding:"10px 14px",marginBottom:14,flexWrap:"wrap"}}><span style={{fontSize:12,fontWeight:600,color:T.text}}>Import mode:</span>{[["merge","Merge with existing"],["replace","Replace all data"]].map(([v,l])=>(<button key={v} onClick={()=>setImportSt(s=>({...s,mergeMode:v}))} style={{padding:"5px 14px",borderRadius:7,border:`1px solid ${IS.mergeMode===v?T.greenBtn:T.border}`,background:IS.mergeMode===v?(dark?"#0a2e1e":"#dcfce7"):"transparent",color:IS.mergeMode===v?T.greenBtn:T.text3,fontSize:12,fontWeight:IS.mergeMode===v?700:400}}>{l}</button>))}<span style={{fontSize:10,color:IS.mergeMode==="replace"?T.amber:T.text3}}>{IS.mergeMode==="merge"?"Adds new tickers, appends transactions to existing":"Clears ALL current portfolio data first"}</span></div>{IS.errors.length>0&&(<div style={{background:dark?"#1a1200":"#fffbeb",border:`1px solid ${T.amber}55`,borderRadius:10,padding:"10px 14px",marginBottom:14}}><div style={{fontSize:12,fontWeight:700,color:T.amber,marginBottom:6}}>{IS.errors.length} rows will be skipped</div><div style={{maxHeight:80,overflowY:"auto"}}>{IS.errors.map(e=>(<div key={e.rowNum} style={{fontSize:10,color:T.amber,marginBottom:2}}>Row {e.rowNum}{e.ticker?" ["+e.ticker+"]":""}: {e.errs.join(" · ")}</div>))}</div></div>)}<div style={{overflowX:"auto",borderRadius:8,border:`1px solid ${T.border}`,marginBottom:14,maxHeight:260,overflowY:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}><thead style={{position:"sticky",top:0}}><tr>{["","Row","Ticker","Type","Date","Qty","Price","Ccy","Div/Unit","Entitled"].map(c=>(<th key={c} style={{padding:"7px 10px",textAlign:"left",fontSize:8,letterSpacing:1.2,color:T.text3,textTransform:"uppercase",background:T.bg2,borderBottom:`1px solid ${T.border}`,whiteSpace:"nowrap"}}>{c}</th>))} </thead><tbody>{IS.parsed.map((r,i)=>{const ok=!r._errors.length;const bg=ok?(i%2===0?T.bg3:T.bg2):(dark?"#2a1500":"#fff7ed");const typeColor=r.type==="buy"?T.green:r.type==="sell"?T.red:T.teal;const typeBg=r.type==="buy"?(dark?"#0a2e1e":"#dcfce7"):r.type==="sell"?(dark?"#2d0a0a":"#fee2e2"):(dark?"#041824":"#cffafe");return(<tr key={i} style={{background:bg}}><td style={{padding:"6px 8px",borderBottom:`1px solid ${T.border}`}}>{ok?"✅":"⚠️"}</td><td style={{padding:"6px 8px",color:T.text3,fontSize:9,borderBottom:`1px solid ${T.border}`}}>{r._rowNum}</td><td style={{padding:"6px 8px",fontFamily:"'Space Mono',monospace",fontWeight:700,color:T.text,borderBottom:`1px solid ${T.border}`}}>{r.ticker}</td><td style={{padding:"6px 8px",borderBottom:`1px solid ${T.border}`}}>{r.type&&<span style={{padding:"1px 6px",borderRadius:4,fontSize:9,fontWeight:700,background:typeBg,color:typeColor}}>{r.type.toUpperCase()}</span>}</td><td style={{padding:"6px 8px",color:T.text2,borderBottom:`1px solid ${T.border}`,whiteSpace:"nowrap"}}>{r.date}</td><td style={{padding:"6px 8px",fontFamily:"'Space Mono',monospace",color:T.text2,borderBottom:`1px solid ${T.border}`}}>{r.qty||"—"}</td><td style={{padding:"6px 8px",fontFamily:"'Space Mono',monospace",color:T.text2,borderBottom:`1px solid ${T.border}`}}>{r.price||"—"}</td><td style={{padding:"6px 8px",color:T.text3,borderBottom:`1px solid ${T.border}`}}>{r.currency}</td><td style={{padding:"6px 8px",fontFamily:"'Space Mono',monospace",color:T.teal,borderBottom:`1px solid ${T.border}`}}>{r.amountPerShare||"—"}</td><td style={{padding:"6px 8px",color:T.text2,borderBottom:`1px solid ${T.border}`}}>{r.entitledQty||"—"}</td></tr>);})}</tbody></table></div>{valid.length===0&&(<div style={{textAlign:"center",padding:"8px 0",color:T.red,fontSize:12,marginBottom:12}}>No valid rows found. Fix the errors and re-upload.</div>)}<div style={{display:"flex",gap:8,justifyContent:"space-between",alignItems:"center",flexWrap:"wrap"}}><button style={bO(T.text2,{fontSize:11})} onClick={()=>setImportSt(s=>({...s,step:"idle",parsed:[],rows:[],errors:[]}))}>Upload different file</button><div style={{display:"flex",gap:8}}><button style={bO(T.text2)} onClick={closeModal}>Cancel</button><button style={{...bS(T.greenBtn,"#fff"),opacity:valid.length?1:.4,cursor:valid.length?"pointer":"not-allowed"}} disabled={!valid.length} onClick={confirmImport}>Import {valid.length} rows {IS.mergeMode==="replace"?"(replace all)":"(merge)"}</button></div></div></div>)}
                   {IS.step==="done"&&(<div style={{textAlign:"center",padding:"24px 0"}}><div style={{fontSize:48,marginBottom:12}}>🎉</div><div style={{fontSize:18,fontWeight:700,color:T.green,marginBottom:8}}>Import complete!</div><div style={{fontSize:13,color:T.text2,marginBottom:8}}>{IS.importedCount} transactions imported.</div><div style={{fontSize:11,color:T.text3,marginBottom:24}}>Click the 🔄 Live Prices button to fetch current prices for new holdings.</div><button style={bS(T.greenBtn,"#fff",{padding:"9px 28px",fontSize:13})} onClick={closeModal}>Done</button></div>)}
                 </>);
               })()}
