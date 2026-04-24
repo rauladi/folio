@@ -815,7 +815,7 @@ function ChartLine({labels,datasets,T,yFmt,y2Fmt,height=220,spanGaps=false}){
     const hasY2=y2Fmt&&datasets.some(d=>d.yAxisID==="y2");
     const scales={
       x:{grid:{color:T.chartGrid},ticks:{color:T.chartTick,font:{size:10}},border:{color:T.border}},
-      y:{grid:{color:T.chartGrid},ticks:{color:T.chartTick,font:{size:10},callback:yFmt||(v=>`A$${(v/1000).toFixed(0)}K`),border:{color:T.border},position:"left"}
+      y:{grid:{color:T.chartGrid},ticks:{color:T.chartTick,font:{size:10},callback:yFmt||(v=>`A$${(v/1000).toFixed(0)}K`),border:{color:T.border},position:"left"},
     };
     if(hasY2){
       scales.y2={
@@ -1172,6 +1172,16 @@ function downloadTemplateXLSX(){
   for(let i=0;i<bin.length;i++)buf[i]=bin.charCodeAt(i);
   const blob=new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="folio_import_template.xlsx";a.click();
+}
+
+// ─── Helper for net buy categories (NEW) ──────────────────────────────────────────
+function getAssetCategory(assetType, ticker) {
+  const at = (assetType || "").toLowerCase();
+  if (ticker === "NUL5339AU" || ticker === "NUL7270AU") return "Superannuation";
+  if (at.includes("bond") || at.includes("sukuk") || at.includes("sbn")) return "Bonds & Sukuk";
+  if (at.includes("share") || at.includes("stock") || at.includes("etf") || at.includes("reit")) return "Equities & REITs";
+  if (at.includes("super")) return "Superannuation";
+  return "Other";
 }
 
 // ─── App ──────────────────────────────────────────────────────────────────────
@@ -2160,7 +2170,7 @@ function App(){
                         <td style={{padding:"10px 10px",fontFamily:"'Space Mono',monospace",color:pColor(h.dayGain),borderBottom:`1px solid ${T.border}`,whiteSpace:"nowrap"}}>{FG(h.dayGain)}<br/><span style={{fontSize:9,opacity:.7}}>{fmtPct(h.dayGainPct)}</span></td>
                         <td style={{padding:"10px 10px",fontFamily:"'Space Mono',monospace",color:T.text,fontWeight:600,borderBottom:`1px solid ${T.border}`,whiteSpace:"nowrap"}}>{FC(h.currentValue,true)}</td>
                         <td style={{padding:"10px 10px",fontFamily:"'Space Mono',monospace",color:pColor(h.unrealizedGain),borderBottom:`1px solid ${T.border}`,whiteSpace:"nowrap"}}>{FG(h.unrealizedGain)}</td>
-                        <td style={{padding:"10px 10px",fontFamily:"'Space Mono',monospace",color:pColor(h.realizedGain),borderBottom:`1px solid ${T.border}`,whiteSpace:"nowrap"}}>{FG(h.realizedGain)}</td>
+                        <td style="{{padding:"10px 10px",fontFamily:"'Space Mono',monospace",color:pColor(h.realizedGain),borderBottom:`1px solid ${T.border}`,whiteSpace:"nowrap"}}>{FG(h.realizedGain)}</td>
                         <td style={{padding:"10px 10px",fontFamily:"'Space Mono',monospace",color:T.teal,borderBottom:`1px solid ${T.border}`,whiteSpace:"nowrap"}}>{FC(h.totalDividends,true)}</td>
                         <td style={{padding:"10px 10px",fontFamily:"'Space Mono',monospace",color:T.teal,borderBottom:`1px solid ${T.border}`,whiteSpace:"nowrap"}}>{fmtPct(h.divYieldOnCost)}</td>
                         <td style={{padding:"10px 10px",borderBottom:`1px solid ${T.border}`,whiteSpace:"nowrap"}}>
@@ -2178,7 +2188,7 @@ function App(){
                       </tr>
                     );
                   })}
-                  {holdings.length===0&&<td><td colSpan={16} style={{padding:48,textAlign:"center",color:T.text4,fontFamily:"'Space Mono',monospace",fontSize:11}}>No holdings — tap "+ Add" to get started</td></tr>}
+                  {holdings.length===0&&职务<td colSpan={16} style={{padding:48,textAlign:"center",color:T.text4,fontFamily:"'Space Mono',monospace",fontSize:11}}>No holdings — tap "+ Add" to get started</td></tr>}
                 </tbody>
               </table>
             </div>
