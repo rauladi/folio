@@ -50,7 +50,7 @@ button:active{transform:scale(.97)}
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
 <script>
-// Firebase config (unchanged)
+// Firebase config
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyBp20SC2Yt9IWkevpLgU6-nXZtA7HuNbN0",
   authDomain: "folio-sync.firebaseapp.com",
@@ -130,8 +130,8 @@ const DIVIDEND_PAYING_TYPES = new Set([
   "Shares / Stocks","ETF","Mutual Fund","Index Fund","Superannuation",
   "REIT / Property","Bond – Government","Bond – Corporate","Bond – Indonesia (SBN)","Bond – Sharia (Sukuk)"
 ]);
-  
-// ─── Themes (improved contrast) ───────────────────────────────────────────────
+
+// ─── Themes ───────────────────────────────────────────────────────────────
 const DARK={
   bg:"#070910",bg2:"#0b0d16",bg3:"#0f1120",bg4:"#141828",bg5:"#1a1f30",
   border:"#2a3050",border2:"#3a4068",
@@ -170,7 +170,7 @@ function _layout(it,x,y,w,h,tot,r){
   const remT=tot-rt;hz?_layout(rem,x+rd,y,w-rd,h,remT,r):_layout(rem,x,y+rd,w,h-rd,remT,r);
 }
 
-// ─── Colors (more solid for light mode) ──────────────────────────────────────
+// ─── Colors ──────────────────────────────────────────────────────────────────
 function gainColor(p,d){if(d){
     if(p>=3)return{bg:"#166534",text:"#bbf7d0",border:"#4ade80"};
     if(p>=1)return{bg:"#14532d",text:"#86efac",border:"#22c55e"};
@@ -219,7 +219,7 @@ function divColor(y,d){if(d){
     return{bg:"#e5e7eb",text:"#374151",border:"#9ca3af"};
 }}
 
-// ─── Currency ─────────────────────────────────────────────────────────────────
+// ─── Currency helpers ────────────────────────────────────────────────────────
 const toAUD=(a,cur,R)=>{if(cur==="IDR")return a/R.AUD_IDR;if(cur==="USD")return a/R.AUD_USD;return a;};
 const fromAUD=(a,cur,R)=>{if(cur==="IDR")return a*R.AUD_IDR;if(cur==="USD")return a*R.AUD_USD;return a;};
 function fmtIDR(n){try{return Math.round(n).toLocaleString("id-ID");}catch{return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,".");}}
@@ -257,7 +257,7 @@ function suggestYahoo(ticker,exchange,assetType){
   return"";
 }
 
-// ─── Live Price Fetcher (full implementation) ───────────────────────────────────────────────
+// ─── Live Price Fetcher (full implementation) ─────────────────────────────────
 const YAHOO_BASE ="https://query2.finance.yahoo.com/v8/finance/chart/";
 const YAHOO_BASE1="https://query1.finance.yahoo.com/v8/finance/chart/";
 const YAHOO_V7   ="https://query1.finance.yahoo.com/v7/finance/quote?symbols=";
@@ -804,8 +804,8 @@ function useWindowSize(){
   useEffect(()=>{const h=()=>setW(window.innerWidth);window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h);},[]);
   return w;
 }
-  
-// ─── Chart Components (simplified for brevity, but fully functional) ──────────
+
+// ─── Chart Components ─────────────────────────────────────────────────────────
 function ChartLine({labels,datasets,T,yFmt,y2Fmt,height=220,spanGaps=false}){
   const ref=useRef(null);const inst=useRef(null);
   useEffect(()=>{
@@ -949,7 +949,7 @@ function ChartWaterfall({data,T,yFmt,height=240}){
   );
 }
 
-// ─── Import / Export (full) ─────────────────────────────────────────────────
+// ─── Import / Export ─────────────────────────────────────────────────────────
 const COL={
   ticker:     ["ticker","symbol","stock code","scrip","stock ticker","asx code","idx code","security code"],
   name:       ["name","company","company name","security name","description","instrument","issuer"],
@@ -1350,58 +1350,6 @@ function App(){
     if (totalInvestedDiv <= 0) return 0;
     return (totalDividendsDiv / totalInvestedDiv) * 100;
   }, [holdings]);
-  
-  const divCAGR = useMemo(() => computeDividendCAGR(portfolio, rates), [portfolio, rates]);
-  const monthlyDivsAUD = useMemo(() => computeMonthlyDividendsToDate(portfolio, rates), [portfolio, rates]);
-  const superFundsValueAUD = useMemo(() => computeSuperFundsValue(holdings), [holdings]);
-  const monthlyPassiveNumerator = useMemo(() => {
-    const superMonthly = (superFundsValueAUD * (superDrawRate / 100)) / 12;
-    return monthlyDivsAUD + superMonthly;
-  }, [monthlyDivsAUD, superFundsValueAUD, superDrawRate]);
-  const monthlyPassivePercent = useMemo(() => {
-    if (monthlyTargetAud <= 0) return null;
-    return (monthlyPassiveNumerator / monthlyTargetAud) * 100;
-  }, [monthlyPassiveNumerator, monthlyTargetAud]);
-  const targetDisplay = useMemo(() => {
-    if (monthlyTargetAud <= 0) return "—";
-    return fmtCur(monthlyTargetAud, displayCur, rates, true);
-  }, [monthlyTargetAud, displayCur, rates]);
-  
-  const superBenchmarkPercent = useMemo(() => {
-    if (avgSuperBalanceAud <= 0) return null;
-    return (superFundsValueAUD / avgSuperBalanceAud) * 100;
-  }, [superFundsValueAUD, avgSuperBalanceAud]);
-
-  function isDividendPayingHolding(holding) {
-    if (holding.ticker === "NUL5339AU" || holding.ticker === "NUL7270AU") return false;
-    if (!holding.assetType) return false;
-    if (DIVIDEND_PAYING_TYPES.has(holding.assetType)) return true;
-    if (holding.assetType.includes("Bond") || holding.assetType.includes("REIT")) return true;
-    return false;
-  }
-  function computeMonthlyDividendsToDate(portfolio, rates) {
-    const now = new Date();
-    const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-    let totalAUD = 0;
-    for (const h of portfolio) {
-      for (const tx of h.transactions) {
-        if (tx.type === "dividend" && tx.date && tx.date.startsWith(currentYearMonth)) {
-          totalAUD += toAUD(tx.totalAmount || 0, h.currency, rates);
-        }
-      }
-    }
-    return totalAUD;
-  }
-
-  function computeSuperFundsValue(holdings) {
-    let totalAUD = 0;
-    for (const h of holdings) {
-      if (h.ticker === "NUL5339AU" || h.ticker === "NUL7270AU") {
-        totalAUD += h.currentValue;
-      }
-    }
-    return totalAUD;
-  }
 
   function computeDividendCAGR(portfolio, rates) {
     const yearTotals = new Map();
@@ -1426,6 +1374,48 @@ function App(){
     const cagr = (Math.pow(lastVal / firstVal, 1 / numYears) - 1) * 100;
     return { cagr, firstYear, lastYear };
   }
+  const divCAGR = useMemo(() => computeDividendCAGR(portfolio, rates), [portfolio, rates]);
+  function computeMonthlyDividendsToDate(portfolio, rates) {
+    const now = new Date();
+    const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    let totalAUD = 0;
+    for (const h of portfolio) {
+      for (const tx of h.transactions) {
+        if (tx.type === "dividend" && tx.date && tx.date.startsWith(currentYearMonth)) {
+          totalAUD += toAUD(tx.totalAmount || 0, h.currency, rates);
+        }
+      }
+    }
+    return totalAUD;
+  }
+  const monthlyDivsAUD = useMemo(() => computeMonthlyDividendsToDate(portfolio, rates), [portfolio, rates]);
+  function computeSuperFundsValue(holdings) {
+    let totalAUD = 0;
+    for (const h of holdings) {
+      if (h.ticker === "NUL5339AU" || h.ticker === "NUL7270AU") {
+        totalAUD += h.currentValue;
+      }
+    }
+    return totalAUD;
+  }
+  const superFundsValueAUD = useMemo(() => computeSuperFundsValue(holdings), [holdings]);
+  const monthlyPassiveNumerator = useMemo(() => {
+    const superMonthly = (superFundsValueAUD * (superDrawRate / 100)) / 12;
+    return monthlyDivsAUD + superMonthly;
+  }, [monthlyDivsAUD, superFundsValueAUD, superDrawRate]);
+  const monthlyPassivePercent = useMemo(() => {
+    if (monthlyTargetAud <= 0) return null;
+    return (monthlyPassiveNumerator / monthlyTargetAud) * 100;
+  }, [monthlyPassiveNumerator, monthlyTargetAud]);
+  const targetDisplay = useMemo(() => {
+    if (monthlyTargetAud <= 0) return "—";
+    return fmtCur(monthlyTargetAud, displayCur, rates, true);
+  }, [monthlyTargetAud, displayCur, rates]);
+  
+  const superBenchmarkPercent = useMemo(() => {
+    if (avgSuperBalanceAud <= 0) return null;
+    return (superFundsValueAUD / avgSuperBalanceAud) * 100;
+  }, [superFundsValueAUD, avgSuperBalanceAud]);
 
   const FC=(a,compact=false)=>valuesHidden?"••••••":fmtCur(a,displayCur,rates,compact);
   const FG=(a)=>valuesHidden?"••••••":fmtGain(a,displayCur,rates);
@@ -1433,7 +1423,8 @@ function App(){
 
   const perfRects=useMemo(()=>{const it=holdings.map(h=>({...h,value:h.currentValue})).sort((a,b)=>b.value-a.value);return it.length?squarify(it,0,0,tmSize.w,tmSize.h):[];},[holdings,tmSize]);
   const divRects =useMemo(()=>{const it=holdings.filter(h=>h.totalDividends>0).map(h=>({...h,value:h.totalDividends})).sort((a,b)=>b.value-a.value);return it.length?squarify(it,0,0,tmSize.w,tmSize.h):[];},[holdings,tmSize]);
-  const dayRects =useMemo(()=>{const it=holdings.map(h=>({...h,value:Math.max(Math.abs(h.dayGain),0.01)})).sort((a,b)=>b.value-a.value);return it.length?squarify(it,0,0,tmSize.w,tmSize.h):[];},[holdings,tmSize]);
+  // Day treemap: size = currentValue, color = dayGainPct
+  const dayRects =useMemo(()=>{const it=holdings.map(h=>({...h,value:h.currentValue})).sort((a,b)=>b.value-a.value);return it.length?squarify(it,0,0,tmSize.w,tmSize.h):[];},[holdings,tmSize]);
 
   const sliderDate=tmSlider!=null&&benchmarks.labels.length>tmSlider?benchmarks.labels[tmSlider]:null;
   const sliderRects=useMemo(()=>{
@@ -1488,7 +1479,7 @@ function App(){
     if (period === "5Y") { const d = new Date(now); d.setFullYear(d.getFullYear() - 5); return d; }
     return new Date(0);
   }, []);
-  
+
   const autoRefresh = useCallback(async () => {
     setFetchSt(s => ({ ...s, loading: true, fetched: 0 }));
     let newRates = rates, rateOk = false;
@@ -1516,7 +1507,6 @@ function App(){
         const ok = BM_DEFS.map((b, i) => results[i].status === "fulfilled" ? b.label + "✓" : null).filter(Boolean);
         const fail = BM_DEFS.map((b, i) => results[i].status === "rejected" ? b.label : null).filter(Boolean);
         bmStatus = `${ok.length}/${BM_DEFS.length} loaded${fail.length ? ` · failed: ${fail.join(", ")}` : ""}`;
-
         const fetchable = portfolio.filter(h => h.yahooSymbol);
         const holdingPriceMaps = {};
         const CONCURRENCY = 4;
@@ -1556,7 +1546,6 @@ function App(){
     const newP = { ...prices }, newPP = { ...prevPrices };
     const errors = {};
     let successes = 0;
-
     function fetchPriceFor(h) {
       if (h.yahooSymbol) return fetchYahooPrice(h.yahooSymbol);
       const tk = h.ticker.toUpperCase();
@@ -1564,7 +1553,6 @@ function App(){
       if (/^[A-Z]{3}\d{4}[A-Z]{2}$/i.test(tk)) return fetchAUFundPrice(tk);
       return Promise.reject(new Error("No price source"));
     }
-
     const CONCURRENCY_PRICE = 8;
     const priceResults = new Array(fetchablePrices.length);
     async function fetchOnePrice(h, idx) {
@@ -1581,7 +1569,6 @@ function App(){
       const done = priceResults.filter(Boolean).length;
       setFetchSt(s => ({ ...s, fetched: done, total: fetchablePrices.length }));
     }
-
     priceResults.forEach((r, i) => {
       const h = fetchablePrices[i];
       if (r?.status === "fulfilled") {
@@ -1596,13 +1583,11 @@ function App(){
     });
     setPrices(newP);
     setPrevPrices(newPP);
-
     const now = new Date();
     const date = now.toISOString().slice(0, 10);
     const hs = portfolio.map(h => computeHolding(h, newP, newPP, newRates)).filter(h => h.qty > 0);
     const snap = { date, totalValueAUD: hs.reduce((s, h) => s + h.currentValue, 0), totalDividendsAUD: hs.reduce((s, h) => s + h.totalDividends, 0) };
     setHistory(prev => [...prev.filter(s => s.date !== date), snap].sort((a, b) => new Date(a.date) - new Date(b.date)).slice(-90));
-
     setFetchSt({
       loading: false,
       lastUpdate: now,
@@ -1734,24 +1719,6 @@ function App(){
       borderWidth: 1,
       borderRadius: 3,
     }));
-    const divByYear = {};
-    portfolio.forEach(h => {
-      h.transactions.filter(t => t.type === "dividend").forEach(t => {
-        const y = t.date.slice(0,4);
-        const val = fromAUD(toAUD(t.totalAmount || 0, h.currency, rates), displayCur, rates);
-        divByYear[y] = (divByYear[y] || 0) + val;
-      });
-    });
-    const divYears = Object.keys(divByYear).sort();
-    let divCAGR = null, divCAGRYears = 0;
-    if (divYears.length >= 2) {
-      const firstY = divYears[0], lastY = divYears[divYears.length-1];
-      const firstVal = divByYear[firstY], lastVal = divByYear[lastY];
-      divCAGRYears = parseInt(lastY) - parseInt(firstY);
-      if (divCAGRYears > 0 && firstVal > 0 && lastVal > 0) {
-        divCAGR = (Math.pow(lastVal / firstVal, 1 / divCAGRYears) - 1) * 100;
-      }
-    }
     const byType = {};
     holdings.forEach(h => { const k = h.assetType || "Other"; byType[k] = (byType[k] || 0) + fromAUD(h.currentValue, displayCur, rates); });
     const byCur = {};
@@ -1770,6 +1737,24 @@ function App(){
       netSales > 0 ? { label: "Sales", value: -netSales, type: "neg" } : null,
       { label: "End Value", value: endVal, type: "total" },
     ].filter(Boolean);
+    const divByYear = {};
+    portfolio.forEach(h => {
+      h.transactions.filter(t => t.type === "dividend").forEach(t => {
+        const y = t.date.slice(0,4);
+        const val = fromAUD(toAUD(t.totalAmount || 0, h.currency, rates), displayCur, rates);
+        divByYear[y] = (divByYear[y] || 0) + val;
+      });
+    });
+    const divYears = Object.keys(divByYear).sort();
+    let divCAGR = null, divCAGRYears = 0;
+    if (divYears.length >= 2) {
+      const firstY = divYears[0], lastY = divYears[divYears.length-1];
+      const firstVal = divByYear[firstY], lastVal = divByYear[lastY];
+      divCAGRYears = parseInt(lastY) - parseInt(firstY);
+      if (divCAGRYears > 0 && firstVal > 0 && lastVal > 0) {
+        divCAGR = (Math.pow(lastVal / firstVal, 1 / divCAGRYears) - 1) * 100;
+      }
+    }
     return {
       labels, vals, divCumul,
       mLabels: mKeys.map(fmtMon), mVals: mKeys.map(k => monthly[k]), mDatasets,
@@ -1780,7 +1765,7 @@ function App(){
       bmLabels, bmSeries, bmPortfolio,
     };
   }, [history, holdings, displayCur, rates, portfolio, chartPeriod, periodCutoff, benchmarks, totVal, dark, prices]);
-  
+
   const yFmtD=useCallback((v)=>{
     if(displayCur==="IDR"){const abs=Math.abs(v);if(abs>=1e9)return`Rp${(v/1e9).toFixed(1)}M`;if(abs>=1e6)return`Rp${(v/1e6).toFixed(1)}Jt`;return`Rp${(v/1e3).toFixed(0)}Rb`;}
     const abs=Math.abs(v);if(abs>=1e6)return`${displayCur==="USD"?"US$":"A$"}${(v/1e6).toFixed(1)}M`;return`${displayCur==="USD"?"US$":"A$"}${(v/1e3).toFixed(0)}K`;
@@ -1906,11 +1891,11 @@ function App(){
   const fmtNativePrice=(h,v)=>{const cur=h.currency;if(!v&&v!==0)return"—";if(cur==="IDR")return`Rp ${fmtIDR(v)}`;if(cur==="USD")return`US$${fmtAUD(v)}`;return`A$${fmtAUD(v)}`;};
   const fetchBarColor=fetchSt.loading?T.amber:Object.keys(fetchSt.errors).length>0?T.amber:fetchSt.lastUpdate?T.green:T.text3;
 
-  // JSX return (full layout)
+  // JSX
   return (
     <ErrorBoundary>
       <div style={{minHeight:"100vh",background:T.bg,color:T.text}}>
-        {/* Header – two rows on desktop, mobile wraps */}
+        {/* Header */}
         <header style={{background:T.bg2,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:20,boxShadow:T.shadow}}>
           <div style={{display:"flex",flexDirection:"column",gap:8,padding:"10px 14px"}}>
             <div className="header-main-row" style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
@@ -1934,7 +1919,6 @@ function App(){
                   <text x="59" y="46" fontFamily="'Roboto',sans-serif" fontWeight="500" fontSize="7" letterSpacing="2.5" fill="#4dd08a" opacity="0.75">PORTFOLIO TRACKER</text>
                 </svg>
               </div>
-              {/* Desktop stats row */}
               <div className="hdr-desktop" style={{display:"flex",alignItems:"stretch",flex:1,flexWrap:"wrap",gap:"8px 16px",overflow:"hidden"}}>
                 {[["VALUE",FC(totVal,true),T.text],["TOTAL G/L",`${FG(totGain)} (${fmtPct(totPct)})`,pColor(totGain)],["DAY G/L",`${FG(totDayGain)} (${fmtPct(totDayPct)})`,pColor(totDayGain)],["DIV YLD (div only)",fmtPct(divYieldOnly),T.teal],["DIV CAGR",divCAGR ? `${divCAGR.cagr>=0?"+":""}${divCAGR.cagr.toFixed(1)}%`:"—",T.teal],["PASSIVE",monthlyPassivePercent !== null ? `${monthlyPassivePercent.toFixed(1)}% of ${targetDisplay}` : "Set target", monthlyPassivePercent !== null && monthlyPassivePercent >= 100 ? T.green : T.amber],["SUPER BENCH",superBenchmarkPercent !== null ? `${superBenchmarkPercent.toFixed(0)}% of avg` : "Set avg", superBenchmarkPercent !== null && superBenchmarkPercent >= 100 ? T.green : T.amber],["HOLDINGS",String(holdings.length),T.text2]].map(([l,v,c],i)=>(
                   <div key={l} style={{display:"flex",flexDirection:"column",padding:"0 8px 0 0",borderLeft:i>0?`1px solid ${T.border}`:"none",minWidth:0}}>
@@ -1943,14 +1927,12 @@ function App(){
                   </div>
                 ))}
               </div>
-              {/* Mobile stats */}
               <div className="hdr-mobile stats-mobile-wrap" style={{display:"none",gap:10,flex:1,justifyContent:"center",flexWrap:"wrap"}}>
                 {[["VALUE",FC(totVal,true),T.text],["G/L",fmtPct(totPct),pColor(totGain)],["DAY",fmtPct(totDayPct),pColor(totDayGain)],["DIV YLD",fmtPct(divYieldOnly),T.teal],["PASSIVE",monthlyPassivePercent !== null ? `${monthlyPassivePercent.toFixed(0)}%` : "Set", monthlyPassivePercent !== null && monthlyPassivePercent >= 100 ? T.green : T.amber],["SUPER",superBenchmarkPercent !== null ? `${superBenchmarkPercent.toFixed(0)}%` : "Set avg", superBenchmarkPercent !== null && superBenchmarkPercent >= 100 ? T.green : T.amber]].map(([l,v,c])=>(
                   <div key={l} style={{textAlign:"center"}}><div style={{fontSize:8,color:T.text3,letterSpacing:1.5,textTransform:"uppercase"}}>{l}</div><div style={{fontFamily:"'Space Mono',monospace",fontSize:12,fontWeight:700,color:c}}>{v}</div></div>
                 ))}
               </div>
             </div>
-            {/* Controls row (second row on mobile) */}
             <div className="header-controls-row" style={{display:"flex",gap:5,alignItems:"center",justifyContent:"flex-end",flexWrap:"wrap"}}>
               <div style={{display:"flex",background:T.bg4,borderRadius:8,padding:2,border:`1px solid ${T.border}`}}>
                 {CURRENCIES.map(c=><button key={c} onClick={()=>setDisplayCur(c)} style={{padding:"4px 8px",borderRadius:6,border:"none",background:displayCur===c?T.bg2:"transparent",color:displayCur===c?T.text:T.text3,fontSize:10,fontWeight:displayCur===c?700:400,fontFamily:"'Space Mono',monospace"}}>{c}</button>)}
@@ -1983,7 +1965,6 @@ function App(){
               <button onClick={openAdd} style={{...bS(T.greenBtn,"#fff",{padding:"7px 12px",fontSize:11})}}>+ Add</button>
             </div>
           </div>
-          {/* Status bar */}
           <div style={{display:"flex",alignItems:"center",gap:10,padding:"4px 14px",background:T.bg,borderTop:`1px solid ${T.border}`,fontSize:10,color:T.text3,flexWrap:"wrap",minHeight:26}}>
             <span>1 AUD = {rates.AUD_IDR.toLocaleString("en-AU")} IDR</span>
             <span style={{color:T.border}}>·</span>
@@ -2026,7 +2007,7 @@ function App(){
             {view==="treemap"&&tmMode==="day"&&<>
               <span style={{fontSize:9,color:T.text3,letterSpacing:1,textTransform:"uppercase",marginRight:2}}>Day G/L %:</span>
               {[[-3,"≤-2%"],[-1,"-0.5%"],[0,"0"],[0.6,"+0.5%"],[3,"+2%+"]].map(([p,l])=>{const c=dayColor(p,dark);return(<div key={l} style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:11,height:11,borderRadius:2,background:c.bg,border:`1px solid ${c.border}`}}/><span style={{fontSize:9,color:T.text3}}>{l}</span></div>);})}
-              <span style={{fontSize:9,color:T.text4,marginLeft:6}}>· Box size = absolute $ day gain/loss · Colour = day return %</span>
+              <span style={{fontSize:9,color:T.text4,marginLeft:6}}>· Box size = current market value · Colour = day return %</span>
             </>}
             {view==="treemap"&&tmMode==="dividend"&&<>
               <span style={{fontSize:9,color:T.text3,letterSpacing:1,textTransform:"uppercase",marginRight:2}}>Div yld/cost:</span>
@@ -2062,13 +2043,10 @@ function App(){
                 {rects.map(r=>{
                   const c=tmSlider!=null&&sliderRects!=null?gainColor(r.gainPct??0,dark):(tmMode==="performance"?gainColor(r.gainPct,dark):tmMode==="day"?dayColor(r.dayGainPct,dark):divColor(r.divYieldOnCost,dark));
                   const area=r.w*r.h;
-                  // Always show ticker and percentage, but scale font size proportionally to box area.
-                  // Base font size on the smaller dimension to avoid overflow, clamp between 8 and 19.
                   const minDim = Math.min(r.w, r.h);
                   const baseFont = Math.max(8, Math.min(19, minDim / 7));
                   const tickerSize = baseFont;
                   const pctSize = Math.max(7, baseFont * 0.7);
-                  // Extra details only when area is large enough
                   const showExtra = area > 3000;
                   return(
                     <div key={r.ticker} onClick={()=>setSelected(r.ticker===selected?null:r.ticker)}
@@ -2397,11 +2375,10 @@ function App(){
           )}
         </main>
 
-        {/* ─── MODALS (condensed for length, but fully functional) ────────── */}
+        {/* Modals */}
         {modal && (
           <div onClick={closeModal} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.78)",backdropFilter:"blur(8px)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:12}}>
             <div onClick={e=>e.stopPropagation()} style={{background:T.bg2,border:`1px solid ${T.border}`,borderRadius:14,padding:22,width:"100%",maxWidth:modal?.mode==="import"?720:520,maxHeight:"92vh",overflowY:"auto",boxShadow:T.shadow}}>
-              {/* ADD MODAL */}
               {modal.mode==="add" && (
                 <>
                   <h2 style={{fontFamily:"'Space Mono',monospace",fontSize:15,fontWeight:700,color:T.text,marginBottom:16}}>Add New Position</h2>
@@ -2435,7 +2412,6 @@ function App(){
                   <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}><button style={bO(T.text2)} onClick={closeModal}>Cancel</button><button style={bS(T.greenBtn,"#fff")} onClick={submitAdd}>Add Position</button></div>
                 </>
               )}
-              {/* BUY/SELL MODAL */}
               {modal.mode==="trade" && (
                 <>
                   <h2 style={{fontFamily:"'Space Mono',monospace",fontSize:15,fontWeight:700,color:T.text,marginBottom:6}}>{modal.tradeType==="buy"?"Buy More —":"Sell —"} {modal.holding.ticker}</h2>
@@ -2449,7 +2425,6 @@ function App(){
                   <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}><button style={bO(T.text2)} onClick={closeModal}>Cancel</button><button style={bS(modal.tradeType==="buy"?T.greenBtn:T.redBtn,"#fff")} onClick={submitTrade}>Confirm {modal.tradeType==="buy"?"Purchase":"Sale"}</button></div>
                 </>
               )}
-              {/* DIVIDEND MODAL */}
               {modal.mode==="dividend" && (
                 <>
                   <h2 style={{fontFamily:"'Space Mono',monospace",fontSize:15,fontWeight:700,color:T.text,marginBottom:4}}>{modal.holding.isBondPct?"🏦 Record Coupon":"💰 Record Dividend"} — {modal.holding.ticker}</h2>
@@ -2464,7 +2439,6 @@ function App(){
                   <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}><button style={bO(T.text2)} onClick={closeModal}>Cancel</button><button style={bS(T.tealBtn,"#fff")} onClick={submitDiv} disabled={!form.amountPerShare||!form.entitledQty}>Record {modal.holding.isBondPct?"Coupon":"Dividend"}</button></div>
                 </>
               )}
-              {/* HISTORY MODAL */}
               {modal.mode==="history" && histH && histC && (
                 <>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14,gap:10}}><div><h2 style={{fontFamily:"'Space Mono',monospace",fontSize:15,fontWeight:700,color:T.text,marginBottom:4}}>📋 Transaction History</h2><p style={{fontSize:11,color:T.text3}}>{modal.holding.ticker} — {modal.holding.name}</p></div></div>
@@ -2510,7 +2484,6 @@ function App(){
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:12}}><span style={{fontSize:10,color:T.text3}}>{histH.transactions.length} transactions total</span><button style={bO(T.text2)} onClick={closeModal}>Close</button></div>
                 </>
               )}
-              {/* MANUAL PRICE MODAL */}
               {modal.mode==="price" && (
                 <>
                   <h2 style={{fontFamily:"'Space Mono',monospace",fontSize:15,fontWeight:700,color:T.text,marginBottom:4}}>✏️ Manual Price Override</h2>
@@ -2521,7 +2494,6 @@ function App(){
                   <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:4}}><button style={bO(T.text2)} onClick={closeModal}>Cancel</button><button style={bS(T.greenBtn,"#fff")} onClick={submitManualPrice}>💾 Save & Snapshot</button></div>
                 </>
               )}
-              {/* IMPORT MODAL (condensed but fully functional) */}
               {modal.mode==="import" && (()=>{
                 const IS=importSt;
                 const valid=IS.parsed.filter(r=>!r._errors.length);
@@ -2539,7 +2511,6 @@ function App(){
                   {IS.step==="done"&&(<div style={{textAlign:"center",padding:"24px 0"}}><div style={{fontSize:48,marginBottom:12}}>🎉</div><div style={{fontSize:18,fontWeight:700,color:T.green,marginBottom:8}}>Import complete!</div><div style={{fontSize:13,color:T.text2,marginBottom:8}}>{IS.importedCount} transactions imported.</div><div style={{fontSize:11,color:T.text3,marginBottom:24}}>Click the 🔄 Live Prices button to fetch current prices for new holdings.</div><button style={bS(T.greenBtn,"#fff",{padding:"9px 28px",fontSize:13})} onClick={closeModal}>Done</button></div>)}
                 </>);
               })()}
-              {/* FIREBASE SETUP MODAL */}
               {modal.mode==="firebaseSetup" && (()=>{
                 const [cfg,setCfg]=React.useState({apiKey:"",authDomain:"",projectId:"",storageBucket:"",messagingSenderId:"",appId:""});
                 const fields=[["apiKey","API Key","AIzaSy..."],["authDomain","Auth Domain","your-project.firebaseapp.com"],["projectId","Project ID","your-project-id"],["storageBucket","Storage Bucket","your-project.appspot.com"],["messagingSenderId","Messaging Sender ID","123456789"],["appId","App ID","1:123456789:web:abc123"]];
