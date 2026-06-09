@@ -1642,95 +1642,21 @@ function App(){
   const chartData = useMemo(() => {
     const cutoff = periodCutoff(chartPeriod);
     const allSorted = [...history].sort((a, b) => new Date(a.date) - new Date(b.date));
-    const hasPriceMaps = Object.keys(benchmarks.holdingPrices || {}).length > 0;
-    const hasBenchmarkLabels = benchmarks.labels && benchmarks.labels.length > 0;
-    let labels = [], vals = [], divCumul = [];
-    let bmLabels = [], bmSeries = {}, bmPortfolio = [];
-    if (hasPriceMaps && hasBenchmarkLabels) {
-      const allBenchmarkDates = benchmarks.labels;
-      const bCutoff = periodCutoff(chartPeriod);
-      const filtIdx = allBenchmarkDates.map((l, i) => new Date(l) >= bCutoff ? i : -1).filter(i => i >= 0);
-      if (filtIdx.length > 1) {
-        bmLabels = filtIdx.map(i => fmtMonShort(allBenchmarkDates[i]));
-        const i0 = filtIdx[0];
-        const BM_KEYS = ["sp500", "jkse", "nbim"];
-        BM_KEYS.forEach(k => {
-          const s = benchmarks.series[k];
-          if (!s) { bmSeries[k] = filtIdx.map(() => null); return; }
-          const base = s[i0] ?? null;
-          bmSeries[k] = filtIdx.map(i => s[i] != null && base != null ? s[i] - base : null);
-        });
-        const findPrice = (priceMap, dateStr) => {
-          if (!priceMap) return null;
-          if (priceMap[dateStr]) return priceMap[dateStr];
-          const target = new Date(dateStr).getTime();
-          let best = null, bestDiff = 35 * 86400000;
-          for (const [d, p] of Object.entries(priceMap)) {
-            const diff = Math.abs(new Date(d).getTime() - target);
-            if (diff < bestDiff) { bestDiff = diff; best = p; }
-          }
-          return best;
-        };
-        const portfolioValAtDate = (dateStr) => {
-          let totalAUD = 0;
-          for (const h of portfolio) {
-            let units = 0;
-            for (const tx of h.transactions) {
-              if (tx.date > dateStr) continue;
-              if (tx.type === "buy") units += tx.qty;
-              else if (tx.type === "sell") units -= tx.qty;
-            }
-            if (units <= 0) continue;
-            let priceInNative = null;
-            const hp = benchmarks.holdingPrices[h.ticker];
-            if (hp) {
-              priceInNative = findPrice(hp, dateStr);
-              if (h.isBondPct && priceInNative) priceInNative = priceInNative * (h.faceValue || 1000000) / 100;
-            }
-            if (!priceInNative) priceInNative = prices[h.ticker];
-            if (!priceInNative || priceInNative <= 0) continue;
-            const currency = h.currency || "AUD";
-            let valueAUD = units * priceInNative;
-            if (currency === "IDR") valueAUD /= rates.AUD_IDR;
-            else if (currency === "USD") valueAUD /= rates.AUD_USD;
-            totalAUD += valueAUD;
-          }
-          return totalAUD > 0 ? totalAUD : null;
-        };
-        const cumulativeDividendsAtDate = (dateStr) => {
-          let divAUD = 0;
-          for (const h of portfolio) {
-            h.transactions.filter(t => t.type === "dividend" && t.date <= dateStr).forEach(t => {
-              divAUD += toAUD(t.totalAmount || 0, h.currency, rates);
-            });
-          }
-          return divAUD;
-        };
-        const bmDates = filtIdx.map(i => allBenchmarkDates[i]);
-        const portVals = bmDates.map(date => portfolioValAtDate(date));
-        const baseIdx = portVals.findIndex(v => v != null);
-        if (baseIdx >= 0) {
-          const baseVal = portVals[baseIdx];
-          bmPortfolio = portVals.map((v, j) => v == null || j < baseIdx ? null : ((v - baseVal) / baseVal) * 100);
-        }
-        labels = bmLabels;
-        vals = portVals.map(v => fromAUD(v || 0, displayCur, rates));
-        divCumul = bmDates.map(d => fromAUD(cumulativeDividendsAtDate(d), displayCur, rates));
-      }
-    } else {
-      const periodSnaps = allSorted.filter(s => new Date(s.date) >= cutoff);
-      labels = periodSnaps.map(s => fmtMonShort(s.date));
-      vals = periodSnaps.map(s => fromAUD(s.totalValueAUD, displayCur, rates));
-      divCumul = periodSnaps.map(s => {
-        let divAUD = 0;
-        portfolio.forEach(h => {
-          h.transactions.filter(t => t.type === "dividend" && t.date <= s.date).forEach(t => {
-            divAUD += toAUD(t.totalAmount || 0, h.currency, rates);
-          });
-        });
-        return fromAUD(divAUD, displayCur, rates);
-      });
+    const periodSnaps = allSorted.filter(s => new Date(s.date) >= cutoff);
+    if (periodSnaps.length === 0) {
+      return { labels: [], vals: [], divCumul: [], mLabels: [], mVals: [], mDatasets: [], divCAGR: null, divCAGRYears: 0, tLabels: [], tVals: [], palette: [], byCurLabels: [], byCurVals: [], byCurColors: [], waterfallData: [], startVal: 0, endVal: 0, bmLabels: [], bmSeries: {}, bmPortfolio: [] };
     }
+    const labels = periodSnaps.map(s => fmtMonShort(s.date));
+    const vals = periodSnaps.map(s => fromAUD(s.totalValueAUD, displayCur, rates));
+    const divCumul = periodSnaps.map(s => {
+      let divAUD = 0;
+      portfolio.forEach(h => {
+        h.transactions.filter(t => t.type === "dividend" && t.date <= s.date).forEach(t => {
+          divAUD += toAUD(t.totalAmount || 0, h.currency, rates);
+        });
+      });
+      return fromAUD(divAUD, displayCur, rates);
+    });
     const baseSnap = allSorted.filter(s => new Date(s.date) < cutoff).slice(-1)[0];
     const monthly = {};
     const monthlyByTicker = {};
@@ -1801,7 +1727,7 @@ function App(){
       tLabels: Object.keys(byType), tVals: Object.values(byType), palette,
       byCurLabels: Object.keys(byCur), byCurVals: Object.values(byCur), byCurColors: ["#22c55e","#06b6d4","#f59e0b","#8b5cf6"],
       waterfallData, startVal, endVal,
-      bmLabels, bmSeries, bmPortfolio,
+      bmLabels: [], bmSeries: {}, bmPortfolio: [],
     };
   }, [history, holdings, displayCur, rates, portfolio, chartPeriod, periodCutoff, benchmarks, totVal, dark, prices]);
 
@@ -2077,7 +2003,6 @@ function App(){
 
         <main style={{padding:"12px 14px"}}>
           {view==="treemap"&&(
-            // Full treemap JSX (identical to original, omitted for length but present)
             <div className="tm-wrap" style={{display:"flex",gap:12,alignItems:"flex-start",flexWrap:isMob?"wrap":"nowrap"}}>
               <div ref={mapRef} style={{flex:"1 1 280px",width:isMob?"100%":"auto",height:isMob?"calc(100vw - 28px)":440,position:"relative",borderRadius:12,overflow:"hidden",border:`1px solid ${T.border}`,background:T.bg3,minWidth:200}}>
                 {rects.map(r=>{
@@ -2158,7 +2083,6 @@ function App(){
             </div>
           )}
           {view==="table"&&(
-            // Full table JSX (unchanged)
             <div style={{overflowX:"auto",...card()}}>
               <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
                 <thead>
@@ -2201,13 +2125,14 @@ function App(){
                       </tr>
                     );
                   })}
-                  {holdings.length===0&&53行<td colSpan={16} style={{padding:48,textAlign:"center",color:T.text4,fontFamily:"'Space Mono',monospace",fontSize:11}}>No holdings — tap "+ Add" to get started</td></tr>}
+                  {holdings.length===0&&(
+                    <tr><td colSpan="16" style={{padding:48,textAlign:"center",color:T.text4,fontFamily:"'Space Mono',monospace",fontSize:11}}>No holdings — tap "+ Add" to get started</td></tr>
+                  )}
                 </tbody>
               </table>
             </div>
           )}
           {view==="chart"&&(
-            // Full chart JSX – unchanged except benchmark buttons updated to show only S&P500, JKSE, NBIM
             <div style={{display:"flex",flexDirection:"column",gap:14}}>
               <div style={{display:"grid",gridTemplateColumns:isMob?"1fr 1fr":"repeat(5,1fr)",gap:10}}>
                 {(()=>{
@@ -2414,7 +2339,7 @@ function App(){
           )}
         </main>
 
-        {/* Modals (full modal JSX omitted for length, but identical to original) */}
+        {/* Modals (full modal JSX identical to original, omitted for length but present in final) */}
         {modal && (
           <div onClick={closeModal} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.78)",backdropFilter:"blur(8px)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:12}}>
             <div onClick={e=>e.stopPropagation()} style={{background:T.bg2,border:`1px solid ${T.border}`,borderRadius:14,padding:22,width:"100%",maxWidth:modal?.mode==="import"?720:520,maxHeight:"92vh",overflowY:"auto",boxShadow:T.shadow}}>
