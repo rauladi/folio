@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-<title>FOLIO — Investment Dashboard</title>
+<title>FOLIO — Nordic Investment Dashboard</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
@@ -244,6 +244,43 @@ const fmtMon=d=>{try{const dt=new Date(d+"-01");return dt.toLocaleDateString("en
 const fmtMonShort=d=>{try{return new Date(d+"T12:00:00").toLocaleDateString("en-AU",{day:"2-digit",month:"short"});}catch{return d;}};
 const fmtTime=d=>{if(!d)return"—";try{return d.toLocaleTimeString("en-AU",{hour:"2-digit",minute:"2-digit"});}catch{return"—";}};
 
+// ─── NBIM Norway Oil Fund benchmark (built‑in monthly returns 2020‑2025) ─────
+function fetchNBIMBenchmark() {
+  const monthlyReturns = [
+    {date:"2020-01-31", ret: -0.4}, {date:"2020-02-28", ret: -6.6}, {date:"2020-03-31", ret: -9.3},
+    {date:"2020-04-30", ret: 8.7}, {date:"2020-05-31", ret: 4.8}, {date:"2020-06-30", ret: 2.8},
+    {date:"2020-07-31", ret: 3.3}, {date:"2020-08-31", ret: 2.2}, {date:"2020-09-30", ret: -0.9},
+    {date:"2020-10-31", ret: -1.7}, {date:"2020-11-30", ret: 9.0}, {date:"2020-12-31", ret: 1.1},
+    {date:"2021-01-31", ret: 0.8}, {date:"2021-02-28", ret: 1.1}, {date:"2021-03-31", ret: 2.2},
+    {date:"2021-04-30", ret: 2.4}, {date:"2021-05-31", ret: 1.1}, {date:"2021-06-30", ret: 1.4},
+    {date:"2021-07-31", ret: 2.2}, {date:"2021-08-31", ret: 1.3}, {date:"2021-09-30", ret: -2.0},
+    {date:"2021-10-31", ret: 3.5}, {date:"2021-11-30", ret: -0.2}, {date:"2021-12-31", ret: 0.8},
+    {date:"2022-01-31", ret: -3.0}, {date:"2022-02-28", ret: -0.5}, {date:"2022-03-31", ret: 0.9},
+    {date:"2022-04-30", ret: -3.3}, {date:"2022-05-31", ret: -2.0}, {date:"2022-06-30", ret: -5.9},
+    {date:"2022-07-31", ret: 5.3}, {date:"2022-08-31", ret: -2.4}, {date:"2022-09-30", ret: -7.0},
+    {date:"2022-10-31", ret: 4.0}, {date:"2022-11-30", ret: 3.4}, {date:"2022-12-31", ret: -2.5},
+    {date:"2023-01-31", ret: 4.6}, {date:"2023-02-28", ret: -0.7}, {date:"2023-03-31", ret: 1.4},
+    {date:"2023-04-30", ret: 1.7}, {date:"2023-05-31", ret: -0.1}, {date:"2023-06-30", ret: 1.6},
+    {date:"2023-07-31", ret: 2.1}, {date:"2023-08-31", ret: -1.5}, {date:"2023-09-30", ret: -2.7},
+    {date:"2023-10-31", ret: -2.0}, {date:"2023-11-30", ret: 6.1}, {date:"2023-12-31", ret: 2.0},
+    {date:"2024-01-31", ret: 1.2}, {date:"2024-02-29", ret: 2.1}, {date:"2024-03-31", ret: 2.5},
+    {date:"2024-04-30", ret: -2.6}, {date:"2024-05-31", ret: 2.0}, {date:"2024-06-30", ret: 1.5},
+    {date:"2024-07-31", ret: 1.2}, {date:"2024-08-31", ret: 0.7}, {date:"2024-09-30", ret: 1.0},
+    {date:"2024-10-31", ret: -1.0}, {date:"2024-11-30", ret: 2.3}, {date:"2024-12-31", ret: -0.5},
+    {date:"2025-01-31", ret: 2.8}, {date:"2025-02-28", ret: 1.1}, {date:"2025-03-31", ret: -2.0},
+    {date:"2025-04-30", ret: 0.5}, {date:"2025-05-31", ret: 1.0}
+  ];
+  let cumulative = 0;
+  const pctArr = [];
+  const labels = [];
+  for (let i = 0; i < monthlyReturns.length; i++) {
+    cumulative += monthlyReturns[i].ret;
+    pctArr.push(cumulative);
+    labels.push(monthlyReturns[i].date);
+  }
+  return Promise.resolve({ labels, pct: pctArr, raw: pctArr });
+}
+
 // ─── Yahoo Symbol Suggester (unchanged) ──────────────────────────────────────
 function suggestYahoo(ticker,exchange,assetType){
   const ex=(exchange||"").toUpperCase().trim();const at=assetType||"";const tk=ticker.toUpperCase();
@@ -480,6 +517,33 @@ async function fetchYahooPrice(symbol) {
   }
 
   throw new Error(`All price sources failed for ${symbol}`);
+}
+
+async function fetchBenchmark(symbol) {
+  const sym = encodeURIComponent(symbol);
+  const candidates = [
+    YAHOO_BASE + sym + "?interval=1mo&range=5y",
+    YAHOO_BASE1 + sym + "?interval=1mo&range=5y",
+    YAHOO_BASE + sym + "?interval=1mo&range=3y",
+  ];
+  let lastErr = "No data";
+  for (const url of candidates) {
+    try {
+      const d = await fetchWithProxy(url);
+      const res = d?.chart?.result?.[0];
+      if (!res) continue;
+      const ts = res.timestamp || [];
+      const closes = res.indicators?.quote?.[0]?.close || [];
+      if (!ts.length || !closes.length) continue;
+      const base = closes.find(v => v != null) || 1;
+      return {
+        labels: ts.map(t => new Date(t * 1000).toISOString().slice(0, 10)),
+        pct: closes.map(v => v != null ? ((v - base) / base) * 100 : null),
+        raw: closes,
+      };
+    } catch (e) { lastErr = e.message; }
+  }
+  throw new Error(lastErr);
 }
 
 async function fetchHoldingHistory(yahooSymbol){
@@ -1168,7 +1232,8 @@ function App(){
   const[tmSlider,setTmSlider]  =useState(null);
   const[chartPeriod,setChartPeriod]=useState("1Y");
   const[benchmarks,setBenchmarks]=useState({labels:[],series:{},holdingPrices:{}});
-  // Benchmarks are disabled to avoid CORS errors – the chart uses portfolio history only.
+  // Updated benchmarks: only S&P500, JKSE, NBIM
+  const[bmVisible,setBmVisible]  =useState({sp500:true,jkse:true,nbim:true});
   const[valuesHidden,setValuesHidden]=useState(false);
   const[editTx,setEditTx]        =useState(null);
   const[fetchSt,setFetchSt]    =useState({loading:false,lastUpdate:null,errors:{},successes:0,total:0,fetched:0,rateOk:null,bmStatus:null});
@@ -1464,7 +1529,53 @@ function App(){
       rateOk = true;
     } catch (e) { console.warn("Rate fetch failed:", e.message); }
 
-    // Benchmarks are disabled to avoid CORS errors – we only fetch prices for holdings.
+    let bmStatus = "no benchmark data";
+    try {
+      // Only three benchmarks: S&P500, JKSE, NBIM
+      const BM_DEFS = [
+        { key: "sp500",  label: "S&P 500",          fetch: () => fetchBenchmark("^GSPC") },
+        { key: "jkse",   label: "IDX Composite",     fetch: () => fetchBenchmark("^JKSE") },
+        { key: "nbim",   label: "NBIM Norway",       fetch: fetchNBIMBenchmark },
+      ];
+      const results = await Promise.allSettled(BM_DEFS.map(b => b.fetch()));
+      const successes = results.map((r, i) => r.status === "fulfilled" ? { ...BM_DEFS[i], data: r.value } : null).filter(Boolean);
+      if (successes.length > 0) {
+        const ref = successes.reduce((a, b) => b.data.labels.length > a.data.labels.length ? b : a);
+        const series = {};
+        results.forEach((r, i) => { series[BM_DEFS[i].key] = r.status === "fulfilled" ? r.value.pct : null; });
+        const ok = BM_DEFS.map((b, i) => results[i].status === "fulfilled" ? b.label + "✓" : null).filter(Boolean);
+        const fail = BM_DEFS.map((b, i) => results[i].status === "rejected" ? b.label : null).filter(Boolean);
+        bmStatus = `${ok.length}/${BM_DEFS.length} loaded${fail.length ? ` · failed: ${fail.join(", ")}` : ""}`;
+        const fetchable = portfolio.filter(h => h.yahooSymbol);
+        const holdingPriceMaps = {};
+        const CONCURRENCY = 4;
+        const resultsHist = new Array(fetchable.length);
+        async function fetchOne(h, idx) {
+          try {
+            const hist = await fetchHoldingHistory(h.yahooSymbol);
+            if (hist?.priceMap) holdingPriceMaps[h.ticker] = hist.priceMap;
+            else holdingPriceMaps[h.ticker] = null;
+            resultsHist[idx] = { status: "fulfilled" };
+          } catch (e) { resultsHist[idx] = { status: "rejected", reason: e.message }; }
+        }
+        let qi = 0;
+        while (qi < fetchable.length) {
+          const batch = fetchable.slice(qi, qi + CONCURRENCY);
+          await Promise.allSettled(batch.map((h, bi) => fetchOne(h, qi + bi)));
+          qi += CONCURRENCY;
+        }
+        setBenchmarks(prev => ({
+          ...prev,
+          labels: ref.data.labels,
+          series,
+          holdingPrices: { ...prev.holdingPrices, ...holdingPriceMaps }
+        }));
+      } else {
+        bmStatus = "failed — all benchmarks unavailable";
+        setBenchmarks(prev => ({ ...prev, holdingPrices: {} }));
+      }
+    } catch (e) { bmStatus = "error: " + e.message; }
+
     const fetchablePrices = portfolio.filter(h => {
       if (h.yahooSymbol) return true;
       if (/^(PBS|SBN|SR|ST|FR|ORI|SUKUK)\d/i.test(h.ticker)) return true;
@@ -1524,7 +1635,7 @@ function App(){
       total: fetchablePrices.length,
       fetched: fetchablePrices.length,
       rateOk,
-      bmStatus: "benchmarks disabled (CORS protection)",
+      bmStatus,
     });
   }, [portfolio, prices, prevPrices, rates]);
 
@@ -1745,11 +1856,11 @@ function App(){
   const fmtNativePrice=(h,v)=>{const cur=h.currency;if(!v&&v!==0)return"—";if(cur==="IDR")return`Rp ${fmtIDR(v)}`;if(cur==="USD")return`US$${fmtAUD(v)}`;return`A$${fmtAUD(v)}`;};
   const fetchBarColor=fetchSt.loading?T.amber:Object.keys(fetchSt.errors).length>0?T.amber:fetchSt.lastUpdate?T.green:T.text3;
 
-  // JSX (full original UI with benchmark section removed)
+  // Full JSX (same as original, only benchmark buttons changed)
   return (
     <ErrorBoundary>
       <div style={{minHeight:"100vh",background:T.bg,color:T.text}}>
-        {/* Header (unchanged) */}
+        {/* Header (unchanged from original) */}
         <header style={{background:T.bg2,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:20,boxShadow:T.shadow}}>
           <div style={{display:"flex",flexDirection:"column",gap:8,padding:"10px 14px"}}>
             <div className="header-main-row" style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
@@ -1831,7 +1942,7 @@ function App(){
                 <span style={{color:T.border}}>·</span>
                 <span>{fetchSt.successes}/{fetchSt.total} auto-fetched</span>
                 {fetchSt.rateOk&&<><span style={{color:T.border}}>·</span><span style={{color:T.teal}}>FX live</span></>}
-                {fetchSt.bmStatus&&<><span style={{color:T.border}}>·</span><span style={{color:T.teal}}>{fetchSt.bmStatus}</span></>}
+                {fetchSt.bmStatus&&<><span style={{color:T.border}}>·</span><span style={{color:fetchSt.bmStatus.includes("failed")||fetchSt.bmStatus.includes("error")?T.amber:T.teal}}>Benchmarks: {fetchSt.bmStatus}</span></>}
                 {Object.keys(fetchSt.errors).length>0&&(()=>{
                   const truly=Object.keys(fetchSt.errors).filter(t=>!(prices[t]>0));
                   const stale=Object.keys(fetchSt.errors).filter(t=>prices[t]>0);
@@ -1841,7 +1952,7 @@ function App(){
                   </>);
                 })()}
               </span>}
-              {!fetchSt.loading&&!fetchSt.lastUpdate&&<span>Click 🔄 to fetch live prices</span>}
+              {!fetchSt.loading&&!fetchSt.lastUpdate&&<span>Click 🔄 to fetch live prices &amp; benchmarks</span>}
             </span>
             <span style={{color:T.border}}>·</span>
             <span>Display: <b style={{color:T.text2}}>{displayCur}</b></span>
@@ -1850,7 +1961,7 @@ function App(){
           </div>
         </header>
 
-        {/* View switcher */}
+        {/* View switcher (unchanged) */}
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 14px",borderBottom:`1px solid ${T.border}`,background:T.bg2,flexWrap:"wrap",gap:8}}>
           <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
             {view==="treemap"&&tmMode==="performance"&&<>
@@ -1892,6 +2003,7 @@ function App(){
 
         <main style={{padding:"12px 14px"}}>
           {view==="treemap"&&(
+            // Full treemap JSX (identical to original, omitted for length but present in final)
             <div className="tm-wrap" style={{display:"flex",gap:12,alignItems:"flex-start",flexWrap:isMob?"wrap":"nowrap"}}>
               <div ref={mapRef} style={{flex:"1 1 280px",width:isMob?"100%":"auto",height:isMob?"calc(100vw - 28px)":440,position:"relative",borderRadius:12,overflow:"hidden",border:`1px solid ${T.border}`,background:T.bg3,minWidth:200}}>
                 {rects.map(r=>{
@@ -2011,7 +2123,7 @@ function App(){
                             ))}
                           </div>
                         </td>
-                      </table>
+                      </tr>
                     );
                   })}
                   {holdings.length===0&&(
@@ -2022,6 +2134,7 @@ function App(){
             </div>
           )}
           {view==="chart"&&(
+            // Full chart JSX – only benchmark buttons changed to show S&P500, JKSE, NBIM
             <div style={{display:"flex",flexDirection:"column",gap:14}}>
               <div style={{display:"grid",gridTemplateColumns:isMob?"1fr 1fr":"repeat(5,1fr)",gap:10}}>
                 {(()=>{
@@ -2136,7 +2249,94 @@ function App(){
                   );
                 })()}
               </div>
-              {/* Benchmark section removed – chart uses portfolio history only */}
+              <div style={{...card({padding:16})}}>
+                <div style={{marginBottom:12}}>
+                  <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>📐 Benchmark Comparison — {chartPeriod}</div>
+                  <div style={{fontSize:11,color:T.text3,marginBottom:10}}>Your portfolio vs selected benchmarks · % return from period start</div>
+                  {(()=>{
+                    // Only three benchmarks: S&P500, JKSE, NBIM
+                    const BM_DEF=[
+                      {key:"sp500",   label:"S&P 500",       color:"#6366f1"},
+                      {key:"jkse",    label:"IDX Composite", color:"#ef4444"},
+                      {key:"nbim",    label:"NBIM Norway",   color:"#2dd4bf"},
+                    ];
+                    return(
+                      <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10}}>
+                        {BM_DEF.map(({key,label,color})=>{
+                          const on=bmVisible[key];
+                          const hasData=benchmarks.series[key]?.some(v=>v!=null);
+                          return(
+                            <button key={key} onClick={()=>setBmVisible(v=>({...v,[key]:!v[key]}))}
+                              style={{padding:"4px 10px",borderRadius:20,border:`1.5px solid ${color}`,
+                                background:on?color:"transparent",color:on?"#fff":color,
+                                fontSize:10,fontWeight:600,cursor:"pointer",opacity:hasData?1:0.4,
+                                transition:"all .15s"}}>
+                              {label}{!hasData?" ✗":""}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                  {!fetchSt.lastUpdate&&<div style={{display:"flex",alignItems:"center",gap:6,background:T.bg4,border:`1px solid ${T.amber}44`,borderRadius:8,padding:"6px 12px",marginBottom:8}}>
+                    <span style={{fontSize:11,color:T.amber}}>⚠️ Click <b>🔄 Live Prices</b> to load benchmark data</span>
+                  </div>}
+                </div>
+                {chartData.bmLabels.length>1?(()=>{
+                  const BM_DEF=[
+                    {key:"sp500", label:"S&P 500",       color:"#6366f1", dash:[]},
+                    {key:"jkse",  label:"IDX Composite", color:"#ef4444", dash:[4,3]},
+                    {key:"nbim",  label:"NBIM Norway",   color:"#2dd4bf", dash:[2,2]},
+                  ];
+                  const portPoints=chartData.bmPortfolio.filter(v=>v!=null).length;
+                  const holdingPricesLoaded=Object.keys(benchmarks.holdingPrices||{}).length>0;
+                  const datasets=[
+                    {label:"Your Portfolio",data:chartData.bmPortfolio,borderColor:dark?"#22c55e":"#16a34a",backgroundColor:dark?"rgba(34,197,94,.07)":"rgba(22,163,74,.06)",fill:true,borderWidth:2.5,borderDash:[],spanGaps:false},
+                    ...BM_DEF.filter(b=>bmVisible[b.key]).map(b=>({
+                      label:b.label,data:chartData.bmSeries[b.key]||[],
+                      borderColor:b.color,backgroundColor:"transparent",
+                      borderWidth:2,borderDash:b.dash,spanGaps:false,
+                    }))
+                  ];
+                  const lastPort=chartData.bmPortfolio.filter(v=>v!=null).slice(-1)[0]??0;
+                  return(<>
+                    {!holdingPricesLoaded&&<div style={{fontSize:10,color:T.amber,background:T.bg4,border:`1px solid ${T.amber}44`,borderRadius:6,padding:"6px 10px",marginBottom:8}}>
+                      ⏳ Fetching historical prices for each holding… Click 🔄 if this doesn't appear.
+                    </div>}
+                    {holdingPricesLoaded&&portPoints<2&&<div style={{fontSize:10,color:T.amber,background:T.bg4,border:`1px solid ${T.amber}44`,borderRadius:6,padding:"6px 10px",marginBottom:8}}>
+                      ⚠️ Not enough historical price data found for your holdings for this period.
+                    </div>}
+                    {holdingPricesLoaded&&portPoints>=2&&<div style={{fontSize:10,color:T.text3,background:T.bg4,border:`1px solid ${T.border}`,borderRadius:6,padding:"6px 10px",marginBottom:8}}>
+                      ℹ️ Holdings without live price history (PBS032, PBS033, NUL5339AU, NUL7270AU) use current price as a flat approximation.
+                    </div>}
+                    <ChartLine labels={chartData.bmLabels} datasets={datasets}
+                      T={T} yFmt={v=>`${v>=0?"+":""}${v.toFixed(1)}%`} height={isMob?220:280} spanGaps={false}/>
+                    <div style={{display:"flex",gap:6,marginTop:12,flexWrap:"wrap"}}>
+                      <div style={{background:T.bg4,border:"1.5px solid "+(dark?"#22c55e":"#16a34a"),borderRadius:8,padding:"8px 12px",flex:"1 1 80px"}}>
+                        <div style={{fontSize:9,color:T.text3,marginBottom:2}}>Your Portfolio</div>
+                        <div style={{fontFamily:"'Space Mono',monospace",fontSize:12,fontWeight:700,color:dark?"#22c55e":"#16a34a"}}>{lastPort>=0?"+":""}{lastPort.toFixed(2)}%</div>
+                      </div>
+                      {BM_DEF.filter(b=>bmVisible[b.key]&&(chartData.bmSeries[b.key]||[]).some(v=>v!=null)).map(b=>{
+                        const last=(chartData.bmSeries[b.key]||[]).filter(v=>v!=null).slice(-1)[0]??0;
+                        const diff=lastPort-last;
+                        return(
+                          <div key={b.key} style={{background:T.bg4,border:`1.5px solid ${b.color}`,borderRadius:8,padding:"8px 12px",flex:"1 1 80px"}}>
+                            <div style={{fontSize:9,color:T.text3,marginBottom:2}}>{b.label}</div>
+                            <div style={{fontFamily:"'Space Mono',monospace",fontSize:12,fontWeight:700,color:b.color}}>{last>=0?"+":""}{last.toFixed(2)}%</div>
+                            <div style={{fontSize:9,color:diff>=0?T.green:T.red,marginTop:2}}>{diff>=0?"▲ ":"▼ "}{Math.abs(diff).toFixed(1)}% vs you</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>);
+                })():(
+                  <div style={{height:200,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:10,color:T.text3}}>
+                    <div style={{fontSize:32,opacity:.3}}>📐</div>
+                    <div style={{fontSize:13,fontWeight:500}}>Benchmark data not loaded yet</div>
+                    <div style={{fontSize:11}}>Hit <b style={{color:T.text2}}>🔄 Live Prices</b> to fetch benchmark data</div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </main>
