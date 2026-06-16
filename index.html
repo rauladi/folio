@@ -168,9 +168,9 @@
         }
         .corr-legend .leg-bar {
             height: 10px;
-            width: 120px;
+            width: 140px;
             border-radius: 4px;
-            background: linear-gradient(to right, #ef4444, #fbbf24, #f8fafc, #60a5fa, #22c55e);
+            background: linear-gradient(to right, #ef4444, #f8fafc, #22c55e);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
         .corr-legend span {
@@ -2657,13 +2657,25 @@
                 }
                 const avgOverall = count > 0 ? totalCorr / count : 0;
 
+                // Colour scale: red (-1) → white (0) → green (+1)
                 const colorScale = (val) => {
-                    // Red (negative) → white → green (positive)
-                    const r = val < 0 ? 239 : Math.round(239 - (val / 1) * 239);
-                    const g = val > 0 ? 34 : Math.round(34 + (val / 1) * 221);
-                    const b = val > 0 ? Math.round(34 + (val / 1) * 221) : Math.round(34 + (-val / 1) * 180);
-                    const a = Math.min(1, Math.abs(val) * 0.85 + 0.15);
-                    return `rgba(${Math.min(255,r)},${Math.min(255,g)},${Math.min(255,b)},${a})`;
+                    // Clamp to [-1,1]
+                    const clamped = Math.max(-1, Math.min(1, val));
+                    if (clamped >= 0) {
+                        // white to green
+                        const g = Math.round(255 - (1 - clamped) * 200);
+                        const r = Math.round(255 - (1 - clamped) * 200);
+                        const b = Math.round(255 - (1 - clamped) * 200);
+                        const alpha = 0.6 + 0.4 * clamped;
+                        return `rgba(${r},${g},${b},${alpha})`;
+                    } else {
+                        // white to red
+                        const r = Math.round(255 - (1 + clamped) * 200);
+                        const g = Math.round(255 - (1 + clamped) * 200);
+                        const b = Math.round(255 - (1 + clamped) * 200);
+                        const alpha = 0.6 + 0.4 * Math.abs(clamped);
+                        return `rgba(${r},${g},${b},${alpha})`;
+                    }
                 };
 
                 const textColor = (val) => Math.abs(val) > 0.45 ? "#fff" : (dark ? "#e2e8f0" : "#1e293b");
@@ -2785,8 +2797,8 @@
                         <div className="corr-legend" style={{ display: "flex", alignItems: "center", gap: 6,
                             flexWrap: "wrap", marginTop: 12 }}>
                             <span style={{ fontSize: 9, color: T.text3, fontWeight: 500 }}>Correlation:</span>
-                            <div style={{ height: 10, width: isMob ? 100 : 160, borderRadius: 4,
-                                background: "linear-gradient(to right, #ef4444, #fbbf24, #f8fafc, #60a5fa, #22c55e)",
+                            <div style={{ height: 10, width: isMob ? 100 : 140, borderRadius: 4,
+                                background: "linear-gradient(to right, #ef4444, #f8fafc, #22c55e)",
                                 border: `1px solid ${T.border}44` }} />
                             <span className="leg-label" style={{ fontSize: 9, fontWeight: 600, fontFamily: "'Space Mono',monospace",
                                 color: T.text3, minWidth: 28, textAlign: "center" }}>-1.0</span>
@@ -3800,7 +3812,7 @@
                                             {(() => {
                                                 const BM_DEF = [
                                                     { key: "norway", label: "Norway Inv. Fund",
-                                                        color: "#22c55e" },
+                                                        color: "#8b5cf6" },
                                                     { key: "sp500", label: "S&P 500", color: "#6366f1" },
                                                     { key: "jkse", label: "IDX Composite",
                                                         color: "#ef4444" },
@@ -3847,7 +3859,7 @@
                                         {chartData.bmLabels.length > 1 ? (() => {
                                             const BM_DEF = [
                                                 { key: "norway", label: "Norway Inv. Fund",
-                                                    color: "#22c55e", dash: [] },
+                                                    color: "#8b5cf6", dash: [] },
                                                 { key: "sp500", label: "S&P 500", color: "#6366f1",
                                                     dash: [4, 3] },
                                                 { key: "jkse", label: "IDX Composite", color: "#ef4444",
