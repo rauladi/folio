@@ -126,6 +126,9 @@
             .net-chart-wrap {
                 height: 200px !important
             }
+            .sector-treemap-wrap {
+                height: 280px !important
+            }
         }
         @media(min-width:769px) {
             .hdr-mobile {
@@ -224,6 +227,43 @@
         }
         .net-bar-neutral {
             background: #6366f1;
+        }
+        .sector-treemap-wrap {
+            position: relative;
+            width: 100%;
+            height: 320px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .sector-treemap-wrap .sector-box {
+            position: absolute;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Space Mono', monospace;
+            font-weight: 700;
+            font-size: 12px;
+            padding: 4px;
+            text-align: center;
+            overflow: hidden;
+            transition: filter .15s;
+            cursor: default;
+        }
+        .sector-treemap-wrap .sector-box:hover {
+            filter: brightness(1.15);
+        }
+        .sector-treemap-wrap .sector-box .sector-label {
+            font-size: 10px;
+            opacity: 0.9;
+            line-height: 1.2;
+        }
+        .sector-treemap-wrap .sector-box .sector-value {
+            font-size: 9px;
+            opacity: 0.7;
+            margin-top: 2px;
         }
     </style>
 </head>
@@ -2297,115 +2337,47 @@
                 setCorrLoading(false);
             }, [portfolio, corrPeriod, periodCutoff]);
 
-            // ─── Monte Carlo Simulation ──────────────────────────────────────────────
+            // ─── Monte Carlo Simulation (using portfolio history) ──────────────────
             const runMonteCarlo = useCallback(async () => {
                 setMcLoading(true);
                 setMcData(null);
                 try {
-                    const cutoff = periodCutoff("5Y");
-                    const targetDate = cutoff.toISOString().slice(0, 10);
-                    const holdingsWithSymbol = portfolio.filter(h => h.yahooSymbol);
-                    if (holdingsWithSymbol.length < 1) {
-                        setMcData({ error: "Need at least 1 asset with Yahoo symbol for Monte Carlo." });
+                    // Use portfolio history to compute mean return and volatility
+                    if (history.length < 2) {
+                        setMcData({ error: "Not enough historical portfolio data (need at least 2 snapshots)." });
                         setMcLoading(false);
                         return;
                     }
-                    // Get historical prices for each holding
-                    const priceMaps = {};
-                    const tickers = [];
-                    for (const h of holdingsWithSymbol) {
-                        try {
-                            const hist = await fetchHoldingHistory(h.yahooSymbol);
-                            if (hist?.priceMap) {
-                                priceMaps[h.ticker] = hist.priceMap;
-                                tickers.push(h.ticker);
-                            }
-                        } catch (e) { console.warn(`Could not fetch history for ${h.ticker}:`, e); }
-                    }
-                    if (tickers.length < 1) {
-                        setMcData({ error: "No historical price data available." });
-                        setMcLoading(false);
-                        return;
-                    }
-                    // Get current portfolio weights in AUD
-                    const totalValue = holdings.reduce((s, h) => s + h.currentValue, 0);
-                    if (totalValue <= 0) {
-                        setMcData({ error: "Portfolio value is zero." });
-                        setMcLoading(false);
-                        return;
-                    }
-                    const weights = {};
-                    for (const h of holdings) {
-                        if (priceMaps[h.ticker]) {
-                            weights[h.ticker] = h.currentValue / totalValue;
+                    // Sort history by date
+                    const sorted = [...history].sort((a, b) => new Date(a.date) - new Date(b.date));
+                    const values = sorted.map(s => s.totalValueAUD);
+                    // Compute daily returns from monthly snapshots (approx)
+                    // We'll use monthly returns as daily approximation (252 trading days per year)
+                    const returns = [];
+                    for (let i = 1; i < values.length; i++) {
+                        if (values[i - 1] > 0) {
+                            returns.push((values[i] - values[i - 1]) / values[i - 1]);
                         }
                     }
-                    const activeTickers = Object.keys(weights);
-                    if (activeTickers.length < 1) {
-                        setMcData({ error: "No holdings with price history." });
+                    if (returns.length < 2) {
+                        setMcData({ error: "Not enough return data (need at least 2 periods)." });
                         setMcLoading(false);
                         return;
                     }
-                    // Build aligned returns for active tickers
-                    const allDates = new Set();
-                    for (const tk of activeTickers) {
-                        for (const d of Object.keys(priceMaps[tk])) {
-                            if (d >= targetDate) allDates.add(d);
-                        }
-                    }
-                    const sortedDates = Array.from(allDates).sort();
-                    if (sortedDates.length < 10) {
-                        setMcData({ error: "Not enough historical data." });
-                        setMcLoading(false);
-                        return;
-                    }
-                    const returnMatrix = {};
-                    for (const tk of activeTickers) {
-                        const prices = sortedDates.map(d => priceMaps[tk][d] ?? null);
-                        const returns = [];
-                        for (let i = 1; i < prices.length; i++) {
-                            if (prices[i] != null && prices[i - 1] != null && prices[i - 1] > 0) {
-                                returns.push((prices[i] - prices[i - 1]) / prices[i - 1]);
-                            } else {
-                                returns.push(null);
-                            }
-                        }
-                        returnMatrix[tk] = returns;
-                    }
-                    // Align returns
-                    const minLen = Math.min(...activeTickers.map(tk => returnMatrix[tk].length));
-                    const alignedReturns = {};
-                    for (const tk of activeTickers) {
-                        alignedReturns[tk] = returnMatrix[tk].slice(0, minLen);
-                    }
-                    // Calculate portfolio daily returns
-                    const portReturns = [];
-                    for (let i = 0; i < minLen; i++) {
-                        let r = 0;
-                        let valid = true;
-                        for (const tk of activeTickers) {
-                            if (alignedReturns[tk][i] == null) { valid = false; break; }
-                            r += weights[tk] * alignedReturns[tk][i];
-                        }
-                        if (valid) portReturns.push(r);
-                    }
-                    if (portReturns.length < 20) {
-                        setMcData({ error: "Not enough return data for simulation." });
-                        setMcLoading(false);
-                        return;
-                    }
-                    // Calculate mean and volatility (annualized)
-                    const meanDaily = portReturns.reduce((s, r) => s + r, 0) / portReturns.length;
-                    const variance = portReturns.reduce((s, r) => s + (r - meanDaily) ** 2, 0) / portReturns.length;
-                    const volDaily = Math.sqrt(variance);
-                    const meanAnnual = meanDaily * 252;
-                    const volAnnual = volDaily * Math.sqrt(252);
-                    const currentValue = totalValue;
+                    // Mean and volatility (annualized)
+                    const meanMonthly = returns.reduce((s, r) => s + r, 0) / returns.length;
+                    const varMonthly = returns.reduce((s, r) => s + (r - meanMonthly) ** 2, 0) / returns.length;
+                    const volMonthly = Math.sqrt(varMonthly);
+                    const meanAnnual = meanMonthly * 12;
+                    const volAnnual = volMonthly * Math.sqrt(12);
+
+                    const currentValue = values[values.length - 1];
                     const years = mcYears;
                     const nSims = mcSims;
-                    const nSteps = years * 252;
-                    const dt = 1 / 252;
-                    // Run simulations
+                    const nSteps = years * 12; // monthly steps
+                    const dt = 1 / 12;
+
+                    // Simulate using geometric Brownian motion
                     const paths = [];
                     for (let sim = 0; sim < nSims; sim++) {
                         const path = [currentValue];
@@ -2420,10 +2392,11 @@
                         }
                         paths.push(path);
                     }
+
                     // Compute percentiles
                     const steps = paths[0].length;
                     const percentiles = [5, 10, 25, 50, 75, 90, 95];
-                    const labels = Array.from({ length: steps }, (_, i) => (i / 252).toFixed(1) + 'y');
+                    const labels = Array.from({ length: steps }, (_, i) => (i / 12).toFixed(1) + 'y');
                     const pctData = {};
                     for (const p of percentiles) {
                         pctData[p] = [];
@@ -2434,7 +2407,6 @@
                             pctData[p].push(vals[idx]);
                         }
                     }
-                    // Also compute final distribution stats
                     const finalVals = paths.map(path => path[steps - 1]);
                     finalVals.sort((a, b) => a - b);
                     const medianFinal = finalVals[Math.floor(finalVals.length / 2)];
@@ -2458,7 +2430,7 @@
                     setMcData({ error: "Monte Carlo failed: " + e.message });
                 }
                 setMcLoading(false);
-            }, [portfolio, holdings, mcYears, mcSims, periodCutoff]);
+            }, [history, mcYears, mcSims]);
 
             // ─── Efficient Frontier ──────────────────────────────────────────────────
             const runEfficientFrontier = useCallback(async () => {
@@ -2546,14 +2518,12 @@
 
                     for (let i = 0; i < nPortfolios; i++) {
                         const riskTarget = minRisk + (maxRisk - minRisk) * (i / (nPortfolios - 1));
-                        // Simple random search for this risk level
                         let bestReturn = -Infinity;
                         let bestWeights = null;
                         for (let attempt = 0; attempt < 200; attempt++) {
                             let w = tickers.map(() => Math.random());
                             const sum = w.reduce((s, v) => s + v, 0);
                             w = w.map(v => v / sum);
-                            // Calculate portfolio return and risk
                             let ret = 0;
                             let risk = 0;
                             for (let a = 0; a < tickers.length; a++) {
@@ -2671,7 +2641,7 @@
                             backgroundColor: 'rgba(239,68,68,0.06)', fill: false, borderDash: [2, 4],
                             borderWidth: 1.5, pointRadius: 0, tension: 0.3 },
                     ];
-                    // Also add a few random paths faintly
+                    // Add a few random paths faintly
                     const numPaths = Math.min(20, data.paths.length);
                     for (let i = 0; i < numPaths; i++) {
                         const path = data.paths[i];
@@ -2737,7 +2707,6 @@
                     if (!ref.current || typeof Chart === "undefined" || !data) return;
                     if (inst.current) inst.current.destroy();
                     const { frontier, currentRet, currentRisk, tickers } = data;
-                    const labels = frontier.map((_, i) => i);
                     const returns = frontier.map(p => p.return * 100);
                     const risks = frontier.map(p => p.risk * 100);
                     // Find min variance portfolio
@@ -2902,9 +2871,15 @@
                             scales: {
                                 x: { grid: { color: 'transparent' }, ticks: { color: T.chartTick,
                                         font: { size: 9 } }, border: { color: T.border } },
-                                y: { grid: { color: T.chartGrid }, ticks: { color: T.chartTick,
-                                        font: { size: 9 }, callback: yFmt || (v => v.toFixed(0)) },
-                                    border: { color: T.border } }
+                                y: {
+                                    grid: { color: T.chartGrid },
+                                    ticks: { color: T.chartTick, font: { size: 9 }, callback: yFmt || (v =>
+                                            v.toFixed(0)) },
+                                    border: { color: T.border },
+                                    // Use logarithmic scale to compress large bars
+                                    type: 'logarithmic',
+                                    min: 1, // avoid log of zero
+                                }
                             }
                         }
                     });
@@ -2938,7 +2913,6 @@
                 // FIXED: +1 = green, -1 = red, 0 = white
                 const colorScale = (val) => {
                     const clamped = Math.max(-1, Math.min(1, val));
-                    // Red: #ef4444 (239,68,68), White: #f8fafc (248,250,252), Green: #22c55e (34,197,94)
                     if (clamped < 0) {
                         const t = Math.abs(clamped); // 0..1
                         const r = Math.round(248 - t * (248 - 239));
@@ -3090,6 +3064,55 @@
                             they move in opposite directions (strong hedge). Near <b>0</b> (white/neutral) indicates
                             independent movement — good diversification.
                         </div>
+                    </div>
+                );
+            }
+
+            // ─── Sector/Industry Treemap ─────────────────────────────────────────────
+            function SectorTreemap({ holdings, T, displayCur, rates, valuesHidden }) {
+                const sectorMap = {};
+                for (const h of holdings) {
+                    const sector = h.assetType || "Other";
+                    if (!sectorMap[sector]) sectorMap[sector] = 0;
+                    sectorMap[sector] += h.currentValue;
+                }
+                const items = Object.entries(sectorMap).map(([label, value]) => ({ label, value }));
+                if (items.length === 0) return <div style={{ padding: 20, textAlign: "center", color: T.text3 }}>No holdings</div>;
+                const totalValue = items.reduce((s, i) => s + i.value, 0);
+                const rects = squarify(items.map(i => ({ ...i, value: i.value })), 0, 0, 600, 320);
+                const palette = ["#6366f1", "#22c55e", "#06b6d4", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6",
+                    "#f97316", "#84cc16", "#3b82f6", "#a78bfa"
+                ];
+                const colorMap = {};
+                items.forEach((item, i) => { colorMap[item.label] = palette[i % palette.length]; });
+                return (
+                    <div className="sector-treemap-wrap" style={{ height: 320, position: "relative", borderRadius: 8,
+                        overflow: "hidden", border: `1px solid ${T.border}`, background: T.bg3 }}>
+                        {rects.map(r => {
+                            const label = r.label;
+                            const value = r.value;
+                            const pct = (value / totalValue * 100);
+                            const color = colorMap[label];
+                            return (
+                                <div key={label} style={{ position: "absolute", left: r.x + 1, top: r.y + 1,
+                                        width: r.w - 2, height: r.h - 2, background: color,
+                                        borderRadius: 4, display: "flex", flexDirection: "column",
+                                        alignItems: "center", justifyContent: "center", overflow: "hidden",
+                                        transition: "filter .15s", cursor: "default" }}
+                                    onMouseEnter={e => e.currentTarget.style.filter = "brightness(1.15)"}
+                                    onMouseLeave={e => e.currentTarget.style.filter = "brightness(1)"}>
+                                    <span style={{ fontSize: Math.min(14, Math.max(8, r.w / 10)),
+                                            fontFamily: "'Space Mono',monospace", fontWeight: 700, color: "#fff",
+                                            textShadow: "0 1px 4px rgba(0,0,0,0.5)", textAlign: "center",
+                                            lineHeight: 1.2, padding: "0 4px" }}>{label}</span>
+                                    <span style={{ fontSize: Math.min(10, Math.max(7, r.w / 12)),
+                                            fontFamily: "'Space Mono',monospace", color: "#fff",
+                                            textShadow: "0 1px 4px rgba(0,0,0,0.5)", opacity: 0.9, marginTop: 2 }}>
+                                        {valuesHidden ? "••" : `${fmtCur(value, displayCur, rates, true)} (${pct.toFixed(1)}%)`}
+                                    </span>
+                                </div>
+                            );
+                        })}
                     </div>
                 );
             }
@@ -4656,7 +4679,7 @@
                                         )}
                                     </div>
 
-                                    {/* ─── SECTION: Correlation Matrix (moved from Analysis) ── */}
+                                    {/* ─── SECTION: Correlation Matrix ────────────────── */}
                                     <div style={{ ...card({ padding: 16 }) }}>
                                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
                                             flexWrap: "wrap", gap: 10, marginBottom: 12 }}>
@@ -4927,6 +4950,23 @@
                                                 covariance of your holdings.
                                             </div>
                                         )}
+                                    </div>
+
+                                    {/* ─── SECTION: Sector/Industry Treemap ──────────────── */}
+                                    <div style={{ ...card({ padding: 16 }) }}>
+                                        <div style={{ display: "flex", justifyContent: "space-between",
+                                            alignItems: "flex-start", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+                                            <div>
+                                                <div style={{ fontSize: 13, fontWeight: 600, color: T.text }}>🗺️
+                                                    Sector / Industry Allocation</div>
+                                                <div style={{ fontSize: 11, color: T.text3 }}>Market value by asset
+                                                    class · Box size = total value · Colour = sector</div>
+                                            </div>
+                                            <span style={{ fontSize: 9, color: T.text3 }}>Includes super funds
+                                                (NUL5339AU, NUL7270AU) via their asset type</span>
+                                        </div>
+                                        <SectorTreemap holdings={holdings} T={T} displayCur={displayCur}
+                                            rates={rates} valuesHidden={valuesHidden} />
                                     </div>
                                 </div>
                             )}
