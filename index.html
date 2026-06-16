@@ -292,6 +292,7 @@
                 fbApp = firebase.initializeApp(FIREBASE_CONFIG);
                 fbAuth = firebase.auth();
                 fbDb = firebase.firestore();
+                // Use memory persistence to avoid tracking prevention issues
                 fbDb.enablePersistence({ synchronizeTabs: true }).catch(() => {});
             } catch (e) { console.warn("Firebase init failed:", e); }
         }
