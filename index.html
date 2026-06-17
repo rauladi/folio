@@ -317,7 +317,7 @@
         }
     </script>
 
-    <!-- Main app script – type="text/babel" with classic JSX runtime via preset options -->
+    <!-- Main app script – classic JSX runtime via preset options -->
     <script type="text/babel" data-options='{"presets":[["@babel/preset-react",{"runtime":"classic"}]]}'>
         const { useState, useMemo, useCallback, useEffect, useRef } = React;
 
@@ -1188,6 +1188,58 @@
         }
 
         // ─── Chart Components ─────────────────────────────────────────────────────────
+
+        // ===== CHART DOUGHNUT – MISSING COMPONENT ADDED =====
+        function ChartDoughnut({ labels, data, colors, T, height = 200 }) {
+            const ref = useRef(null);
+            const inst = useRef(null);
+            useEffect(() => {
+                if (!ref.current || typeof Chart === "undefined") return;
+                if (inst.current) inst.current.destroy();
+                inst.current = new Chart(ref.current, {
+                    type: 'doughnut',
+                    data: {
+                        labels,
+                        datasets: [{
+                            data,
+                            backgroundColor: colors,
+                            borderColor: colors.map(c => c + '88'),
+                            borderWidth: 1.5,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { color: T.text2, font: { size: 9 }, boxWidth: 10, padding: 6 }
+                            },
+                            tooltip: {
+                                backgroundColor: T.bg3,
+                                borderColor: T.border,
+                                borderWidth: 1,
+                                titleColor: T.text,
+                                bodyColor: T.text2,
+                                padding: 8,
+                                cornerRadius: 6,
+                                callbacks: {
+                                    label: (ctx) => {
+                                        const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                                        const pct = total > 0 ? ((ctx.parsed / total) * 100).toFixed(1) : 0;
+                                        return `${ctx.label}: ${ctx.parsed.toFixed(0)} (${pct}%)`;
+                                    }
+                                }
+                            }
+                        },
+                        cutout: '65%',
+                    }
+                });
+                return () => { if (inst.current) inst.current.destroy(); };
+            }, [labels, data, colors, T]);
+            return <div style={{ height, position: 'relative' }}><canvas ref={ref} /></div>;
+        }
+
         function ChartLine({ labels, datasets, T, yFmt, y2Fmt, height = 220, spanGaps = false }) {
             const ref = useRef(null);
             const inst = useRef(null);
