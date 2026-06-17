@@ -318,7 +318,7 @@
     </script>
 
     <!-- Main app script – type="text/babel" with extra plugins to avoid module errors -->
-    <script type="text/babel" data-presets="react" data-plugins="transform-modules-umd">
+    <script type="text/babel" data-presets="react" data-jsx-runtime="classic"> data-plugins="transform-modules-umd">
         const { useState, useMemo, useCallback, useEffect, useRef } = React;
 
         // ========== ERROR BOUNDARY ==========
