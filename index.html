@@ -317,8 +317,8 @@
         }
     </script>
 
-    <!-- Main app script – just type="text/babel" without extra attributes -->
-    <script type="text/babel">
+    <!-- Main app script – type="text/babel" with extra plugins to avoid module errors -->
+    <script type="text/babel" data-plugins="transform-modules-umd">
         const { useState, useMemo, useCallback, useEffect, useRef } = React;
 
         // ========== ERROR BOUNDARY ==========
