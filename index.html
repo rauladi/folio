@@ -317,9 +317,8 @@
         }
     </script>
 
-    <!-- Main app script – type="text/babel" with classic JSX runtime -->
-    <script type="text/babel" data-presets="react" data-jsx-runtime="classic">
-        /** @jsx React.createElement */
+    <!-- Main app script – type="text/babel" with classic JSX runtime via preset options -->
+    <script type="text/babel" data-options='{"presets":[["@babel/preset-react",{"runtime":"classic"}]]}'>
         const { useState, useMemo, useCallback, useEffect, useRef } = React;
 
         // ========== ERROR BOUNDARY ==========
