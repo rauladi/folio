@@ -253,7 +253,7 @@
 <body>
     <div id="root"></div>
 
-    <!-- Load React, ReactDOM, Babel standalone, and other libs -->
+    <!-- Load libraries -->
     <script src="https://unpkg.com/react@18/umd/react.development.js">
     </script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js">
@@ -274,7 +274,7 @@
     </script>
 
     <script>
-        // Firebase config (moved outside Babel to avoid transpilation issues)
+        // Firebase config (outside Babel to avoid transpilation issues)
         const FIREBASE_CONFIG = {
             apiKey: "AIzaSyBp20SC2Yt9IWkevpLgU6-nXZtA7HuNbN0",
             authDomain: "folio-sync.firebaseapp.com",
@@ -317,7 +317,7 @@
         }
     </script>
 
-    <!-- Main app script – using type="text/babel" without extra attributes -->
+    <!-- Main app script – just type="text/babel" without extra attributes -->
     <script type="text/babel">
         const { useState, useMemo, useCallback, useEffect, useRef } = React;
 
