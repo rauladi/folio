@@ -1226,16 +1226,23 @@ function App(){
 
   useEffect(()=>{document.body.style.background=T.bg;document.body.style.color=T.text;},[T]);
 
-  useEffect(()=>{
-    if(!FB_CONFIGURED||!fbAuth)return;
-    const unsub=fbAuth.onAuthStateChanged(user=>{
-      setFbUser(user||null);
-      if(user){ setSyncSt("idle"); setSyncMsg("Signed in as "+user.displayName); }
-      else{ setSyncSt("idle"); setSyncMsg(""); setCloudReady(false); }
-    });
-    return unsub;
-  },[]);
-
+  useEffect(() => {
+  if (!FB_CONFIGURED || !fbAuth) return;
+  const unsub = fbAuth.onAuthStateChanged(async (user) => {
+    setFbUser(user || null);
+    if (user) {
+      setSyncSt("idle");
+      setSyncMsg("Signed in as " + user.displayName);
+      await cloudLoadAll(); // auto-load on sign-in
+    } else {
+      setSyncSt("idle");
+      setSyncMsg("");
+      setCloudReady(false);
+    }
+  });
+  return unsub;
+}, []);
+  
   const cloudSaveAll=useCallback(async()=>{
     if(!fbUser){setSyncMsg("Sign in first");return;}
     setSyncSt("saving");setSyncMsg("Saving…");
@@ -1256,26 +1263,34 @@ function App(){
     }catch(e){setSyncSt("error");setSyncMsg("Save failed: "+e.message);}
   },[fbUser,portfolio,prices,prevPrices,history,displayCur,dark,monthlyTargetAud,superDrawRate,avgSuperBalanceAud]);
 
-  const cloudLoadAll=useCallback(async()=>{
-    if(!fbUser){setSyncMsg("Sign in first");return;}
-    setSyncSt("loading");setSyncMsg("Loading…");
-    try{
-      const data=await cloudLoad(fbUser.uid);
-      if(!data){setSyncSt("ok");setSyncMsg("No cloud data yet — save first");setCloudReady(true);return;}
-      if(data.portfolio) setPortfolio(JSON.parse(data.portfolio));
-      if(data.prices)    setPrices(JSON.parse(data.prices));
-      if(data.prevPrices)setPrevPrices(JSON.parse(data.prevPrices));
-      if(data.history)   setHistory(JSON.parse(data.history));
-      if(data.displayCur)setDisplayCur(data.displayCur);
-      if(typeof data.dark==="boolean")setDark(data.dark);
-      if(typeof data.monthlyTargetAud === "number") setMonthlyTargetAud(data.monthlyTargetAud);
-      if(typeof data.superDrawRate === "number") setSuperDrawRate(data.superDrawRate);
-      if(typeof data.avgSuperBalanceAud === "number") setAvgSuperBalanceAud(data.avgSuperBalanceAud);
-      setSyncSt("ok");setSyncMsg("Loaded ✓ saved "+new Date(data.savedAt).toLocaleString());
-      setCloudReady(true);
-    }catch(e){setSyncSt("error");setSyncMsg("Load failed: "+e.message);}
-  },[fbUser]);
-
+  const cloudLoadAll = useCallback(async () => {
+  let user = fbUser;
+  if (!user && fbAuth) user = fbAuth.currentUser;
+  if (!user) { setSyncMsg("⚠️ Sign in first"); return; }
+  setSyncSt("loading");
+  setSyncMsg("Loading...");
+  try {
+    const data = await cloudLoad(user.uid);
+    if (!data) { setSyncSt("ok"); setSyncMsg("No cloud data yet"); setCloudReady(true); return; }
+    if (data.portfolio) setPortfolio(JSON.parse(data.portfolio));
+    if (data.prices) setPrices(JSON.parse(data.prices));
+    if (data.prevPrices) setPrevPrices(JSON.parse(data.prevPrices));
+    if (data.history) setHistory(JSON.parse(data.history));
+    if (data.displayCur) setDisplayCur(data.displayCur);
+    if (typeof data.dark === "boolean") setDark(data.dark);
+    if (typeof data.monthlyTargetAud === "number") setMonthlyTargetAud(data.monthlyTargetAud);
+    if (typeof data.superDrawRate === "number") setSuperDrawRate(data.superDrawRate);
+    if (typeof data.avgSuperBalanceAud === "number") setAvgSuperBalanceAud(data.avgSuperBalanceAud);
+    setSyncSt("ok");
+    setSyncMsg("✅ Loaded ✓ " + new Date().toLocaleTimeString());
+    setCloudReady(true);
+  } catch (e) {
+    setSyncSt("error");
+    setSyncMsg("❌ Load failed: " + e.message);
+    console.error(e);
+  }
+}, [fbUser]);
+  
   useEffect(()=>{
     if(!fbUser||!FB_CONFIGURED||!cloudReady)return;
     const t=setTimeout(()=>cloudSaveAll(),3000);
