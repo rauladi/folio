@@ -111,14 +111,23 @@
                 width: 100%;
                 justify-content: space-between
             }
-            .analysis-grid {
-                grid-template-columns: 1fr !important
-            }
             .corr-heatmap-wrap {
                 overflow-x: auto
             }
             .corr-heatmap-wrap table {
                 font-size: 10px !important
+            }
+            .mc-chart-wrap {
+                height: 220px !important
+            }
+            .ef-chart-wrap {
+                height: 240px !important
+            }
+            .net-chart-wrap {
+                height: 200px !important
+            }
+            .sector-treemap-wrap {
+                height: 280px !important
             }
         }
         @media(min-width:769px) {
@@ -184,6 +193,77 @@
             color: #94a3b8;
             min-width: 28px;
             text-align: center;
+        }
+        .mc-percentile {
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .mc-percentile-high {
+            color: #22c55e;
+        }
+        .mc-percentile-med {
+            color: #fbbf24;
+        }
+        .mc-percentile-low {
+            color: #f87171;
+        }
+        .ef-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .net-bar-positive {
+            background: #22c55e;
+        }
+        .net-bar-negative {
+            background: #ef4444;
+        }
+        .net-bar-neutral {
+            background: #6366f1;
+        }
+        .sector-treemap-wrap {
+            position: relative;
+            width: 100%;
+            height: 320px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .sector-treemap-wrap .sector-box {
+            position: absolute;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Space Mono', monospace;
+            font-weight: 700;
+            font-size: 12px;
+            padding: 4px;
+            text-align: center;
+            overflow: hidden;
+            transition: filter .15s;
+            cursor: default;
+        }
+        .sector-treemap-wrap .sector-box:hover {
+            filter: brightness(1.15);
+        }
+        .sector-treemap-wrap .sector-box .sector-label {
+            font-size: 10px;
+            opacity: 0.9;
+            line-height: 1.2;
+        }
+        .sector-treemap-wrap .sector-box .sector-value {
+            font-size: 9px;
+            opacity: 0.7;
+            margin-top: 2px;
         }
     </style>
 </head>
@@ -1686,10 +1766,24 @@
             const [superDrawRate, setSuperDrawRate] = useState(() => ld("f6_superRate", 0));
             const [showPassiveModal, setShowPassiveModal] = useState(false);
             const [avgSuperBalanceAud, setAvgSuperBalanceAud] = useState(() => ld("f6_avgSuper", 0));
-            // Correlation matrix state
+
+            // Correlation matrix state (now inside Charts tab)
             const [corrData, setCorrData] = useState(null);
             const [corrLoading, setCorrLoading] = useState(false);
             const [corrPeriod, setCorrPeriod] = useState("1Y");
+
+            // Monte Carlo state
+            const [mcData, setMcData] = useState(null);
+            const [mcLoading, setMcLoading] = useState(false);
+            const [mcYears, setMcYears] = useState(5);
+            const [mcSims, setMcSims] = useState(500);
+
+            // Efficient Frontier state
+            const [efData, setEfData] = useState(null);
+            const [efLoading, setEfLoading] = useState(false);
+
+            // Net Buy/Sell state
+            const [netData, setNetData] = useState(null);
 
             const T = dark ? DARK : LIGHT;
             const winW = useWindowSize();
@@ -2012,7 +2106,6 @@
 
                 let bmStatus = "no benchmark data";
                 try {
-                    // Updated benchmarks: Norway (NORW), S&P 500, IDX Composite
                     const BM_DEFS = [
                         { key: "norway", label: "Norway Investment Fund", fetch: () => fetchBenchmark("NORW") },
                         { key: "sp500", label: "S&P 500", fetch: () => fetchBenchmark("^GSPC") },
@@ -2128,7 +2221,7 @@
                 });
             }, [portfolio, prices, prevPrices, rates]);
 
-            // ─── Correlation Matrix ───────────────────────────────────────────────────
+            // ─── Correlation Matrix (moved from Analysis) ───────────────────────────
             const fetchCorrelation = useCallback(async () => {
                 setCorrLoading(true);
                 setCorrData(null);
@@ -2157,7 +2250,6 @@
                         setCorrLoading(false);
                         return;
                     }
-                    // Align dates across all tickers
                     const allDates = new Set();
                     for (const tk of tickers) {
                         for (const d of Object.keys(priceMaps[tk])) {
@@ -2170,12 +2262,10 @@
                         setCorrLoading(false);
                         return;
                     }
-                    // Build price matrix
                     const priceMatrix = {};
                     for (const tk of tickers) {
                         priceMatrix[tk] = sortedDates.map(d => priceMaps[tk][d] ?? null);
                     }
-                    // Calculate daily returns
                     const returnMatrix = {};
                     for (const tk of tickers) {
                         const prices = priceMatrix[tk];
@@ -2189,13 +2279,12 @@
                         }
                         returnMatrix[tk] = returns;
                     }
-                    // Align returns (remove days where any asset has null)
                     const minLen = Math.min(...tickers.map(tk => returnMatrix[tk].length));
                     const alignedReturns = {};
                     for (const tk of tickers) {
                         alignedReturns[tk] = returnMatrix[tk].slice(0, minLen);
                     }
-                    // Compute correlation
+
                     function corr(x, y) {
                         const n = x.length;
                         let sumX = 0,
@@ -2223,7 +2312,6 @@
                             corrMatrix[a][b] = isNaN(r) ? 0 : r;
                         }
                     }
-                    // Also compute average correlation for each asset
                     const avgCorr = {};
                     for (const a of tickers) {
                         let sum = 0,
@@ -2249,13 +2337,787 @@
                 setCorrLoading(false);
             }, [portfolio, corrPeriod, periodCutoff]);
 
-            // Load correlation when view changes to analysis or period changes
-            useEffect(() => {
-                if (view === "analysis") {
-                    fetchCorrelation();
-                }
-            }, [view, corrPeriod, fetchCorrelation]);
+            // ─── Monte Carlo Simulation (using portfolio history) ──────────────────
+            const runMonteCarlo = useCallback(async () => {
+                setMcLoading(true);
+                setMcData(null);
+                try {
+                    // Use portfolio history to compute mean return and volatility
+                    if (history.length < 2) {
+                        setMcData({ error: "Not enough historical portfolio data (need at least 2 snapshots)." });
+                        setMcLoading(false);
+                        return;
+                    }
+                    // Sort history by date
+                    const sorted = [...history].sort((a, b) => new Date(a.date) - new Date(b.date));
+                    const values = sorted.map(s => s.totalValueAUD);
+                    // Compute daily returns from monthly snapshots (approx)
+                    // We'll use monthly returns as daily approximation (252 trading days per year)
+                    const returns = [];
+                    for (let i = 1; i < values.length; i++) {
+                        if (values[i - 1] > 0) {
+                            returns.push((values[i] - values[i - 1]) / values[i - 1]);
+                        }
+                    }
+                    if (returns.length < 2) {
+                        setMcData({ error: "Not enough return data (need at least 2 periods)." });
+                        setMcLoading(false);
+                        return;
+                    }
+                    // Mean and volatility (annualized)
+                    const meanMonthly = returns.reduce((s, r) => s + r, 0) / returns.length;
+                    const varMonthly = returns.reduce((s, r) => s + (r - meanMonthly) ** 2, 0) / returns.length;
+                    const volMonthly = Math.sqrt(varMonthly);
+                    const meanAnnual = meanMonthly * 12;
+                    const volAnnual = volMonthly * Math.sqrt(12);
 
+                    const currentValue = values[values.length - 1];
+                    const years = mcYears;
+                    const nSims = mcSims;
+                    const nSteps = years * 12; // monthly steps
+                    const dt = 1 / 12;
+
+                    // Simulate using geometric Brownian motion
+                    const paths = [];
+                    for (let sim = 0; sim < nSims; sim++) {
+                        const path = [currentValue];
+                        let val = currentValue;
+                        for (let step = 0; step < nSteps; step++) {
+                            const z = (Math.random() + Math.random() + Math.random() + Math.random() + Math.random() +
+                                Math.random() - 3) / 1.5; // approx normal
+                            const drift = (meanAnnual - 0.5 * volAnnual * volAnnual) * dt;
+                            const shock = volAnnual * Math.sqrt(dt) * z;
+                            val = val * Math.exp(drift + shock);
+                            path.push(val);
+                        }
+                        paths.push(path);
+                    }
+
+                    // Compute percentiles
+                    const steps = paths[0].length;
+                    const percentiles = [5, 10, 25, 50, 75, 90, 95];
+                    const labels = Array.from({ length: steps }, (_, i) => (i / 12).toFixed(1) + 'y');
+                    const pctData = {};
+                    for (const p of percentiles) {
+                        pctData[p] = [];
+                        for (let step = 0; step < steps; step++) {
+                            const vals = paths.map(path => path[step]);
+                            vals.sort((a, b) => a - b);
+                            const idx = Math.floor((p / 100) * vals.length);
+                            pctData[p].push(vals[idx]);
+                        }
+                    }
+                    const finalVals = paths.map(path => path[steps - 1]);
+                    finalVals.sort((a, b) => a - b);
+                    const medianFinal = finalVals[Math.floor(finalVals.length / 2)];
+                    const p5Final = finalVals[Math.floor(0.05 * finalVals.length)];
+                    const p95Final = finalVals[Math.floor(0.95 * finalVals.length)];
+
+                    setMcData({
+                        labels,
+                        percentiles: pctData,
+                        paths,
+                        medianFinal,
+                        p5Final,
+                        p95Final,
+                        currentValue,
+                        meanAnnual,
+                        volAnnual,
+                        years,
+                        nSims,
+                    });
+                } catch (e) {
+                    setMcData({ error: "Monte Carlo failed: " + e.message });
+                }
+                setMcLoading(false);
+            }, [history, mcYears, mcSims]);
+
+            // ─── Efficient Frontier ──────────────────────────────────────────────────
+            const runEfficientFrontier = useCallback(async () => {
+                setEfLoading(true);
+                setEfData(null);
+                try {
+                    const cutoff = periodCutoff("5Y");
+                    const targetDate = cutoff.toISOString().slice(0, 10);
+                    const holdingsWithSymbol = portfolio.filter(h => h.yahooSymbol);
+                    if (holdingsWithSymbol.length < 2) {
+                        setEfData({ error: "Need at least 2 assets with Yahoo symbols for Efficient Frontier." });
+                        setEfLoading(false);
+                        return;
+                    }
+                    const priceMaps = {};
+                    const tickers = [];
+                    for (const h of holdingsWithSymbol) {
+                        try {
+                            const hist = await fetchHoldingHistory(h.yahooSymbol);
+                            if (hist?.priceMap) {
+                                priceMaps[h.ticker] = hist.priceMap;
+                                tickers.push(h.ticker);
+                            }
+                        } catch (e) { console.warn(`Could not fetch history for ${h.ticker}:`, e); }
+                    }
+                    if (tickers.length < 2) {
+                        setEfData({ error: "Not enough holdings with historical price data (need at least 2)." });
+                        setEfLoading(false);
+                        return;
+                    }
+                    const allDates = new Set();
+                    for (const tk of tickers) {
+                        for (const d of Object.keys(priceMaps[tk])) {
+                            if (d >= targetDate) allDates.add(d);
+                        }
+                    }
+                    const sortedDates = Array.from(allDates).sort();
+                    if (sortedDates.length < 10) {
+                        setEfData({ error: "Not enough overlapping price data." });
+                        setEfLoading(false);
+                        return;
+                    }
+                    const returnMatrix = {};
+                    for (const tk of tickers) {
+                        const prices = sortedDates.map(d => priceMaps[tk][d] ?? null);
+                        const returns = [];
+                        for (let i = 1; i < prices.length; i++) {
+                            if (prices[i] != null && prices[i - 1] != null && prices[i - 1] > 0) {
+                                returns.push((prices[i] - prices[i - 1]) / prices[i - 1]);
+                            } else {
+                                returns.push(null);
+                            }
+                        }
+                        returnMatrix[tk] = returns;
+                    }
+                    const minLen = Math.min(...tickers.map(tk => returnMatrix[tk].length));
+                    const alignedReturns = {};
+                    for (const tk of tickers) {
+                        alignedReturns[tk] = returnMatrix[tk].slice(0, minLen);
+                    }
+                    // Calculate mean returns and covariance
+                    const means = {};
+                    const covMatrix = {};
+                    for (const a of tickers) {
+                        const rets = alignedReturns[a];
+                        means[a] = rets.reduce((s, r) => s + r, 0) / rets.length * 252;
+                    }
+                    for (const a of tickers) {
+                        covMatrix[a] = {};
+                        for (const b of tickers) {
+                            const ra = alignedReturns[a];
+                            const rb = alignedReturns[b];
+                            let cov = 0;
+                            for (let i = 0; i < ra.length; i++) {
+                                cov += (ra[i] - means[a] / 252) * (rb[i] - means[b] / 252);
+                            }
+                            covMatrix[a][b] = cov / (ra.length - 1) * 252;
+                        }
+                    }
+                    // Generate efficient frontier
+                    const nPortfolios = 60;
+                    const frontier = [];
+                    const minRisk = 0.005;
+                    const maxRisk = Math.max(...tickers.map(t => Math.sqrt(covMatrix[t][t]))) * 1.5;
+
+                    for (let i = 0; i < nPortfolios; i++) {
+                        const riskTarget = minRisk + (maxRisk - minRisk) * (i / (nPortfolios - 1));
+                        let bestReturn = -Infinity;
+                        let bestWeights = null;
+                        for (let attempt = 0; attempt < 200; attempt++) {
+                            let w = tickers.map(() => Math.random());
+                            const sum = w.reduce((s, v) => s + v, 0);
+                            w = w.map(v => v / sum);
+                            let ret = 0;
+                            let risk = 0;
+                            for (let a = 0; a < tickers.length; a++) {
+                                ret += w[a] * means[tickers[a]];
+                                for (let b = 0; b < tickers.length; b++) {
+                                    risk += w[a] * w[b] * covMatrix[tickers[a]][tickers[b]];
+                                }
+                            }
+                            risk = Math.sqrt(Math.max(0, risk));
+                            if (Math.abs(risk - riskTarget) / riskTarget < 0.15 && ret > bestReturn) {
+                                bestReturn = ret;
+                                bestWeights = { ...w };
+                            }
+                        }
+                        if (bestWeights) {
+                            const wArr = tickers.map((t, idx) => ({ ticker: t, weight: bestWeights[idx] }));
+                            frontier.push({
+                                risk: riskTarget,
+                                return: bestReturn,
+                                weights: wArr,
+                            });
+                        }
+                    }
+                    // Also compute current portfolio
+                    const totalValue = holdings.reduce((s, h) => s + h.currentValue, 0);
+                    const currentWeights = {};
+                    for (const h of holdings) {
+                        if (tickers.includes(h.ticker)) {
+                            currentWeights[h.ticker] = h.currentValue / totalValue;
+                        }
+                    }
+                    let currentRet = 0,
+                        currentRisk = 0;
+                    for (const a of tickers) {
+                        currentRet += (currentWeights[a] || 0) * means[a];
+                        for (const b of tickers) {
+                            currentRisk += (currentWeights[a] || 0) * (currentWeights[b] || 0) * covMatrix[a][b];
+                        }
+                    }
+                    currentRisk = Math.sqrt(Math.max(0, currentRisk));
+
+                    setEfData({
+                        tickers,
+                        frontier,
+                        means,
+                        covMatrix,
+                        currentRet,
+                        currentRisk,
+                        currentWeights,
+                        minReturn: Math.min(...frontier.map(p => p.return)),
+                        maxReturn: Math.max(...frontier.map(p => p.return)),
+                        minRisk: Math.min(...frontier.map(p => p.risk)),
+                        maxRisk: Math.max(...frontier.map(p => p.risk)),
+                    });
+                } catch (e) {
+                    setEfData({ error: "Efficient Frontier failed: " + e.message });
+                }
+                setEfLoading(false);
+            }, [portfolio, holdings, periodCutoff]);
+
+            // ─── Net Buy/Sell Chart ──────────────────────────────────────────────────
+            const computeNetData = useCallback(() => {
+                const net = {};
+                for (const h of portfolio) {
+                    let buys = 0,
+                        sells = 0;
+                    for (const tx of h.transactions) {
+                        if (tx.type === "buy") {
+                            buys += toAUD(tx.qty * tx.price, h.currency, rates);
+                        } else if (tx.type === "sell") {
+                            sells += toAUD(tx.qty * tx.price, h.currency, rates);
+                        }
+                    }
+                    net[h.ticker] = { buys, sells, net: buys - sells, name: h.name, currency: h.currency };
+                }
+                const entries = Object.entries(net).filter(([_, v]) => v.buys > 0 || v.sells > 0);
+                entries.sort((a, b) => Math.abs(b[1].net) - Math.abs(a[1].net));
+                setNetData(entries.map(([ticker, data]) => ({ ticker, ...data })));
+            }, [portfolio, rates]);
+
+            // Load data when view is Charts
+            useEffect(() => {
+                if (view === "chart") {
+                    fetchCorrelation();
+                    computeNetData();
+                    // Don't auto-run MC and EF to avoid slow loads; user clicks to run
+                }
+            }, [view, fetchCorrelation, computeNetData]);
+
+            // ─── Chart Components for new features ──────────────────────────────────
+            function MonteCarloChart({ data, T, yFmt, height = 300 }) {
+                const ref = useRef(null);
+                const inst = useRef(null);
+                useEffect(() => {
+                    if (!ref.current || typeof Chart === "undefined" || !data) return;
+                    if (inst.current) inst.current.destroy();
+                    const { labels, percentiles } = data;
+                    const datasets = [
+                        { label: '95th %ile', data: percentiles[95], borderColor: '#22c55e',
+                            backgroundColor: 'rgba(34,197,94,0.08)', fill: '+4', borderDash: [2, 4],
+                            borderWidth: 1.5, pointRadius: 0, tension: 0.3 },
+                        { label: '75th %ile', data: percentiles[75], borderColor: '#4ade80',
+                            backgroundColor: 'rgba(74,222,128,0.10)', fill: '+2', borderDash: [3, 3],
+                            borderWidth: 1.5, pointRadius: 0, tension: 0.3 },
+                        { label: '50th %ile (Median)', data: percentiles[50], borderColor: '#fbbf24',
+                            backgroundColor: 'rgba(251,191,36,0.06)', fill: '+1', borderWidth: 2.5,
+                            pointRadius: 0, tension: 0.3 },
+                        { label: '25th %ile', data: percentiles[25], borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245,158,11,0.06)', fill: false, borderDash: [3, 3],
+                            borderWidth: 1.5, pointRadius: 0, tension: 0.3 },
+                        { label: '10th %ile', data: percentiles[10], borderColor: '#f87171',
+                            backgroundColor: 'rgba(248,113,113,0.06)', fill: false, borderDash: [2, 4],
+                            borderWidth: 1.5, pointRadius: 0, tension: 0.3 },
+                        { label: '5th %ile', data: percentiles[5], borderColor: '#ef4444',
+                            backgroundColor: 'rgba(239,68,68,0.06)', fill: false, borderDash: [2, 4],
+                            borderWidth: 1.5, pointRadius: 0, tension: 0.3 },
+                    ];
+                    // Add a few random paths faintly
+                    const numPaths = Math.min(20, data.paths.length);
+                    for (let i = 0; i < numPaths; i++) {
+                        const path = data.paths[i];
+                        const color = `rgba(255,255,255,${0.03 + 0.02 * (i / numPaths)})`;
+                        datasets.push({
+                            label: '',
+                            data: path,
+                            borderColor: color,
+                            backgroundColor: 'transparent',
+                            borderWidth: 0.5,
+                            pointRadius: 0,
+                            tension: 0.3,
+                            borderDash: [],
+                            fill: false,
+                        });
+                    }
+                    inst.current = new Chart(ref.current, {
+                        type: 'line',
+                        data: { labels, datasets },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { labels: { color: T.text2, font: { size: 9 }, boxWidth: 12,
+                                        padding: 8 } },
+                                tooltip: {
+                                    backgroundColor: T.bg3,
+                                    borderColor: T.border,
+                                    borderWidth: 1,
+                                    titleColor: T.text,
+                                    bodyColor: T.text2,
+                                    padding: 8,
+                                    cornerRadius: 6,
+                                    callbacks: {
+                                        label: (ctx) => {
+                                            if (!ctx.dataset.label) return '';
+                                            const v = ctx.parsed.y;
+                                            return `${ctx.dataset.label}: ${yFmt ? yFmt(v) : v.toFixed(0)}`;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                x: { grid: { color: T.chartGrid }, ticks: { color: T.chartTick,
+                                        font: { size: 9 }, maxTicksLimit: 20 },
+                                    border: { color: T.border } },
+                                y: { grid: { color: T.chartGrid }, ticks: { color: T.chartTick,
+                                        font: { size: 9 }, callback: yFmt || (v => v.toFixed(0)) },
+                                    border: { color: T.border } }
+                            },
+                            elements: { line: { tension: 0.3 }, point: { radius: 0 } },
+                        }
+                    });
+                    return () => { if (inst.current) inst.current.destroy(); };
+                }, [data, T, yFmt]);
+                return <div style={{ height, position: 'relative' }}><canvas ref={ref} /></div>;
+            }
+
+            function EfficientFrontierChart({ data, T, yFmt, height = 280 }) {
+                const ref = useRef(null);
+                const inst = useRef(null);
+                useEffect(() => {
+                    if (!ref.current || typeof Chart === "undefined" || !data) return;
+                    if (inst.current) inst.current.destroy();
+                    const { frontier, currentRet, currentRisk, tickers } = data;
+                    const returns = frontier.map(p => p.return * 100);
+                    const risks = frontier.map(p => p.risk * 100);
+                    // Find min variance portfolio
+                    const minVarIdx = risks.reduce((min, v, i, arr) => v < arr[min] ? i : min, 0);
+                    // Find max return portfolio
+                    const maxRetIdx = returns.reduce((max, v, i, arr) => v > arr[max] ? i : max, 0);
+
+                    const datasets = [{
+                        label: 'Efficient Frontier',
+                        data: frontier.map(p => ({ x: p.risk * 100, y: p.return * 100 })),
+                        borderColor: '#6366f1',
+                        backgroundColor: 'rgba(99,102,241,0.15)',
+                        borderWidth: 2.5,
+                        pointRadius: 2,
+                        pointBackgroundColor: '#6366f1',
+                        tension: 0.4,
+                        fill: false,
+                        showLine: true,
+                    }, {
+                        label: 'Current Portfolio',
+                        data: [{ x: currentRisk * 100, y: currentRet * 100 }],
+                        borderColor: '#22c55e',
+                        backgroundColor: '#22c55e',
+                        pointRadius: 8,
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        showLine: false,
+                    }, {
+                        label: 'Min Variance',
+                        data: [{ x: risks[minVarIdx], y: returns[minVarIdx] }],
+                        borderColor: '#fbbf24',
+                        backgroundColor: '#fbbf24',
+                        pointRadius: 7,
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        showLine: false,
+                    }, {
+                        label: 'Max Return',
+                        data: [{ x: risks[maxRetIdx], y: returns[maxRetIdx] }],
+                        borderColor: '#f87171',
+                        backgroundColor: '#f87171',
+                        pointRadius: 7,
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        showLine: false,
+                    }];
+
+                    // Add individual assets as points
+                    for (const tk of tickers) {
+                        const ret = data.means[tk] * 100;
+                        const risk = Math.sqrt(data.covMatrix[tk][tk]) * 100;
+                        datasets.push({
+                            label: tk,
+                            data: [{ x: risk, y: ret }],
+                            borderColor: '#94a3b8',
+                            backgroundColor: T.text3,
+                            pointRadius: 5,
+                            pointBorderColor: T.bg2,
+                            pointBorderWidth: 1,
+                            showLine: false,
+                        });
+                    }
+
+                    inst.current = new Chart(ref.current, {
+                        type: 'scatter',
+                        data: { datasets },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { labels: { color: T.text2, font: { size: 9 }, boxWidth: 12,
+                                        padding: 8 } },
+                                tooltip: {
+                                    backgroundColor: T.bg3,
+                                    borderColor: T.border,
+                                    borderWidth: 1,
+                                    titleColor: T.text,
+                                    bodyColor: T.text2,
+                                    padding: 8,
+                                    cornerRadius: 6,
+                                    callbacks: {
+                                        label: (ctx) => {
+                                            const label = ctx.dataset.label || '';
+                                            const x = ctx.parsed.x;
+                                            const y = ctx.parsed.y;
+                                            return `${label}: Risk ${x.toFixed(2)}%, Return ${y.toFixed(2)}%`;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    grid: { color: T.chartGrid },
+                                    ticks: { color: T.chartTick, font: { size: 9 },
+                                        callback: v => v.toFixed(1) + '%' },
+                                    border: { color: T.border },
+                                    title: { display: true, text: 'Risk (Std Dev %)', color: T.text3,
+                                        font: { size: 9 } }
+                                },
+                                y: {
+                                    grid: { color: T.chartGrid },
+                                    ticks: { color: T.chartTick, font: { size: 9 },
+                                        callback: v => v.toFixed(1) + '%' },
+                                    border: { color: T.border },
+                                    title: { display: true, text: 'Expected Return (%)', color: T.text3,
+                                        font: { size: 9 } }
+                                }
+                            },
+                            elements: { point: { hoverRadius: 8 } },
+                        }
+                    });
+                    return () => { if (inst.current) inst.current.destroy(); };
+                }, [data, T, yFmt]);
+                return <div style={{ height, position: 'relative' }}><canvas ref={ref} /></div>;
+            }
+
+            function NetBuySellChart({ data, T, yFmt, height = 240 }) {
+                const ref = useRef(null);
+                const inst = useRef(null);
+                useEffect(() => {
+                    if (!ref.current || typeof Chart === "undefined" || !data || data.length === 0) return;
+                    if (inst.current) inst.current.destroy();
+                    const labels = data.map(d => d.ticker);
+                    const netValues = data.map(d => d.net);
+                    const colors = netValues.map(v => v >= 0 ? '#22c55e' : '#ef4444');
+                    inst.current = new Chart(ref.current, {
+                        type: 'bar',
+                        data: {
+                            labels,
+                            datasets: [{
+                                label: 'Net Buy/Sell (AUD)',
+                                data: netValues,
+                                backgroundColor: colors,
+                                borderColor: colors.map(c => c + '88'),
+                                borderWidth: 1.5,
+                                borderRadius: 4,
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    backgroundColor: T.bg3,
+                                    borderColor: T.border,
+                                    borderWidth: 1,
+                                    titleColor: T.text,
+                                    bodyColor: T.text2,
+                                    padding: 8,
+                                    cornerRadius: 6,
+                                    callbacks: {
+                                        label: (ctx) => {
+                                            const v = ctx.parsed.y;
+                                            const d = data[ctx.dataIndex];
+                                            const label = v >= 0 ? 'Net Buy' : 'Net Sell';
+                                            return `${label}: ${yFmt ? yFmt(Math.abs(v)) : Math.abs(v).toFixed(0)}`;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                x: { grid: { color: 'transparent' }, ticks: { color: T.chartTick,
+                                        font: { size: 9 } }, border: { color: T.border } },
+                                y: {
+                                    grid: { color: T.chartGrid },
+                                    ticks: { color: T.chartTick, font: { size: 9 }, callback: yFmt || (v =>
+                                            v.toFixed(0)) },
+                                    border: { color: T.border },
+                                    // Use logarithmic scale to compress large bars
+                                    type: 'logarithmic',
+                                    min: 1, // avoid log of zero
+                                }
+                            }
+                        }
+                    });
+                    return () => { if (inst.current) inst.current.destroy(); };
+                }, [data, T, yFmt]);
+                return <div style={{ height, position: 'relative' }}><canvas ref={ref} /></div>;
+            }
+
+            // ─── Correlation Heatmap Component ──────────────────────────────────────
+            function CorrelationHeatmap({ data, T, dark, isMob }) {
+                if (!data) return null;
+                if (data.error) {
+                    return <div style={{ padding: 32, textAlign: "center", color: T.amber, fontSize: 13 }}>{data.error}</div>;
+                }
+                const { tickers, matrix, avgCorr } = data;
+                if (tickers.length < 2) {
+                    return <div style={{ padding: 32, textAlign: "center", color: T.text3,
+                        fontSize: 13 }}>Add at least two assets with Yahoo symbols to see correlation.</div>;
+                }
+
+                let totalCorr = 0,
+                    count = 0;
+                for (let i = 0; i < tickers.length; i++) {
+                    for (let j = i + 1; j < tickers.length; j++) {
+                        totalCorr += matrix[tickers[i]][tickers[j]];
+                        count++;
+                    }
+                }
+                const avgOverall = count > 0 ? totalCorr / count : 0;
+
+                // FIXED: +1 = green, -1 = red, 0 = white
+                const colorScale = (val) => {
+                    const clamped = Math.max(-1, Math.min(1, val));
+                    if (clamped < 0) {
+                        const t = Math.abs(clamped); // 0..1
+                        const r = Math.round(248 - t * (248 - 239));
+                        const g = Math.round(250 - t * (250 - 68));
+                        const b = Math.round(252 - t * (252 - 68));
+                        return `rgb(${r},${g},${b})`;
+                    } else {
+                        const t = clamped; // 0..1
+                        const r = Math.round(248 - t * (248 - 34));
+                        const g = Math.round(250 + t * (197 - 250));
+                        const b = Math.round(252 - t * (252 - 94));
+                        return `rgb(${r},${g},${b})`;
+                    }
+                };
+
+                const textColor = (val) => Math.abs(val) > 0.45 ? "#fff" : (dark ? "#e2e8f0" : "#1e293b");
+
+                return (
+                    <div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 16, marginBottom: 16 }}>
+                            <div style={{ background: T.bg4, border: `1px solid ${T.border}`, borderRadius: 8,
+                                padding: "10px 16px" }}>
+                                <div style={{ fontSize: 10, color: T.text3, letterSpacing: 0.5, textTransform: "uppercase" }}>
+                                    Average Correlation</div>
+                                <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 16, fontWeight: 700,
+                                    color: Math.abs(avgOverall) > 0.5 ? (avgOverall > 0 ? T.amber : T.teal) : T
+                                        .text }}>
+                                    {avgOverall.toFixed(3)}
+                                </div>
+                                <div style={{ fontSize: 10, color: T.text3, marginTop: 2 }}>
+                                    {avgOverall > 0.6 ? "⚠️ High — assets move together" :
+                                        avgOverall > 0.3 ? "📊 Moderate correlation" :
+                                        avgOverall > 0 ? "✅ Low — good diversification" :
+                                        "🌟 Negative — excellent hedging"
+                                    }
+                                </div>
+                            </div>
+                            <div style={{ background: T.bg4, border: `1px solid ${T.border}`, borderRadius: 8,
+                                padding: "10px 16px" }}>
+                                <div style={{ fontSize: 10, color: T.text3, letterSpacing: 0.5, textTransform: "uppercase" }}>
+                                    Period</div>
+                                <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 14, fontWeight: 700,
+                                    color: T.text }}>{data.period || "1Y"}</div>
+                                <div style={{ fontSize: 10, color: T.text3, marginTop: 2 }}>
+                                    {tickers.length} assets · {data.dates?.length || 0} days
+                                </div>
+                            </div>
+                            <div style={{ background: T.bg4, border: `1px solid ${T.border}`, borderRadius: 8,
+                                padding: "10px 16px", flex: "1 1 auto" }}>
+                                <div style={{ fontSize: 10, color: T.text3, letterSpacing: 0.5, textTransform: "uppercase" }}>
+                                    Diversification Score</div>
+                                <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 16, fontWeight: 700,
+                                    color: avgOverall < 0.3 ? T.green : avgOverall < 0.55 ? T.amber : T.red }}>
+                                    {avgOverall < 0.3 ? "✅ Good" : avgOverall < 0.55 ? "📊 Moderate" : "⚠️ Low"}
+                                </div>
+                                <div style={{ fontSize: 10, color: T.text3, marginTop: 2 }}>
+                                    {avgOverall < 0.3 ? "Assets move independently" :
+                                        avgOverall < 0.55 ? "Some correlation" :
+                                        "Assets move together — review holdings"
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="corr-heatmap-wrap" style={{ overflowX: "auto", borderRadius: 10,
+                            border: `1px solid ${T.border}`, background: T.bg3, padding: 4 }}>
+                            <table style={{ borderCollapse: "collapse", fontSize: isMob ? 10 : 11, minWidth: 300,
+                                width: "100%" }}>
+                                <thead>
+                                    <tr>
+                                        <th style={{ padding: "6px 10px", textAlign: "left", fontSize: 9,
+                                            letterSpacing: 1, color: T.text3, textTransform: "uppercase",
+                                            background: T.bg2, borderBottom: `1px solid ${T.border}`,
+                                            minWidth: 70 }}>Asset</th>
+                                        {tickers.map(tk => (
+                                            <th key={tk} style={{ padding: "6px 8px", textAlign: "center",
+                                                fontSize: 9, letterSpacing: 0.5, color: T.text2,
+                                                background: T.bg2, borderBottom: `1px solid ${T.border}`,
+                                                fontFamily: "'Space Mono',monospace", fontWeight: 700,
+                                                minWidth: 52 }}>{tk}</th>
+                                        ))}
+                                        <th style={{ padding: "6px 8px", textAlign: "center", fontSize: 8,
+                                            letterSpacing: 0.5, color: T.text3, background: T.bg2,
+                                            borderBottom: `1px solid ${T.border}`, minWidth: 52 }}>
+                                            Avg</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {tickers.map(rowTk => (
+                                        <tr key={rowTk}>
+                                            <td style={{ padding: "4px 10px", fontFamily: "'Space Mono',monospace",
+                                                fontWeight: 600, fontSize: 10, color: T.text,
+                                                borderBottom: `1px solid ${T.border}44`, whiteSpace: "nowrap",
+                                                background: T.bg2 }}>{rowTk}</td>
+                                            {tickers.map(colTk => {
+                                                const val = matrix[rowTk]?.[colTk] ?? 0;
+                                                const isSelf = rowTk === colTk;
+                                                const bg = isSelf ? (dark ? "#1a1f30" : "#e2e8f0") :
+                                                    colorScale(val);
+                                                const tc = isSelf ? T.text3 : textColor(val);
+                                                return (
+                                                    <td key={colTk} style={{ padding: "4px 6px",
+                                                        textAlign: "center", background: bg,
+                                                        borderBottom: `1px solid ${T.border}44`,
+                                                        fontFamily: "'Space Mono',monospace",
+                                                        fontWeight: isSelf ? 400 : 600, fontSize: 10,
+                                                        color: tc, minWidth: 48, cursor: "default",
+                                                        transition: "transform .1s" }}
+                                                        onMouseEnter={e => e.currentTarget.style
+                                                            .transform = "scale(1.05)"}
+                                                        onMouseLeave={e => e.currentTarget.style
+                                                            .transform = "scale(1)"}
+                                                    >
+                                                        {isSelf ? "1.00" : val.toFixed(2)}
+                                                    </td>
+                                                );
+                                            })}
+                                            <td style={{ padding: "4px 6px", textAlign: "center",
+                                                fontFamily: "'Space Mono',monospace", fontSize: 10,
+                                                fontWeight: 600, color: Math.abs(avgCorr[rowTk] ?? 0) > 0.5 ?
+                                                    (avgCorr[rowTk] > 0 ? T.amber : T.teal) : T.text2,
+                                                borderBottom: `1px solid ${T.border}44`, background: T
+                                                    .bg2 }}>
+                                                {(avgCorr[rowTk] ?? 0).toFixed(2)}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div className="corr-legend" style={{ display: "flex", alignItems: "center", gap: 6,
+                            flexWrap: "wrap", marginTop: 12 }}>
+                            <span style={{ fontSize: 9, color: T.text3, fontWeight: 500 }}>Correlation:</span>
+                            <div style={{ height: 10, width: isMob ? 100 : 140, borderRadius: 4,
+                                background: "linear-gradient(to right, #ef4444, #f8fafc, #22c55e)",
+                                border: `1px solid ${T.border}44` }} />
+                            <span className="leg-label" style={{ fontSize: 9, fontWeight: 600, fontFamily: "'Space Mono',monospace",
+                                color: T.text3, minWidth: 28, textAlign: "center" }}>-1.0</span>
+                            <span className="leg-label" style={{ fontSize: 9, fontWeight: 600, fontFamily: "'Space Mono',monospace",
+                                color: T.text3, minWidth: 28, textAlign: "center" }}>0</span>
+                            <span className="leg-label" style={{ fontSize: 9, fontWeight: 600, fontFamily: "'Space Mono',monospace",
+                                color: T.text3, minWidth: 28, textAlign: "center" }}>+1.0</span>
+                            <span style={{ fontSize: 9, color: T.text3, marginLeft: 8 }}>→ {tickers.length} assets</span>
+                        </div>
+                        <div style={{ fontSize: 10, color: T.text3, marginTop: 8, lineHeight: 1.6, maxWidth: 600 }}>
+                            💡 <b>Interpretation:</b> Values near <b style={{ color: T.green }}>+1</b> (green) mean assets
+                            move together (low diversification). Values near <b style={{ color: T.red }}>-1</b> (red) mean
+                            they move in opposite directions (strong hedge). Near <b>0</b> (white/neutral) indicates
+                            independent movement — good diversification.
+                        </div>
+                    </div>
+                );
+            }
+
+            // ─── Sector/Industry Treemap ─────────────────────────────────────────────
+            function SectorTreemap({ holdings, T, displayCur, rates, valuesHidden }) {
+                const sectorMap = {};
+                for (const h of holdings) {
+                    const sector = h.assetType || "Other";
+                    if (!sectorMap[sector]) sectorMap[sector] = 0;
+                    sectorMap[sector] += h.currentValue;
+                }
+                const items = Object.entries(sectorMap).map(([label, value]) => ({ label, value }));
+                if (items.length === 0) return <div style={{ padding: 20, textAlign: "center", color: T.text3 }}>No holdings</div>;
+                const totalValue = items.reduce((s, i) => s + i.value, 0);
+                const rects = squarify(items.map(i => ({ ...i, value: i.value })), 0, 0, 600, 320);
+                const palette = ["#6366f1", "#22c55e", "#06b6d4", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6",
+                    "#f97316", "#84cc16", "#3b82f6", "#a78bfa"
+                ];
+                const colorMap = {};
+                items.forEach((item, i) => { colorMap[item.label] = palette[i % palette.length]; });
+                return (
+                    <div className="sector-treemap-wrap" style={{ height: 320, position: "relative", borderRadius: 8,
+                        overflow: "hidden", border: `1px solid ${T.border}`, background: T.bg3 }}>
+                        {rects.map(r => {
+                            const label = r.label;
+                            const value = r.value;
+                            const pct = (value / totalValue * 100);
+                            const color = colorMap[label];
+                            return (
+                                <div key={label} style={{ position: "absolute", left: r.x + 1, top: r.y + 1,
+                                        width: r.w - 2, height: r.h - 2, background: color,
+                                        borderRadius: 4, display: "flex", flexDirection: "column",
+                                        alignItems: "center", justifyContent: "center", overflow: "hidden",
+                                        transition: "filter .15s", cursor: "default" }}
+                                    onMouseEnter={e => e.currentTarget.style.filter = "brightness(1.15)"}
+                                    onMouseLeave={e => e.currentTarget.style.filter = "brightness(1)"}>
+                                    <span style={{ fontSize: Math.min(14, Math.max(8, r.w / 10)),
+                                            fontFamily: "'Space Mono',monospace", fontWeight: 700, color: "#fff",
+                                            textShadow: "0 1px 4px rgba(0,0,0,0.5)", textAlign: "center",
+                                            lineHeight: 1.2, padding: "0 4px" }}>{label}</span>
+                                    <span style={{ fontSize: Math.min(10, Math.max(7, r.w / 12)),
+                                            fontFamily: "'Space Mono',monospace", color: "#fff",
+                                            textShadow: "0 1px 4px rgba(0,0,0,0.5)", opacity: 0.9, marginTop: 2 }}>
+                                        {valuesHidden ? "••" : `${fmtCur(value, displayCur, rates, true)} (${pct.toFixed(1)}%)`}
+                                    </span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                );
+            }
+
+            // Chart period settings for Monte Carlo / EF
             const chartData = useMemo(() => {
                 const cutoff = periodCutoff(chartPeriod);
                 const allSorted = [...history].sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -2274,7 +3136,6 @@
                     if (filtIdx.length > 1) {
                         bmLabels = filtIdx.map(i => fmtMonShort(allBenchmarkDates[i]));
                         const i0 = filtIdx[0];
-                        // Only 3 benchmarks: norway, sp500, jkse
                         const BM_KEYS = ["norway", "sp500", "jkse"];
                         BM_KEYS.forEach(k => {
                             const s = benchmarks.series[k];
@@ -2474,6 +3335,9 @@
                 return `${displayCur==="USD"?"US$":"A$"}${(v/1e3).toFixed(0)}K`;
             }, [displayCur]);
 
+            const yFmtPct = useCallback((v) => `${v.toFixed(1)}%`, []);
+            const yFmtAud = useCallback((v) => `A$${v.toFixed(0)}`, []);
+
             const closeModal = () => { setModal(null);
                 setForm({}); };
             const openAdd = () => {
@@ -2633,190 +3497,6 @@
                     "IDR") return `Rp ${fmtIDR(v)}`; if (cur === "USD") return `US$${fmtAUD(v)}`; return `A$${fmtAUD(v)}`; };
             const fetchBarColor = fetchSt.loading ? T.amber : Object.keys(fetchSt.errors).length > 0 ? T.amber :
                 fetchSt.lastUpdate ? T.green : T.text3;
-
-            // ─── Correlation Heatmap Component ──────────────────────────────────────
-            function CorrelationHeatmap({ data, T, dark, isMob }) {
-                if (!data) return null;
-                if (data.error) {
-                    return <div style={{ padding: 32, textAlign: "center", color: T.amber, fontSize: 13 }}>{data.error}</div>;
-                }
-                const { tickers, matrix, avgCorr } = data;
-                if (tickers.length < 2) {
-                    return <div style={{ padding: 32, textAlign: "center", color: T.text3,
-                        fontSize: 13 }}>Add at least two assets with Yahoo symbols to see correlation.</div>;
-                }
-
-                // Compute overall average correlation (excluding self)
-                let totalCorr = 0,
-                    count = 0;
-                for (let i = 0; i < tickers.length; i++) {
-                    for (let j = i + 1; j < tickers.length; j++) {
-                        totalCorr += matrix[tickers[i]][tickers[j]];
-                        count++;
-                    }
-                }
-                const avgOverall = count > 0 ? totalCorr / count : 0;
-
-                // Colour scale: red (-1) → white (0) → green (+1)
-                const colorScale = (val) => {
-                    // Clamp to [-1,1]
-                    const clamped = Math.max(-1, Math.min(1, val));
-                    if (clamped >= 0) {
-                        // white to green
-                        const g = Math.round(255 - (1 - clamped) * 200);
-                        const r = Math.round(255 - (1 - clamped) * 200);
-                        const b = Math.round(255 - (1 - clamped) * 200);
-                        const alpha = 0.6 + 0.4 * clamped;
-                        return `rgba(${r},${g},${b},${alpha})`;
-                    } else {
-                        // white to red
-                        const r = Math.round(255 - (1 + clamped) * 200);
-                        const g = Math.round(255 - (1 + clamped) * 200);
-                        const b = Math.round(255 - (1 + clamped) * 200);
-                        const alpha = 0.6 + 0.4 * Math.abs(clamped);
-                        return `rgba(${r},${g},${b},${alpha})`;
-                    }
-                };
-
-                const textColor = (val) => Math.abs(val) > 0.45 ? "#fff" : (dark ? "#e2e8f0" : "#1e293b");
-
-                return (
-                    <div>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 16, marginBottom: 16 }}>
-                            <div style={{ background: T.bg4, border: `1px solid ${T.border}`, borderRadius: 8,
-                                padding: "10px 16px" }}>
-                                <div style={{ fontSize: 10, color: T.text3, letterSpacing: 0.5, textTransform: "uppercase" }}>
-                                    Average Correlation</div>
-                                <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 16, fontWeight: 700,
-                                    color: Math.abs(avgOverall) > 0.5 ? (avgOverall > 0 ? T.amber : T.teal) : T
-                                        .text }}>
-                                    {avgOverall.toFixed(3)}
-                                </div>
-                                <div style={{ fontSize: 10, color: T.text3, marginTop: 2 }}>
-                                    {avgOverall > 0.6 ? "⚠️ High — assets move together" :
-                                        avgOverall > 0.3 ? "📊 Moderate correlation" :
-                                        avgOverall > 0 ? "✅ Low — good diversification" :
-                                        "🌟 Negative — excellent hedging"
-                                    }
-                                </div>
-                            </div>
-                            <div style={{ background: T.bg4, border: `1px solid ${T.border}`, borderRadius: 8,
-                                padding: "10px 16px" }}>
-                                <div style={{ fontSize: 10, color: T.text3, letterSpacing: 0.5, textTransform: "uppercase" }}>
-                                    Period</div>
-                                <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 14, fontWeight: 700,
-                                    color: T.text }}>{data.period || "1Y"}</div>
-                                <div style={{ fontSize: 10, color: T.text3, marginTop: 2 }}>
-                                    {tickers.length} assets · {data.dates?.length || 0} days
-                                </div>
-                            </div>
-                            <div style={{ background: T.bg4, border: `1px solid ${T.border}`, borderRadius: 8,
-                                padding: "10px 16px", flex: "1 1 auto" }}>
-                                <div style={{ fontSize: 10, color: T.text3, letterSpacing: 0.5, textTransform: "uppercase" }}>
-                                    Diversification Score</div>
-                                <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 16, fontWeight: 700,
-                                    color: avgOverall < 0.3 ? T.green : avgOverall < 0.55 ? T.amber : T.red }}>
-                                    {avgOverall < 0.3 ? "✅ Good" : avgOverall < 0.55 ? "📊 Moderate" : "⚠️ Low"}
-                                </div>
-                                <div style={{ fontSize: 10, color: T.text3, marginTop: 2 }}>
-                                    {avgOverall < 0.3 ? "Assets move independently" :
-                                        avgOverall < 0.55 ? "Some correlation" :
-                                        "Assets move together — review holdings"
-                                    }
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="corr-heatmap-wrap" style={{ overflowX: "auto", borderRadius: 10,
-                            border: `1px solid ${T.border}`, background: T.bg3, padding: 4 }}>
-                            <table style={{ borderCollapse: "collapse", fontSize: isMob ? 10 : 11, minWidth: 300,
-                                width: "100%" }}>
-                                <thead>
-                                    <tr>
-                                        <th style={{ padding: "6px 10px", textAlign: "left", fontSize: 9,
-                                            letterSpacing: 1, color: T.text3, textTransform: "uppercase",
-                                            background: T.bg2, borderBottom: `1px solid ${T.border}`,
-                                            minWidth: 70 }}>Asset</th>
-                                        {tickers.map(tk => (
-                                            <th key={tk} style={{ padding: "6px 8px", textAlign: "center",
-                                                fontSize: 9, letterSpacing: 0.5, color: T.text2,
-                                                background: T.bg2, borderBottom: `1px solid ${T.border}`,
-                                                fontFamily: "'Space Mono',monospace", fontWeight: 700,
-                                                minWidth: 52 }}>{tk}</th>
-                                        ))}
-                                        <th style={{ padding: "6px 8px", textAlign: "center", fontSize: 8,
-                                            letterSpacing: 0.5, color: T.text3, background: T.bg2,
-                                            borderBottom: `1px solid ${T.border}`, minWidth: 52 }}>
-                                            Avg</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {tickers.map(rowTk => (
-                                        <tr key={rowTk}>
-                                            <td style={{ padding: "4px 10px", fontFamily: "'Space Mono',monospace",
-                                                fontWeight: 600, fontSize: 10, color: T.text,
-                                                borderBottom: `1px solid ${T.border}44`, whiteSpace: "nowrap",
-                                                background: T.bg2 }}>{rowTk}</td>
-                                            {tickers.map(colTk => {
-                                                const val = matrix[rowTk]?.[colTk] ?? 0;
-                                                const isSelf = rowTk === colTk;
-                                                const bg = isSelf ? (dark ? "#1a1f30" : "#e2e8f0") :
-                                                    colorScale(val);
-                                                const tc = isSelf ? T.text3 : textColor(val);
-                                                return (
-                                                    <td key={colTk} style={{ padding: "4px 6px",
-                                                        textAlign: "center", background: bg,
-                                                        borderBottom: `1px solid ${T.border}44`,
-                                                        fontFamily: "'Space Mono',monospace",
-                                                        fontWeight: isSelf ? 400 : 600, fontSize: 10,
-                                                        color: tc, minWidth: 48, cursor: "default",
-                                                        transition: "transform .1s" }}
-                                                        onMouseEnter={e => e.currentTarget.style
-                                                            .transform = "scale(1.05)"}
-                                                        onMouseLeave={e => e.currentTarget.style
-                                                            .transform = "scale(1)"}
-                                                    >
-                                                        {isSelf ? "1.00" : val.toFixed(2)}
-                                                    </td>
-                                                );
-                                            })}
-                                            <td style={{ padding: "4px 6px", textAlign: "center",
-                                                fontFamily: "'Space Mono',monospace", fontSize: 10,
-                                                fontWeight: 600, color: Math.abs(avgCorr[rowTk] ?? 0) > 0.5 ?
-                                                    (avgCorr[rowTk] > 0 ? T.amber : T.teal) : T.text2,
-                                                borderBottom: `1px solid ${T.border}44`, background: T
-                                                    .bg2 }}>
-                                                {(avgCorr[rowTk] ?? 0).toFixed(2)}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <div className="corr-legend" style={{ display: "flex", alignItems: "center", gap: 6,
-                            flexWrap: "wrap", marginTop: 12 }}>
-                            <span style={{ fontSize: 9, color: T.text3, fontWeight: 500 }}>Correlation:</span>
-                            <div style={{ height: 10, width: isMob ? 100 : 140, borderRadius: 4,
-                                background: "linear-gradient(to right, #ef4444, #f8fafc, #22c55e)",
-                                border: `1px solid ${T.border}44` }} />
-                            <span className="leg-label" style={{ fontSize: 9, fontWeight: 600, fontFamily: "'Space Mono',monospace",
-                                color: T.text3, minWidth: 28, textAlign: "center" }}>-1.0</span>
-                            <span className="leg-label" style={{ fontSize: 9, fontWeight: 600, fontFamily: "'Space Mono',monospace",
-                                color: T.text3, minWidth: 28, textAlign: "center" }}>0</span>
-                            <span className="leg-label" style={{ fontSize: 9, fontWeight: 600, fontFamily: "'Space Mono',monospace",
-                                color: T.text3, minWidth: 28, textAlign: "center" }}>+1.0</span>
-                            <span style={{ fontSize: 9, color: T.text3, marginLeft: 8 }}>→ {tickers.length} assets</span>
-                        </div>
-                        <div style={{ fontSize: 10, color: T.text3, marginTop: 8, lineHeight: 1.6, maxWidth: 600 }}>
-                            💡 <b>Interpretation:</b> Values near <b style={{ color: T.green }}>+1</b> (green) mean assets
-                            move together (low diversification). Values near <b style={{ color: T.red }}>-1</b> (red) mean
-                            they move in opposite directions (strong hedge). Near <b>0</b> (white/neutral) indicates
-                            independent movement — good diversification.
-                        </div>
-                    </div>
-                );
-            }
 
             // JSX
             return (
@@ -3046,7 +3726,7 @@
                             </div>
                         </header>
 
-                        {/* View switcher */}
+                        {/* View switcher - removed "analysis" tab */}
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
                             padding: "8px 14px", borderBottom: `1px solid ${T.border}`, background: T.bg2,
                             flexWrap: "wrap", gap: 8 }}>
@@ -3155,8 +3835,7 @@
                                     {[
                                         ["treemap", "Map"],
                                         ["table", "Table"],
-                                        ["chart", "Charts"],
-                                        ["analysis", "Analysis"]
+                                        ["chart", "Charts"]
                                     ].map(([v, l]) => (
                                         <button key={v} onClick={() => setView(v)} style={{ padding: "4px 10px",
                                             borderRadius: 6, border: "none", background: view === v ? T.bg2 :
@@ -3581,6 +4260,8 @@
                             )}
                             {view === "chart" && (
                                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+
+                                    {/* ─── Summary Cards ────────────────────────────────── */}
                                     <div style={{ display: "grid", gridTemplateColumns: isMob ? "1fr 1fr" :
                                             "repeat(5,1fr)", gap: 10 }}>
                                         {(() => {
@@ -3614,6 +4295,8 @@
                                             ));
                                         })()}
                                     </div>
+
+                                    {/* ─── Time Period Selector ────────────────────────── */}
                                     <div style={{ display: "flex", alignItems: "center", gap: 8,
                                         flexWrap: "wrap" }}>
                                         <span style={{ fontSize: 11, color: T.text3, fontWeight: 500 }}>Time
@@ -3634,6 +4317,8 @@
                                         <span style={{ fontSize: 10, color: T.text3, marginLeft: 4 }}>{chartData
                                             .labels.length} data points</span>
                                     </div>
+
+                                    {/* ─── Portfolio Value Chart ────────────────────────── */}
                                     <div className="chart-row" style={{ display: "flex", gap: 12,
                                         flexWrap: isMob ? "wrap" : "nowrap" }}>
                                         <div style={{ flex: "2 1 280px", ...card({ padding: 16 }) }}>
@@ -3683,6 +4368,8 @@
                                                 230} />
                                         </div>
                                     </div>
+
+                                    {/* ─── Monthly Income ────────────────────────────────── */}
                                     <div className="chart-row" style={{ display: "flex", gap: 12,
                                         flexWrap: isMob ? "wrap" : "nowrap" }}>
                                         <div style={{ flex: "2 1 280px", ...card({ padding: 16 }) }}>
@@ -3731,6 +4418,8 @@
                                                 height={isMob ? 160 : 210} />
                                         </div>
                                     </div>
+
+                                    {/* ─── Growth Contributors ───────────────────────────── */}
                                     <div style={{ ...card({ padding: 16 }) }}>
                                         <div style={{ display: "flex", justifyContent: "space-between",
                                             alignItems: "flex-start", marginBottom: 12, flexWrap: "wrap",
@@ -3801,6 +4490,8 @@
                                             );
                                         })()}
                                     </div>
+
+                                    {/* ─── Benchmark Comparison ─────────────────────────── */}
                                     <div style={{ ...card({ padding: 16 }) }}>
                                         <div style={{ marginBottom: 12 }}>
                                             <div style={{ fontSize: 12, fontWeight: 600, color: T.text,
@@ -3987,43 +4678,40 @@
                                             </div>
                                         )}
                                     </div>
-                                </div>
-                            )}
-                            {view === "analysis" && (
-                                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
-                                        flexWrap: "wrap", gap: 10 }}>
-                                        <div>
-                                            <div style={{ fontSize: 14, fontWeight: 600, color: T.text }}>📊
-                                                Correlation Matrix — Asset Diversification</div>
-                                            <div style={{ fontSize: 11, color: T.text3, marginTop: 2 }}>How your
-                                                assets move together · {corrData?.tickers?.length || 0} assets</div>
-                                        </div>
-                                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                                            <span style={{ fontSize: 10, color: T.text3, fontWeight: 500 }}>Period:</span>
-                                            <div style={{ display: "flex", gap: 3, background: T.bg4, padding: 3,
-                                                borderRadius: 8, border: `1px solid ${T.border}` }}>
-                                                {["1M", "3M", "6M", "1Y", "5Y"].map(p => (
-                                                    <button key={p} onClick={() => setCorrPeriod(p)} style={{
-                                                        padding: "4px 10px", borderRadius: 6, border: "none",
-                                                        background: corrPeriod === p ? T.bg2 : "transparent",
-                                                        color: corrPeriod === p ? T.text : T.text3,
-                                                        fontSize: 10, fontWeight: corrPeriod === p ? 700 :
-                                                        400, transition: "all .15s", cursor: "pointer" }}>{p}</button>
-                                                ))}
-                                            </div>
-                                            <button onClick={fetchCorrelation} disabled={corrLoading} style={{
-                                                ...bO(T.teal, { padding: "6px 12px", fontSize: 10 }),
-                                                opacity: corrLoading ? 0.6 : 1 }}>
-                                                {corrLoading ? "⟳ Loading…" : "↻ Refresh"}
-                                            </button>
-                                        </div>
-                                    </div>
+
+                                    {/* ─── SECTION: Correlation Matrix ────────────────── */}
                                     <div style={{ ...card({ padding: 16 }) }}>
+                                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
+                                            flexWrap: "wrap", gap: 10, marginBottom: 12 }}>
+                                            <div>
+                                                <div style={{ fontSize: 13, fontWeight: 600, color: T.text }}>📊
+                                                    Correlation Matrix — Asset Diversification</div>
+                                                <div style={{ fontSize: 11, color: T.text3, marginTop: 2 }}>How your
+                                                    assets move together · {corrData?.tickers?.length || 0} assets</div>
+                                            </div>
+                                            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                                                <span style={{ fontSize: 10, color: T.text3, fontWeight: 500 }}>Period:</span>
+                                                <div style={{ display: "flex", gap: 3, background: T.bg4, padding: 3,
+                                                    borderRadius: 8, border: `1px solid ${T.border}` }}>
+                                                    {["1M", "3M", "6M", "1Y", "5Y"].map(p => (
+                                                        <button key={p} onClick={() => setCorrPeriod(p)} style={{
+                                                            padding: "4px 10px", borderRadius: 6, border: "none",
+                                                            background: corrPeriod === p ? T.bg2 : "transparent",
+                                                            color: corrPeriod === p ? T.text : T.text3,
+                                                            fontSize: 10, fontWeight: corrPeriod === p ? 700 :
+                                                            400, transition: "all .15s", cursor: "pointer" }}>{p}</button>
+                                                    ))}
+                                                </div>
+                                                <button onClick={fetchCorrelation} disabled={corrLoading} style={{
+                                                    ...bO(T.teal, { padding: "6px 12px", fontSize: 10 }),
+                                                    opacity: corrLoading ? 0.6 : 1 }}>
+                                                    {corrLoading ? "⟳ Loading…" : "↻ Refresh"}
+                                                </button>
+                                            </div>
+                                        </div>
                                         {corrLoading ? (
-                                            <div style={{ height: 240, display: "flex", alignItems: "center",
-                                                    justifyContent: "center", color: T.text3,
-                                                fontSize: 13 }}>
+                                            <div style={{ height: 220, display: "flex", alignItems: "center",
+                                                    justifyContent: "center", color: T.text3, fontSize: 13 }}>
                                                 <span className="spin" style={{ marginRight: 10, fontSize: 20 }}>⟳</span>
                                                 Fetching historical prices and computing correlations…
                                             </div>
@@ -4031,11 +4719,260 @@
                                             <CorrelationHeatmap data={corrData} T={T} dark={dark} isMob={isMob} />
                                         )}
                                     </div>
+
+                                    {/* ─── SECTION: Net Buy/Sell Chart ──────────────────── */}
+                                    <div style={{ ...card({ padding: 16 }) }}>
+                                        <div style={{ display: "flex", justifyContent: "space-between",
+                                            alignItems: "flex-start", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+                                            <div>
+                                                <div style={{ fontSize: 13, fontWeight: 600, color: T.text }}>📊
+                                                    Net Buy / Sell by Asset</div>
+                                                <div style={{ fontSize: 11, color: T.text3 }}>Total buy vs sell
+                                                    amounts (AUD) · Green = net buyer, Red = net seller</div>
+                                            </div>
+                                            <button onClick={computeNetData} style={{ ...bO(T.text2, { fontSize: 10,
+                                                    padding: "4px 12px" }) }}>↻ Refresh</button>
+                                        </div>
+                                        {netData && netData.length > 0 ? (
+                                            <NetBuySellChart data={netData} T={T} yFmt={yFmtAud}
+                                                height={isMob ? 200 : 240} />
+                                        ) : (
+                                            <div style={{ height: 200, display: "flex", alignItems: "center",
+                                                    justifyContent: "center", color: T.text3, fontSize: 12 }}>
+                                                No transaction data available.
+                                            </div>
+                                        )}
+                                        {netData && netData.length > 0 && (
+                                            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
+                                                {netData.slice(0, 6).map(d => (
+                                                    <div key={d.ticker} style={{ background: T.bg4,
+                                                            border: `1px solid ${T.border}`, borderRadius: 6,
+                                                            padding: "4px 10px", fontSize: 10, display: "flex",
+                                                            alignItems: "center", gap: 4 }}>
+                                                        <span style={{ fontFamily: "'Space Mono',monospace",
+                                                                fontWeight: 600 }}>{d.ticker}</span>
+                                                        <span style={{ color: d.net >= 0 ? T.green : T.red }}>
+                                                            {d.net >= 0 ? "▲" : "▼"} {yFmtAud(Math.abs(d.net))}
+                                                        </span>
+                                                        <span style={{ color: T.text3, fontSize: 9 }}>
+                                                            (B: {yFmtAud(d.buys)} · S: {yFmtAud(d.sells)})
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                                {netData.length > 6 && <span style={{ fontSize: 10, color: T.text3,
+                                                        alignSelf: "center" }}>+{netData.length - 6} more</span>}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* ─── SECTION: Monte Carlo Simulation ──────────────── */}
+                                    <div style={{ ...card({ padding: 16 }) }}>
+                                        <div style={{ display: "flex", justifyContent: "space-between",
+                                            alignItems: "flex-start", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+                                            <div>
+                                                <div style={{ fontSize: 13, fontWeight: 600, color: T.text }}>🎲
+                                                    Monte Carlo Simulation</div>
+                                                <div style={{ fontSize: 11, color: T.text3 }}>Projected portfolio
+                                                    value range over time · {mcData ? `${mcData.nSims} simulations` :
+                                                    'Click "Run" to generate'}</div>
+                                            </div>
+                                            <div style={{ display: "flex", gap: 8, alignItems: "center",
+                                                flexWrap: "wrap" }}>
+                                                <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                                                    <span style={{ fontSize: 9, color: T.text3 }}>Years:</span>
+                                                    <select value={mcYears} onChange={e => setMcYears(parseInt(e
+                                                            .target.value))} style={{ ...inp(), padding: "2px 6px",
+                                                            fontSize: 10, width: 56 }}>
+                                                        {[1, 2, 3, 5, 10, 15, 20].map(y => <option key={y}
+                                                                value={y}>{y}</option>)}
+                                                    </select>
+                                                </div>
+                                                <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                                                    <span style={{ fontSize: 9, color: T.text3 }}>Sims:</span>
+                                                    <select value={mcSims} onChange={e => setMcSims(parseInt(e
+                                                            .target.value))} style={{ ...inp(), padding: "2px 6px",
+                                                            fontSize: 10, width: 70 }}>
+                                                        {[100, 250, 500, 1000, 2000].map(s => <option key={s}
+                                                                value={s}>{s}</option>)}
+                                                    </select>
+                                                </div>
+                                                <button onClick={runMonteCarlo} disabled={mcLoading} style={{ ...bS(
+                                                        T.tealBtn, "#fff", { padding: "6px 14px", fontSize: 10 }),
+                                                        opacity: mcLoading ? 0.6 : 1 }}>
+                                                    {mcLoading ? "⟳ Running…" : "▶ Run"}
+                                                </button>
+                                            </div>
+                                        </div>
+                                        {mcData && mcData.error ? (
+                                            <div style={{ padding: 32, textAlign: "center", color: T.amber,
+                                                fontSize: 13 }}>{mcData.error}</div>
+                                        ) : mcData ? (
+                                            <>
+                                                <div style={{ display: "flex", flexWrap: "wrap", gap: 12,
+                                                        marginBottom: 12 }}>
+                                                    <div style={{ background: T.bg4, borderRadius: 8,
+                                                            padding: "6px 14px", border: `1px solid ${T.border}` }}>
+                                                        <span style={{ fontSize: 9, color: T.text3 }}>Current</span>
+                                                        <div style={{ fontFamily: "'Space Mono',monospace",
+                                                                fontSize: 13, fontWeight: 700, color: T.text }}>
+                                                            {yFmtAud(mcData.currentValue)}
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ background: T.bg4, borderRadius: 8,
+                                                            padding: "6px 14px", border: `1px solid ${T.border}` }}>
+                                                        <span style={{ fontSize: 9, color: T.text3 }}>5th %ile</span>
+                                                        <div style={{ fontFamily: "'Space Mono',monospace",
+                                                                fontSize: 13, fontWeight: 700, color: T.red }}>
+                                                            {yFmtAud(mcData.p5Final)}
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ background: T.bg4, borderRadius: 8,
+                                                            padding: "6px 14px", border: `1px solid ${T.border}` }}>
+                                                        <span style={{ fontSize: 9, color: T.text3 }}>Median</span>
+                                                        <div style={{ fontFamily: "'Space Mono',monospace",
+                                                                fontSize: 13, fontWeight: 700, color: T.amber }}>
+                                                            {yFmtAud(mcData.medianFinal)}
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ background: T.bg4, borderRadius: 8,
+                                                            padding: "6px 14px", border: `1px solid ${T.border}` }}>
+                                                        <span style={{ fontSize: 9, color: T.text3 }}>95th %ile</span>
+                                                        <div style={{ fontFamily: "'Space Mono',monospace",
+                                                                fontSize: 13, fontWeight: 700, color: T.green }}>
+                                                            {yFmtAud(mcData.p95Final)}
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ background: T.bg4, borderRadius: 8,
+                                                            padding: "6px 14px", border: `1px solid ${T.border}` }}>
+                                                        <span style={{ fontSize: 9, color: T.text3 }}>Ann. Return</span>
+                                                        <div style={{ fontFamily: "'Space Mono',monospace",
+                                                                fontSize: 13, fontWeight: 700, color: T.teal }}>
+                                                            {fmtPct(mcData.meanAnnual * 100)}
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ background: T.bg4, borderRadius: 8,
+                                                            padding: "6px 14px", border: `1px solid ${T.border}` }}>
+                                                        <span style={{ fontSize: 9, color: T.text3 }}>Ann. Volatility</span>
+                                                        <div style={{ fontFamily: "'Space Mono',monospace",
+                                                                fontSize: 13, fontWeight: 700, color: T.text2 }}>
+                                                            {fmtPct(mcData.volAnnual * 100)}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <MonteCarloChart data={mcData} T={T} yFmt={yFmtAud}
+                                                    height={isMob ? 220 : 300} />
+                                                <div style={{ fontSize: 9, color: T.text3, marginTop: 8,
+                                                    lineHeight: 1.5 }}>
+                                                    💡 Shaded bands show 5th–95th percentile range. Faint lines are
+                                                    individual simulation paths. Median is shown in gold.
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <div style={{ height: 200, display: "flex", alignItems: "center",
+                                                    justifyContent: "center", color: T.text3, fontSize: 12 }}>
+                                                Press <b style={{ color: T.text2, margin: "0 4px" }}>"Run"</b> to
+                                                simulate {mcSims} possible future paths over {mcYears} years using
+                                                historical returns and volatility.
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* ─── SECTION: Efficient Frontier ──────────────────── */}
+                                    <div style={{ ...card({ padding: 16 }) }}>
+                                        <div style={{ display: "flex", justifyContent: "space-between",
+                                            alignItems: "flex-start", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+                                            <div>
+                                                <div style={{ fontSize: 13, fontWeight: 600, color: T.text }}>📈
+                                                    Efficient Frontier — Markowitz Optimization</div>
+                                                <div style={{ fontSize: 11, color: T.text3 }}>Find the portfolio
+                                                    mix that maximises return for a given risk level</div>
+                                            </div>
+                                            <button onClick={runEfficientFrontier} disabled={efLoading} style={{
+                                                ...bS(T.tealBtn, "#fff", { padding: "6px 14px", fontSize: 10 }),
+                                                opacity: efLoading ? 0.6 : 1 }}>
+                                                {efLoading ? "⟳ Computing…" : "▶ Compute"}
+                                            </button>
+                                        </div>
+                                        {efData && efData.error ? (
+                                            <div style={{ padding: 32, textAlign: "center", color: T.amber,
+                                                fontSize: 13 }}>{efData.error}</div>
+                                        ) : efData ? (
+                                            <>
+                                                <EfficientFrontierChart data={efData} T={T} yFmt={yFmtPct}
+                                                    height={isMob ? 240 : 280} />
+                                                <div style={{ display: "flex", flexWrap: "wrap", gap: 8,
+                                                        marginTop: 12 }}>
+                                                    <div style={{ background: T.bg4, borderRadius: 6,
+                                                            padding: "4px 12px", border: `1px solid ${T.border}`,
+                                                            fontSize: 10 }}>
+                                                        <span style={{ color: T.text3 }}>🔵 Frontier</span>
+                                                        <span style={{ color: T.text2, marginLeft: 6 }}>
+                                                            {efData.frontier.length} portfolios
+                                                        </span>
+                                                    </div>
+                                                    <div style={{ background: T.bg4, borderRadius: 6,
+                                                            padding: "4px 12px", border: `1px solid ${T.border}`,
+                                                            fontSize: 10 }}>
+                                                        <span className="ef-dot" style={{ background: "#22c55e" }} />
+                                                        <span style={{ color: T.text2 }}>Current Portfolio</span>
+                                                        <span style={{ color: T.text3, marginLeft: 6 }}>
+                                                            Risk {efData.currentRisk.toFixed(2)}% · Return {(
+                                                                efData.currentRet * 100).toFixed(2)}%
+                                                        </span>
+                                                    </div>
+                                                    <div style={{ background: T.bg4, borderRadius: 6,
+                                                            padding: "4px 12px", border: `1px solid ${T.border}`,
+                                                            fontSize: 10 }}>
+                                                        <span className="ef-dot" style={{ background: "#fbbf24" }} />
+                                                        <span style={{ color: T.text2 }}>Min Variance</span>
+                                                    </div>
+                                                    <div style={{ background: T.bg4, borderRadius: 6,
+                                                            padding: "4px 12px", border: `1px solid ${T.border}`,
+                                                            fontSize: 10 }}>
+                                                        <span className="ef-dot" style={{ background: "#f87171" }} />
+                                                        <span style={{ color: T.text2 }}>Max Return</span>
+                                                    </div>
+                                                </div>
+                                                {efData.tickers && efData.tickers.length > 0 && (
+                                                    <div style={{ marginTop: 8, fontSize: 10, color: T.text3,
+                                                            lineHeight: 1.5 }}>
+                                                        💡 Grey dots show individual assets. The frontier curve
+                                                        represents the best risk-return trade-offs. Your current
+                                                        portfolio is shown in green.
+                                                    </div>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <div style={{ height: 200, display: "flex", alignItems: "center",
+                                                    justifyContent: "center", color: T.text3, fontSize: 12 }}>
+                                                Press <b style={{ color: T.text2, margin: "0 4px" }}>"Compute"</b> to
+                                                generate the efficient frontier using historical returns and
+                                                covariance of your holdings.
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* ─── SECTION: Sector/Industry Treemap ──────────────── */}
+                                    <div style={{ ...card({ padding: 16 }) }}>
+                                        <div style={{ display: "flex", justifyContent: "space-between",
+                                            alignItems: "flex-start", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+                                            <div>
+                                                <div style={{ fontSize: 13, fontWeight: 600, color: T.text }}>🗺️
+                                                    Sector / Industry Allocation</div>
+                                                <div style={{ fontSize: 11, color: T.text3 }}>Market value by asset
+                                                    class · Box size = total value · Colour = sector</div>
+                                            </div>
+                                            <span style={{ fontSize: 9, color: T.text3 }}>Includes super funds
+                                                (NUL5339AU, NUL7270AU) via their asset type</span>
+                                        </div>
+                                        <SectorTreemap holdings={holdings} T={T} displayCur={displayCur}
+                                            rates={rates} valuesHidden={valuesHidden} />
+                                    </div>
                                 </div>
                             )}
                         </main>
 
-                        {/* Modals */}
+                        {/* ─── Modals ────────────────────────────────────────────────── */}
                         {modal && (
                             <div onClick={closeModal} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.78)",
                                     backdropFilter: "blur(8px)", zIndex: 100, display: "flex", alignItems: "center",
