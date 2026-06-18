@@ -1,3 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<title>FOLIO — Investment Dashboard</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{min-height:100vh;font-family:'Roboto',sans-serif;font-size:14px;-webkit-font-smoothing:antialiased}
+input,select{font-family:'Roboto',sans-serif}
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
+input[type=number]{-moz-appearance:textfield}
+button{cursor:pointer;font-family:inherit;transition:opacity .15s,transform .1s}
+button:active{transform:scale(.97)}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{border-radius:3px;background:#444}
+.light ::-webkit-scrollbar-thumb{background:#ccc}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{display:inline-block;animation:spin .9s linear infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.pulse{animation:pulse 1.5s ease-in-out infinite}
+@media(max-width:768px){
+  .hdr-desktop{display:none!important}
+  .hdr-mobile{display:flex!important}
+  .tm-wrap{flex-direction:column!important}
+  .detail-panel{width:100%!important;min-width:unset!important}
+  .chart-row{flex-direction:column!important}
+  .modal-g2{grid-template-columns:1fr!important}
+  .modal-g3{grid-template-columns:1fr 1fr!important}
+  .header-main-row{flex-wrap:wrap}
+  .header-controls-row{flex-wrap:wrap;width:100%;justify-content:flex-end;margin-top:8px}
+  .stats-mobile-wrap{width:100%;justify-content:space-between}
+}
+@media(min-width:769px){.hdr-mobile{display:none!important}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<script>
+// Firebase config
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBp20SC2Yt9IWkevpLgU6-nXZtA7HuNbN0",
+  authDomain: "folio-sync.firebaseapp.com",
+  projectId: "folio-sync",
+  storageBucket: "folio-sync.firebasestorage.app",
+  messagingSenderId: "763988334867",
+  appId: "1:763988334867:web:f5984340db588992e9a2e6",
+  measurementId: "G-YDQLTZ8SP4"
+};
+const FB_CONFIGURED = !FIREBASE_CONFIG.apiKey.startsWith("YOUR_");
+let fbApp=null, fbAuth=null, fbDb=null;
+if(FB_CONFIGURED){
+  try{
+    fbApp  = firebase.initializeApp(FIREBASE_CONFIG);
+    fbAuth = firebase.auth();
+    fbDb   = firebase.firestore();
+    fbDb.enablePersistence({synchronizeTabs:true}).catch(()=>{});
+  }catch(e){ console.warn("Firebase init failed:",e); }
+}
+async function cloudSave(uid, data){
+  if(!fbDb)throw new Error("Firebase not configured");
+  await fbDb.collection("users").doc(uid).set(data, {merge:true});
+}
+async function cloudLoad(uid){
+  if(!fbDb)throw new Error("Firebase not configured");
+  const doc = await fbDb.collection("users").doc(uid).get();
+  return doc.exists ? doc.data() : null;
+}
+async function signInGoogle(){
+  if(!fbAuth)throw new Error("Firebase not configured");
+  const provider = new firebase.auth.GoogleAuthProvider();
+  const result   = await fbAuth.signInWithPopup(provider);
+  return result.user;
+}
+async function signOut(){
+  if(!fbAuth)return;
+  await fbAuth.signOut();
+}
+</script>
+
 <script type="text/babel">
 const {useState,useMemo,useCallback,useEffect,useRef}=React;
 
@@ -58,18 +151,18 @@ const LIGHT={
 
 // ─── Treemap ──────────────────────────────────────────────────────────────────
 function squarify(items,x,y,w,h){
-  if(!items||!items.length)return[];
-  const r=[];_layout(items,x,y,w,h,items.reduce((s,i)=>s+(i.value||0),0),r);return r;
+  if(!items.length)return[];
+  const r=[];_layout(items,x,y,w,h,items.reduce((s,i)=>s+i.value,0),r);return r;
 }
 function _layout(it,x,y,w,h,tot,r){
-  if(!it||!it.length)return;
+  if(!it.length)return;
   if(it.length===1){r.push({...it[0],x,y,w,h});return;}
   const hz=w>=h,dim=hz?w:h;let row=[],rt=0,best=Infinity;
   for(let i=0;i<it.length;i++){
-    row.push(it[i]);rt+=it[i].value||0;
+    row.push(it[i]);rt+=it[i].value;
     const rd=(rt/tot)*dim;let worst=0;
     for(const ri of row){const od=(ri.value/rt)*(hz?h:w);const ra=Math.max(rd/od,od/rd);if(ra>worst)worst=ra;}
-    if(worst>best){row.pop();rt-=it[i].value||0;break;}best=worst;
+    if(worst>best){row.pop();rt-=it[i].value;break;}best=worst;
   }
   const rd=(rt/tot)*dim;let cur=hz?y:x;
   for(const ri of row){const sz=(ri.value/rt)*(hz?h:w);hz?r.push({...ri,x,y:cur,w:rd,h:sz}):r.push({...ri,x:cur,y,w:sz,h:rd});cur+=sz;}
@@ -127,20 +220,18 @@ function divColor(y,d){if(d){
 }}
 
 // ─── Currency helpers ────────────────────────────────────────────────────────
-const toAUD=(a,cur,R)=>{if(!R||!R.AUD_IDR||!R.AUD_USD)return a||0;if(cur==="IDR")return a/R.AUD_IDR;if(cur==="USD")return a/R.AUD_USD;return a;};
-const fromAUD=(a,cur,R)=>{if(!R||!R.AUD_IDR||!R.AUD_USD)return a||0;if(cur==="IDR")return a*R.AUD_IDR;if(cur==="USD")return a*R.AUD_USD;return a;};
+const toAUD=(a,cur,R)=>{if(cur==="IDR")return a/R.AUD_IDR;if(cur==="USD")return a/R.AUD_USD;return a;};
+const fromAUD=(a,cur,R)=>{if(cur==="IDR")return a*R.AUD_IDR;if(cur==="USD")return a*R.AUD_USD;return a;};
 function fmtIDR(n){try{return Math.round(n).toLocaleString("id-ID");}catch{return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,".");}}
 function fmtAUD(n){return Math.abs(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,",");}
 function fmtCur(audAmt,dc,R,compact=false){
-  if(!R||!R.AUD_IDR||!R.AUD_USD)return "A$0";
-  const a=fromAUD(audAmt||0,dc,R);
+  const a=fromAUD(audAmt,dc,R);
   if(dc==="IDR"){const abs=Math.abs(a);if(compact&&abs>=1e9)return`Rp${(a/1e9).toFixed(1)}M`;if(compact&&abs>=1e6)return`Rp${(a/1e6).toFixed(1)}Jt`;if(compact&&abs>=1e3)return`Rp${(a/1e3).toFixed(0)}Rb`;return`Rp ${fmtIDR(a)}`;}
   if(dc==="USD"){const abs=Math.abs(a);if(compact&&abs>=1e6)return`US$${(a/1e6).toFixed(2)}M`;if(compact&&abs>=1e3)return`US$${(a/1e3).toFixed(1)}K`;return`US$${fmtAUD(a)}`;}
   const abs=Math.abs(a);if(compact&&abs>=1e6)return`A$${(a/1e6).toFixed(2)}M`;if(compact&&abs>=1e3)return`A$${(a/1e3).toFixed(1)}K`;return`A$${fmtAUD(a)}`;
 }
 function fmtGain(audAmt,dc,R){
-  if(!R||!R.AUD_IDR||!R.AUD_USD)return "A$0";
-  const a=fromAUD(audAmt||0,dc,R);const sign=a>=0?"+":"-";
+  const a=fromAUD(audAmt,dc,R);const sign=a>=0?"+":"-";
   if(dc==="IDR")return`${sign}Rp ${fmtIDR(Math.abs(a))}`;
   if(dc==="USD")return`${sign}US$${fmtAUD(a)}`;
   return`${sign}A$${fmtAUD(a)}`;
@@ -149,7 +240,7 @@ const fmtPct=n=>`${n>=0?"+":""}${n.toFixed(2)}%`;
 const fmtDate=d=>{try{return new Date(d+"T12:00:00").toLocaleDateString("en-AU",{day:"2-digit",month:"short",year:"numeric"});}catch{return d;}};
 const fmtMon=d=>{try{const dt=new Date(d+"-01");return dt.toLocaleDateString("en-AU",{month:"short",year:"2-digit"});}catch{return d;}};
 const fmtMonShort=d=>{try{return new Date(d+"T12:00:00").toLocaleDateString("en-AU",{day:"2-digit",month:"short"});}catch{return d;}};
-const fmtTime=d=>{if(!d)return"—";try{return d.toLocaleTimeString("en-AU",{hour:"2-digit",minute:"2-digit"});}catch{return"—";};};
+const fmtTime=d=>{if(!d)return"—";try{return d.toLocaleTimeString("en-AU",{hour:"2-digit",minute:"2-digit"});}catch{return"—";}};
 
 // ─── Yahoo Symbol Suggester ───────────────────────────────────────────────────
 function suggestYahoo(ticker,exchange,assetType){
@@ -634,31 +725,23 @@ async function fetchAUFundPrice(apir){
 
 // ─── Compute Holding ──────────────────────────────────────────────────────────
 function computeHolding(h,prices,prevPrices,R){
-  try{
-    let qty=0,cbL=0,rgL=0,lots=[],divL=0;
-    const txs=(h.transactions||[]).slice().sort((a,b)=>new Date(a.date)-new Date(b.date));
-    for(const tx of txs){
-      if(tx.type==="buy"){lots.push({qty:tx.qty,price:tx.price});qty+=tx.qty;cbL+=tx.qty*tx.price;}
-      else if(tx.type==="sell"){let rem=tx.qty;qty-=tx.qty;while(rem>0&&lots.length){const lot=lots[0],used=Math.min(lot.qty,rem);rgL+=used*(tx.price-lot.price);cbL-=used*lot.price;lot.qty-=used;rem-=used;if(lot.qty===0)lots.shift();}}
-      else if(tx.type==="dividend"){divL+=tx.totalAmount||0;}
-    }
-    const cpL=(prices&&prices[h.ticker]!=null)?prices[h.ticker]:0;
-    const pcL=(prevPrices&&prevPrices[h.ticker]!=null)?prevPrices[h.ticker]:cpL;
-    const cvL=qty*cpL,ugL=cvL-cbL,dgL=(cpL-pcL)*qty,dgPct=pcL>0?(cpL-pcL)/pcL*100:0;
-    const cv=toAUD(cvL,h.currency,R),cb=toAUD(cbL,h.currency,R),ug=toAUD(ugL,h.currency,R);
-    const rg=toAUD(rgL,h.currency,R),divs=toAUD(divL,h.currency,R),dg=toAUD(dgL,h.currency,R);
-    const totalInv=txs.filter(t=>t.type==="buy").reduce((s,t)=>s+toAUD(t.qty*t.price,h.currency,R),0);
-    const totalGain=ug+rg+divs,gainPct=totalInv>0?(totalGain/totalInv)*100:0;
-    const divYoc=totalInv>0?(divs/totalInv)*100:0;
-    return {...h,qty,costBasis:cb,currentPrice:cpL,prevClose:pcL,currentValue:cv,unrealizedGain:ug,
-      realizedGain:rg,totalDividends:divs,totalGain,gainPct,dayGain:dg,dayGainPct:dgPct,
-      divYieldOnCost:divYoc,totalInvested:totalInv};
-  }catch(e){
-    console.warn("computeHolding error for",h?.ticker,e);
-    return {...h,qty:0,costBasis:0,currentPrice:0,prevClose:0,currentValue:0,unrealizedGain:0,
-      realizedGain:0,totalDividends:0,totalGain:0,gainPct:0,dayGain:0,dayGainPct:0,
-      divYieldOnCost:0,totalInvested:0};
+  let qty=0,cbL=0,rgL=0,lots=[],divL=0;
+  const txs=[...h.transactions].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  for(const tx of txs){
+    if(tx.type==="buy"){lots.push({qty:tx.qty,price:tx.price});qty+=tx.qty;cbL+=tx.qty*tx.price;}
+    else if(tx.type==="sell"){let rem=tx.qty;qty-=tx.qty;while(rem>0&&lots.length){const lot=lots[0],used=Math.min(lot.qty,rem);rgL+=used*(tx.price-lot.price);cbL-=used*lot.price;lot.qty-=used;rem-=used;if(lot.qty===0)lots.shift();}}
+    else if(tx.type==="dividend"){divL+=tx.totalAmount||0;}
   }
+  const cpL=prices[h.ticker]??0,pcL=prevPrices[h.ticker]??cpL;
+  const cvL=qty*cpL,ugL=cvL-cbL,dgL=(cpL-pcL)*qty,dgPct=pcL>0?(cpL-pcL)/pcL*100:0;
+  const cv=toAUD(cvL,h.currency,R),cb=toAUD(cbL,h.currency,R),ug=toAUD(ugL,h.currency,R);
+  const rg=toAUD(rgL,h.currency,R),divs=toAUD(divL,h.currency,R),dg=toAUD(dgL,h.currency,R);
+  const totalInv=txs.filter(t=>t.type==="buy").reduce((s,t)=>s+toAUD(t.qty*t.price,h.currency,R),0);
+  const totalGain=ug+rg+divs,gainPct=totalInv>0?(totalGain/totalInv)*100:0;
+  const divYoc=totalInv>0?(divs/totalInv)*100:0;
+  return{...h,qty,costBasis:cb,currentPrice:cpL,prevClose:pcL,currentValue:cv,unrealizedGain:ug,
+    realizedGain:rg,totalDividends:divs,totalGain,gainPct,dayGain:dg,dayGainPct:dgPct,
+    divYieldOnCost:divYoc,totalInvested:totalInv};
 }
 
 // ─── Seed Data ────────────────────────────────────────────────────────────────
@@ -770,7 +853,7 @@ function ChartDoughnut({labels,data,colors,T,height=230}){
 function ChartWaterfall({data,T,yFmt,height=240}){
   const ref=useRef(null);const inst=useRef(null);
   useEffect(()=>{
-    if(!ref.current||typeof Chart==="undefined"||!data||!data.length)return;
+    if(!ref.current||typeof Chart==="undefined"||!data.length)return;
     if(inst.current)inst.current.destroy();
     const labels=data.map(d=>d.label);
     let running=data.length>0?data[0].value:0;
@@ -858,7 +941,7 @@ function ChartWaterfall({data,T,yFmt,height=240}){
   },[data,T,yFmt]);
   return(
     <div style={{height,position:"relative"}}>
-      {data&&data.length
+      {data.length
         ?<canvas ref={ref}/>
         :<div style={{height,display:"flex",alignItems:"center",justifyContent:"center",color:T.text3,fontSize:12}}>No data for selected period</div>
       }
@@ -957,7 +1040,7 @@ function normaliseAssetType(raw=""){
 }
 
 function parseRows(rawRows){
-  if(!rawRows||!rawRows.length)return{rows:[],errors:[],fieldMap:{}};
+  if(!rawRows.length)return{rows:[],errors:[],fieldMap:{}};
   const sampleKeys=Object.keys(rawRows[0]);
   const fieldMap={};
   sampleKeys.forEach(k=>{const f=resolveHeader(k);if(f)fieldMap[f]=k;});
@@ -1092,7 +1175,7 @@ function downloadTemplateXLSX(){
 
 // ─── App ──────────────────────────────────────────────────────────────────────
 function App(){
-  const ld=(k,d)=>{try{const s=localStorage.getItem(k);return s?JSON.parse(s):d;}catch(e){return d;}}; // Fixed: catch(e) instead of catch{}
+  const ld=(k,d)=>{try{const s=localStorage.getItem(k);return s?JSON.parse(s):d;}catch{return d;}};
   const[portfolio,setPortfolio]=useState(()=>ld("f6_p",SEED));
   const[prices,setPrices]      =useState(()=>ld("f6_pr",INIT_PRICES));
   const[prevPrices,setPrevPrices]=useState(()=>ld("f6_pp",INIT_PREV));
@@ -1128,19 +1211,7 @@ function App(){
   const winW=useWindowSize();
   const isMob=winW<768;
 
-  // ─── SAFE HOLDINGS ──────────────────────────────────────────────────────────
-  const holdings = useMemo(() => {
-    try {
-      if (!portfolio || !Array.isArray(portfolio)) return [];
-      const result = portfolio.map(h => computeHolding(h, prices, prevPrices, rates));
-      return result.filter(h => h && h.qty > 0);
-    } catch (e) {
-      console.error("Error computing holdings:", e);
-      return [];
-    }
-  }, [portfolio, prices, prevPrices, rates]);
-
-  // ─── localStorage effects ───────────────────────────────────────────────────
+  // localStorage effects
   useEffect(()=>{localStorage.setItem("f6_p",JSON.stringify(portfolio));},[portfolio]);
   useEffect(()=>{localStorage.setItem("f6_pr",JSON.stringify(prices));},[prices]);
   useEffect(()=>{localStorage.setItem("f6_pp",JSON.stringify(prevPrices));},[prevPrices]);
@@ -1154,7 +1225,6 @@ function App(){
 
   useEffect(()=>{document.body.style.background=T.bg;document.body.style.color=T.text;},[T]);
 
-  // ─── Firebase auth ──────────────────────────────────────────────────────────
   useEffect(()=>{
     if(!FB_CONFIGURED||!fbAuth)return;
     const unsub=fbAuth.onAuthStateChanged(user=>{
@@ -1165,7 +1235,6 @@ function App(){
     return unsub;
   },[]);
 
-  // ─── Cloud save/load ────────────────────────────────────────────────────────
   const cloudSaveAll=useCallback(async()=>{
     if(!fbUser){setSyncMsg("Sign in first");return;}
     setSyncSt("saving");setSyncMsg("Saving…");
@@ -1211,209 +1280,72 @@ function App(){
     return()=>clearTimeout(t);
   },[portfolio,prices,history,cloudSaveAll]);
 
-  // ─── Snapshot backfill ──────────────────────────────────────────────────────
   useEffect(()=>{
-    try{
-      const now = new Date();
-      const last60Months = [];
-      for (let i = 59; i >= 0; i--) {
-        const date = new Date(now);
-        date.setMonth(date.getMonth() - i);
-        date.setDate(0);
-        last60Months.push(date.toISOString().slice(0, 10));
-      }
-      const existing = new Map((history||[]).map(s => [s.date, s]));
-      const missing = last60Months.filter(d => !existing.has(d));
-      if (missing.length === 0) return;
-      const curTotal = holdings.reduce((s, h) => s + (h.currentValue||0), 0);
-      const newSnapshots = [...(history||[])];
-      for (const dateStr of missing) {
-        let nearest = null;
-        let bestDiff = Infinity;
-        for (const snap of (history||[])) {
-          const diff = Math.abs(new Date(snap.date).getTime() - new Date(dateStr).getTime());
-          if (diff < bestDiff) { bestDiff = diff; nearest = snap; }
-        }
-        let baseValue = nearest ? nearest.totalValueAUD : curTotal;
-        const monthsAgo = (new Date(now).getTime() - new Date(dateStr).getTime()) / (30 * 86400000);
-        const factor = 0.8 + 0.4 * Math.sin(monthsAgo * 0.5) + (Math.random() * 0.1);
-        let totalAUD = baseValue * factor;
-        totalAUD = Math.max(totalAUD, 1000);
-        let divAUD = 0;
-        for (const h of (portfolio||[])) {
-          if(!h.transactions)continue;
-          h.transactions.filter(t => t.type === "dividend" && t.date <= dateStr).forEach(t => {
-            divAUD += toAUD(t.totalAmount || 0, h.currency, rates);
-          });
-        }
-        newSnapshots.push({ date: dateStr, totalValueAUD: totalAUD, totalDividendsAUD: divAUD });
-      }
-      newSnapshots.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-      setHistory(newSnapshots);
-    }catch(e){
-      console.warn("Snapshot backfill error:", e);
+    const now = new Date();
+    const last60Months = [];
+    for (let i = 59; i >= 0; i--) {
+      const date = new Date(now);
+      date.setMonth(date.getMonth() - i);
+      date.setDate(0);
+      last60Months.push(date.toISOString().slice(0, 10));
     }
+    const existing = new Map(history.map(s => [s.date, s]));
+    const missing = last60Months.filter(d => !existing.has(d));
+    if (missing.length === 0) return;
+    const curTotal = holdings.reduce((s, h) => s + h.currentValue, 0);
+    const newSnapshots = [...history];
+    for (const dateStr of missing) {
+      let nearest = null;
+      let bestDiff = Infinity;
+      for (const snap of history) {
+        const diff = Math.abs(new Date(snap.date) - new Date(dateStr));
+        if (diff < bestDiff) { bestDiff = diff; nearest = snap; }
+      }
+      let baseValue = nearest ? nearest.totalValueAUD : curTotal;
+      const monthsAgo = (new Date(now) - new Date(dateStr)) / (30 * 86400000);
+      const factor = 0.8 + 0.4 * Math.sin(monthsAgo * 0.5) + (Math.random() * 0.1);
+      let totalAUD = baseValue * factor;
+      totalAUD = Math.max(totalAUD, 1000);
+      let divAUD = 0;
+      for (const h of portfolio) {
+        h.transactions.filter(t => t.type === "dividend" && t.date <= dateStr).forEach(t => {
+          divAUD += toAUD(t.totalAmount || 0, h.currency, rates);
+        });
+      }
+      newSnapshots.push({ date: dateStr, totalValueAUD: totalAUD, totalDividendsAUD: divAUD });
+    }
+    newSnapshots.sort((a, b) => new Date(a.date) - new Date(b.date));
+    setHistory(newSnapshots);
   }, [portfolio, rates, holdings]);
 
-  // ─── Auto-refresh on mount ──────────────────────────────────────────────────
-  useEffect(()=>{
-    const t=setTimeout(()=>autoRefresh(),800);
-    return()=>clearTimeout(t);
-  },[]);
+  useEffect(()=>{const t=setTimeout(()=>autoRefresh(),800);return()=>clearTimeout(t);},[]);
 
-  // ─── Auto-refresh function ──────────────────────────────────────────────────
-  const autoRefresh = useCallback(async () => {
-    try {
-      setFetchSt(s => ({ ...s, loading: true, fetched: 0 }));
-      let newRates = rates, rateOk = false;
-      try {
-        newRates = await fetchExchangeRates();
-        setRates(newRates);
-        rateOk = true;
-      } catch (e) { console.warn("Rate fetch failed:", e.message); }
-
-      let bmStatus = "no benchmark data";
-      try {
-        const BM_DEFS = [
-          { key: "sp500",  label: "S&P 500",          fetch: () => fetchBenchmark("^GSPC") },
-          { key: "brk",    label: "BRK-B",             fetch: () => fetchBenchmark("BRK-B") },
-          { key: "jkse",   label: "IDX Composite",     fetch: () => fetchBenchmark("^JKSE") },
-          { key: "eido",   label: "EIDO",              fetch: () => fetchBenchmark("EIDO") },
-          { key: "vas",    label: "VAS",               fetch: () => fetchBenchmark("VAS.AX") },
-        ];
-        const results = await Promise.allSettled(BM_DEFS.map(b => b.fetch()));
-        const successes = results.map((r, i) => r.status === "fulfilled" ? { ...BM_DEFS[i], data: r.value } : null).filter(Boolean);
-        if (successes.length > 0) {
-          const ref = successes.reduce((a, b) => b.data.labels.length > a.data.labels.length ? b : a);
-          const series = {};
-          results.forEach((r, i) => { series[BM_DEFS[i].key] = r.status === "fulfilled" ? r.value.pct : null; });
-          const ok = BM_DEFS.map((b, i) => results[i].status === "fulfilled" ? b.label + "✓" : null).filter(Boolean);
-          const fail = BM_DEFS.map((b, i) => results[i].status === "rejected" ? b.label : null).filter(Boolean);
-          bmStatus = `${ok.length}/${BM_DEFS.length} loaded${fail.length ? ` · failed: ${fail.join(", ")}` : ""}`;
-          const fetchable = (portfolio||[]).filter(h => h.yahooSymbol);
-          const holdingPriceMaps = {};
-          const CONCURRENCY = 4;
-          const resultsHist = new Array(fetchable.length);
-          async function fetchOne(h, idx) {
-            try {
-              const hist = await fetchHoldingHistory(h.yahooSymbol);
-              if (hist?.priceMap) holdingPriceMaps[h.ticker] = hist.priceMap;
-              else holdingPriceMaps[h.ticker] = null;
-              resultsHist[idx] = { status: "fulfilled" };
-            } catch (e) { resultsHist[idx] = { status: "rejected", reason: e.message }; }
-          }
-          let qi = 0;
-          while (qi < fetchable.length) {
-            const batch = fetchable.slice(qi, qi + CONCURRENCY);
-            await Promise.allSettled(batch.map((h, bi) => fetchOne(h, qi + bi)));
-            qi += CONCURRENCY;
-          }
-          setBenchmarks(prev => ({
-            ...prev,
-            labels: ref.data.labels,
-            series,
-            holdingPrices: { ...prev.holdingPrices, ...holdingPriceMaps }
-          }));
-        } else {
-          bmStatus = "failed — all benchmarks unavailable";
-          setBenchmarks(prev => ({ ...prev, holdingPrices: {} }));
-        }
-      } catch (e) { bmStatus = "error: " + e.message; }
-
-      const fetchablePrices = (portfolio||[]).filter(h => {
-        if (h.yahooSymbol) return true;
-        if (/^(PBS|SBN|SR|ST|FR|ORI|SUKUK)\d/i.test(h.ticker)) return true;
-        if (/^[A-Z]{3}\d{4}[A-Z]{2}$/i.test(h.ticker)) return true;
-        return false;
-      });
-      const newP = { ...prices }, newPP = { ...prevPrices };
-      const errors = {};
-      let successes = 0;
-      function fetchPriceFor(h) {
-        if (h.yahooSymbol) return fetchYahooPrice(h.yahooSymbol);
-        const tk = h.ticker.toUpperCase();
-        if (/^(PBS|SBN|SR|ST|FR|ORI)\d/i.test(tk)) return fetchDJPPRPrice(tk);
-        if (/^[A-Z]{3}\d{4}[A-Z]{2}$/i.test(tk)) return fetchAUFundPrice(tk);
-        return Promise.reject(new Error("No price source"));
-      }
-      const CONCURRENCY_PRICE = 8;
-      const priceResults = new Array(fetchablePrices.length);
-      async function fetchOnePrice(h, idx) {
-        try {
-          const p = await fetchPriceFor(h);
-          priceResults[idx] = { status: "fulfilled", value: { h, p } };
-        } catch (e) { priceResults[idx] = { status: "rejected", reason: e }; }
-      }
-      let qiPrice = 0;
-      while (qiPrice < fetchablePrices.length) {
-        const batch = fetchablePrices.slice(qiPrice, qiPrice + CONCURRENCY_PRICE);
-        await Promise.allSettled(batch.map((h, bi) => fetchOnePrice(h, qiPrice + bi)));
-        qiPrice += CONCURRENCY_PRICE;
-        const done = priceResults.filter(Boolean).length;
-        setFetchSt(s => ({ ...s, fetched: done, total: fetchablePrices.length }));
-      }
-      priceResults.forEach((r, i) => {
-        const h = fetchablePrices[i];
-        if (r?.status === "fulfilled") {
-          const isDJPPR = !h.yahooSymbol && /^(PBS|SBN|SR|ST|FR|ORI)\d/i.test(h.ticker);
-          const mult = (h.isBondPct || isDJPPR) ? (h.faceValue ?? 1000000) / 100 : 1;
-          newP[h.ticker] = r.value.p.current * mult;
-          newPP[h.ticker] = r.value.p.prev * mult;
-          successes++;
-        } else {
-          errors[h.ticker] = r?.reason?.message || "Failed";
-        }
-      });
-      setPrices(newP);
-      setPrevPrices(newPP);
-      const now = new Date();
-      const date = now.toISOString().slice(0, 10);
-      try {
-        const hs = (portfolio||[]).map(h => computeHolding(h, newP, newPP, newRates)).filter(h => h && h.qty > 0);
-        const snap = { date, totalValueAUD: hs.reduce((s, h) => s + (h.currentValue||0), 0), totalDividendsAUD: hs.reduce((s, h) => s + (h.totalDividends||0), 0) };
-        setHistory(prev => [...(prev||[]).filter(s => s.date !== date), snap].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).slice(-90));
-      } catch(e){ console.warn("Snapshot creation error:", e); }
-      setFetchSt({
-        loading: false,
-        lastUpdate: now,
-        errors,
-        successes,
-        total: fetchablePrices.length,
-        fetched: fetchablePrices.length,
-        rateOk,
-        bmStatus,
-      });
-    } catch(e){
-      console.error("autoRefresh fatal error:", e);
-      setFetchSt(s => ({ ...s, loading: false }));
-    }
-  }, [portfolio, prices, prevPrices, rates]);
-
-  // ─── Map ref ────────────────────────────────────────────────────────────────
   const mapRef=useCallback(node=>{
     if(!node)return;
     const obs=new ResizeObserver(e=>{const{width,height}=e[0].contentRect;setTmSize({w:width,h:height});});
     obs.observe(node);
   },[]);
 
-  // ─── Derived values ─────────────────────────────────────────────────────────
-  const totVal    = holdings.reduce((s,h)=>s+(h.currentValue||0),0);
-  const totGain   = holdings.reduce((s,h)=>s+(h.totalGain||0),0);
-  const totInv    = holdings.reduce((s,h)=>s+(h.totalInvested||0),0);
-  const totPct    = totInv>0?(totGain/totInv)*100:0;
-  const totDayGain= holdings.reduce((s,h)=>s+(h.dayGain||0),0);
-  const prevTot   = totVal-totDayGain;
-  const totDayPct = prevTot>0?(totDayGain/prevTot)*100:0;
-  const totDivs   = holdings.reduce((s,h)=>s+(h.totalDividends||0),0);
-  const divYld    = totInv>0?(totDivs/totInv)*100:0;
+  const holdings=useMemo(()=>portfolio.map(h=>computeHolding(h,prices,prevPrices,rates)).filter(h=>h.qty>0),[portfolio,prices,prevPrices,rates]);
+
+  const totVal    =holdings.reduce((s,h)=>s+h.currentValue,0);
+  const totGain   =holdings.reduce((s,h)=>s+h.totalGain,0);
+  const totInv    =holdings.reduce((s,h)=>s+h.totalInvested,0);
+  const totPct    =totInv>0?(totGain/totInv)*100:0;
+  const totDayGain=holdings.reduce((s,h)=>s+h.dayGain,0);
+  const prevTot   =totVal-totDayGain;
+  const totDayPct =prevTot>0?(totDayGain/prevTot)*100:0;
+  const totDivs   =holdings.reduce((s,h)=>s+h.totalDividends,0);
+  const divYld    =totInv>0?(totDivs/totInv)*100:0;
 
   const divYieldOnly = useMemo(() => {
-    let totalInvestedDiv = 0, totalDividendsDiv = 0;
+    let totalInvestedDiv = 0;
+    let totalDividendsDiv = 0;
     for (const h of holdings) {
       if (h.ticker === "NUL5339AU" || h.ticker === "NUL7270AU") continue;
       if (!h.assetType || !DIVIDEND_PAYING_TYPES.has(h.assetType)) continue;
-      totalInvestedDiv += h.totalInvested||0;
-      totalDividendsDiv += h.totalDividends||0;
+      totalInvestedDiv += h.totalInvested;
+      totalDividendsDiv += h.totalDividends;
     }
     if (totalInvestedDiv <= 0) return 0;
     return (totalDividendsDiv / totalInvestedDiv) * 100;
@@ -1421,8 +1353,7 @@ function App(){
 
   function computeDividendCAGR(portfolio, rates) {
     const yearTotals = new Map();
-    for (const h of (portfolio||[])) {
-      if(!h.transactions)continue;
+    for (const h of portfolio) {
       for (const tx of h.transactions) {
         if (tx.type === "dividend" && tx.date) {
           const year = tx.date.slice(0,4);
@@ -1433,8 +1364,10 @@ function App(){
     }
     const years = Array.from(yearTotals.keys()).sort();
     if (years.length < 2) return null;
-    const firstYear = years[0], lastYear = years[years.length-1];
-    const firstVal = yearTotals.get(firstYear), lastVal = yearTotals.get(lastYear);
+    const firstYear = years[0];
+    const lastYear = years[years.length-1];
+    const firstVal = yearTotals.get(firstYear);
+    const lastVal = yearTotals.get(lastYear);
     if (firstVal <= 0 || lastVal <= 0) return null;
     const numYears = parseInt(lastYear) - parseInt(firstYear);
     if (numYears <= 0) return null;
@@ -1442,13 +1375,11 @@ function App(){
     return { cagr, firstYear, lastYear };
   }
   const divCAGR = useMemo(() => computeDividendCAGR(portfolio, rates), [portfolio, rates]);
-
   function computeMonthlyDividendsToDate(portfolio, rates) {
     const now = new Date();
     const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
     let totalAUD = 0;
-    for (const h of (portfolio||[])) {
-      if(!h.transactions)continue;
+    for (const h of portfolio) {
       for (const tx of h.transactions) {
         if (tx.type === "dividend" && tx.date && tx.date.startsWith(currentYearMonth)) {
           totalAUD += toAUD(tx.totalAmount || 0, h.currency, rates);
@@ -1458,104 +1389,84 @@ function App(){
     return totalAUD;
   }
   const monthlyDivsAUD = useMemo(() => computeMonthlyDividendsToDate(portfolio, rates), [portfolio, rates]);
-
   function computeSuperFundsValue(holdings) {
     let totalAUD = 0;
     for (const h of holdings) {
       if (h.ticker === "NUL5339AU" || h.ticker === "NUL7270AU") {
-        totalAUD += h.currentValue||0;
+        totalAUD += h.currentValue;
       }
     }
     return totalAUD;
   }
   const superFundsValueAUD = useMemo(() => computeSuperFundsValue(holdings), [holdings]);
-
   const monthlyPassiveNumerator = useMemo(() => {
     const superMonthly = (superFundsValueAUD * (superDrawRate / 100)) / 12;
     return monthlyDivsAUD + superMonthly;
   }, [monthlyDivsAUD, superFundsValueAUD, superDrawRate]);
-
   const monthlyPassivePercent = useMemo(() => {
     if (monthlyTargetAud <= 0) return null;
     return (monthlyPassiveNumerator / monthlyTargetAud) * 100;
   }, [monthlyPassiveNumerator, monthlyTargetAud]);
-
   const targetDisplay = useMemo(() => {
     if (monthlyTargetAud <= 0) return "—";
     return fmtCur(monthlyTargetAud, displayCur, rates, true);
   }, [monthlyTargetAud, displayCur, rates]);
-
+  
   const superBenchmarkPercent = useMemo(() => {
     if (avgSuperBalanceAud <= 0) return null;
     return (superFundsValueAUD / avgSuperBalanceAud) * 100;
   }, [superFundsValueAUD, avgSuperBalanceAud]);
 
-  const FC=(a,compact=false)=>valuesHidden?"••••••":fmtCur(a||0,displayCur,rates,compact);
-  const FG=(a)=>valuesHidden?"••••••":fmtGain(a||0,displayCur,rates);
+  const FC=(a,compact=false)=>valuesHidden?"••••••":fmtCur(a,displayCur,rates,compact);
+  const FG=(a)=>valuesHidden?"••••••":fmtGain(a,displayCur,rates);
   const pColor=n=>n>=0?T.green:T.red;
 
-  const perfRects=useMemo(()=>{
-    try{
-      const it=holdings.map(h=>({...h,value:h.currentValue||0})).sort((a,b)=>b.value-a.value);
-      return it.length?squarify(it,0,0,tmSize.w,tmSize.h):[];
-    }catch(e){return [];}
-  },[holdings,tmSize]);
-  const divRects=useMemo(()=>{
-    try{
-      const it=holdings.filter(h=>(h.totalDividends||0)>0).map(h=>({...h,value:h.totalDividends||0})).sort((a,b)=>b.value-a.value);
-      return it.length?squarify(it,0,0,tmSize.w,tmSize.h):[];
-    }catch(e){return [];}
-  },[holdings,tmSize]);
-  const dayRects=useMemo(()=>{
-    try{
-      const it=holdings.map(h=>({...h,value:h.currentValue||0})).sort((a,b)=>b.value-a.value);
-      return it.length?squarify(it,0,0,tmSize.w,tmSize.h):[];
-    }catch(e){return [];}
-  },[holdings,tmSize]);
+  const perfRects=useMemo(()=>{const it=holdings.map(h=>({...h,value:h.currentValue})).sort((a,b)=>b.value-a.value);return it.length?squarify(it,0,0,tmSize.w,tmSize.h):[];},[holdings,tmSize]);
+  const divRects =useMemo(()=>{const it=holdings.filter(h=>h.totalDividends>0).map(h=>({...h,value:h.totalDividends})).sort((a,b)=>b.value-a.value);return it.length?squarify(it,0,0,tmSize.w,tmSize.h):[];},[holdings,tmSize]);
+  // Day treemap: size = currentValue, color = dayGainPct
+  const dayRects =useMemo(()=>{const it=holdings.map(h=>({...h,value:h.currentValue})).sort((a,b)=>b.value-a.value);return it.length?squarify(it,0,0,tmSize.w,tmSize.h):[];},[holdings,tmSize]);
 
   const sliderDate=tmSlider!=null&&benchmarks.labels.length>tmSlider?benchmarks.labels[tmSlider]:null;
   const sliderRects=useMemo(()=>{
     if(!sliderDate||!benchmarks.holdingPrices)return null;
-    try{
-      const audIdr=rates?.AUD_IDR||12000;
-      const audUsd=rates?.AUD_USD||0.65;
-      const findPrice=(priceMap,dateStr)=>{
-        if(!priceMap)return null;
-        if(priceMap[dateStr])return priceMap[dateStr];
-        const target=new Date(dateStr).getTime();
-        let best=null,bestDiff=35*86400000;
-        for(const [d,p] of Object.entries(priceMap)){
-          const diff=Math.abs(new Date(d).getTime()-target);
-          if(diff<bestDiff){bestDiff=diff;best=p;}
-        }
-        return best;
-      };
-      const items=[];
-      for(const h of (portfolio||[])){
-        let units=0;
-        for(const tx of (h.transactions||[])){
-          if(tx.date>sliderDate)continue;
-          if(tx.type==="buy")units+=tx.qty;
-          else if(tx.type==="sell")units-=tx.qty;
-        }
-        if(units<=0)continue;
-        const hp=benchmarks.holdingPrices[h.ticker];
-        let price=hp?.priceMap?findPrice(hp.priceMap,sliderDate):null;
-        if(!price&&prices[h.ticker]>0)price=prices[h.ticker];
-        if(!price)continue;
-        if(h.isBondPct)price=price*(h.faceValue||1000000)/100;
-        let valueAUD=units*price;
-        if(h.currency==="IDR")valueAUD/=audIdr;
-        else if(h.currency==="USD")valueAUD/=audUsd;
-        if(valueAUD>0)items.push({...h,currentValue:valueAUD,value:valueAUD,qty:units});
+    const audIdr=rates.AUD_IDR||12000;
+    const audUsd=rates.AUD_USD||0.65;
+    const findPrice=(priceMap,dateStr)=>{
+      if(!priceMap)return null;
+      if(priceMap[dateStr])return priceMap[dateStr];
+      const target=new Date(dateStr).getTime();
+      let best=null,bestDiff=35*86400000;
+      for(const [d,p] of Object.entries(priceMap)){
+        const diff=Math.abs(new Date(d).getTime()-target);
+        if(diff<bestDiff){bestDiff=diff;best=p;}
       }
-      const sorted=items.sort((a,b)=>b.value-a.value);
-      return sorted.length?squarify(sorted,0,0,tmSize.w,tmSize.h):null;
-    }catch(e){return null;}
+      return best;
+    };
+    const items=[];
+    for(const h of portfolio){
+      let units=0;
+      for(const tx of h.transactions){
+        if(tx.date>sliderDate)continue;
+        if(tx.type==="buy")units+=tx.qty;
+        else if(tx.type==="sell")units-=tx.qty;
+      }
+      if(units<=0)continue;
+      const hp=benchmarks.holdingPrices[h.ticker];
+      let price=hp?.priceMap?findPrice(hp.priceMap,sliderDate):null;
+      if(!price&&prices[h.ticker]>0)price=prices[h.ticker];
+      if(!price)continue;
+      if(h.isBondPct)price=price*(h.faceValue||1000000)/100;
+      let valueAUD=units*price;
+      if(h.currency==="IDR")valueAUD/=audIdr;
+      else if(h.currency==="USD")valueAUD/=audUsd;
+      if(valueAUD>0)items.push({...h,currentValue:valueAUD,value:valueAUD,qty:units});
+    }
+    const sorted=items.sort((a,b)=>b.value-a.value);
+    return sorted.length?squarify(sorted,0,0,tmSize.w,tmSize.h):null;
   },[sliderDate,benchmarks.holdingPrices,benchmarks.labels,portfolio,prices,rates,tmSize]);
 
   const rects=tmSlider!=null&&sliderRects!=null&&sliderRects.length>0?sliderRects:(tmMode==="performance"?perfRects:tmMode==="day"?dayRects:divRects);
-  const totalPortfolioDivs=useMemo(()=>holdings.reduce((s,h)=>s+(h.totalDividends||0),0),[holdings]);
+  const totalPortfolioDivs=useMemo(()=>holdings.reduce((s,h)=>s+h.totalDividends,0),[holdings]);
   const selH=holdings.find(h=>h.ticker===selected);
 
   const periodCutoff = useCallback((period) => {
@@ -1569,183 +1480,290 @@ function App(){
     return new Date(0);
   }, []);
 
-  const chartData = useMemo(() => {
-    try{
-      const cutoff = periodCutoff(chartPeriod);
-      const allSorted = [...(history||[])].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-      const hasPriceMaps = Object.keys(benchmarks.holdingPrices || {}).length > 0;
-      const hasBenchmarkLabels = benchmarks.labels && benchmarks.labels.length > 0;
-      let labels = [], vals = [], divCumul = [];
-      let bmLabels = [], bmSeries = {}, bmPortfolio = [];
-      if (hasPriceMaps && hasBenchmarkLabels) {
-        const allBenchmarkDates = benchmarks.labels;
-        const bCutoff = periodCutoff(chartPeriod);
-        const filtIdx = allBenchmarkDates.map((l, i) => new Date(l) >= bCutoff ? i : -1).filter(i => i >= 0);
-        if (filtIdx.length > 1) {
-          bmLabels = filtIdx.map(i => fmtMonShort(allBenchmarkDates[i]));
-          const i0 = filtIdx[0];
-          const BM_KEYS = ["sp500", "brk", "jkse", "eido", "vas"];
-          BM_KEYS.forEach(k => {
-            const s = benchmarks.series[k];
-            if (!s) { bmSeries[k] = filtIdx.map(() => null); return; }
-            const base = s[i0] ?? null;
-            bmSeries[k] = filtIdx.map(i => s[i] != null && base != null ? s[i] - base : null);
-          });
-          const findPrice = (priceMap, dateStr) => {
-            if (!priceMap) return null;
-            if (priceMap[dateStr]) return priceMap[dateStr];
-            const target = new Date(dateStr).getTime();
-            let best = null, bestDiff = 35 * 86400000;
-            for (const [d, p] of Object.entries(priceMap)) {
-              const diff = Math.abs(new Date(d).getTime() - target);
-              if (diff < bestDiff) { bestDiff = diff; best = p; }
-            }
-            return best;
-          };
-          const portfolioValAtDate = (dateStr) => {
-            let totalAUD = 0;
-            for (const h of (portfolio||[])) {
-              let units = 0;
-              for (const tx of (h.transactions||[])) {
-                if (tx.date > dateStr) continue;
-                if (tx.type === "buy") units += tx.qty;
-                else if (tx.type === "sell") units -= tx.qty;
-              }
-              if (units <= 0) continue;
-              let priceInNative = null;
-              const hp = benchmarks.holdingPrices[h.ticker];
-              if (hp) {
-                priceInNative = findPrice(hp, dateStr);
-                if (h.isBondPct && priceInNative) priceInNative = priceInNative * (h.faceValue || 1000000) / 100;
-              }
-              if (!priceInNative) priceInNative = prices[h.ticker];
-              if (!priceInNative || priceInNative <= 0) continue;
-              const currency = h.currency || "AUD";
-              let valueAUD = units * priceInNative;
-              if (currency === "IDR") valueAUD /= rates.AUD_IDR;
-              else if (currency === "USD") valueAUD /= rates.AUD_USD;
-              totalAUD += valueAUD;
-            }
-            return totalAUD > 0 ? totalAUD : null;
-          };
-          const cumulativeDividendsAtDate = (dateStr) => {
-            let divAUD = 0;
-            for (const h of (portfolio||[])) {
-              if(!h.transactions)continue;
-              h.transactions.filter(t => t.type === "dividend" && t.date <= dateStr).forEach(t => {
-                divAUD += toAUD(t.totalAmount || 0, h.currency, rates);
-              });
-            }
-            return divAUD;
-          };
-          const bmDates = filtIdx.map(i => allBenchmarkDates[i]);
-          const portVals = bmDates.map(date => portfolioValAtDate(date));
-          const baseIdx = portVals.findIndex(v => v != null);
-          if (baseIdx >= 0) {
-            const baseVal = portVals[baseIdx];
-            bmPortfolio = portVals.map((v, j) => v == null || j < baseIdx ? null : ((v - baseVal) / baseVal) * 100);
-          }
-          labels = bmLabels;
-          vals = portVals.map(v => fromAUD(v || 0, displayCur, rates));
-          divCumul = bmDates.map(d => fromAUD(cumulativeDividendsAtDate(d), displayCur, rates));
+  const autoRefresh = useCallback(async () => {
+    setFetchSt(s => ({ ...s, loading: true, fetched: 0 }));
+    let newRates = rates, rateOk = false;
+    try {
+      newRates = await fetchExchangeRates();
+      setRates(newRates);
+      rateOk = true;
+    } catch (e) { console.warn("Rate fetch failed:", e.message); }
+
+    let bmStatus = "no benchmark data";
+    try {
+      const BM_DEFS = [
+        { key: "sp500",  label: "S&P 500",          fetch: () => fetchBenchmark("^GSPC") },
+        { key: "brk",    label: "BRK-B",             fetch: () => fetchBenchmark("BRK-B") },
+        { key: "jkse",   label: "IDX Composite",     fetch: () => fetchBenchmark("^JKSE") },
+        { key: "eido",   label: "EIDO",              fetch: () => fetchBenchmark("EIDO") },
+        { key: "vas",    label: "VAS",               fetch: () => fetchBenchmark("VAS.AX") },
+      ];
+      const results = await Promise.allSettled(BM_DEFS.map(b => b.fetch()));
+      const successes = results.map((r, i) => r.status === "fulfilled" ? { ...BM_DEFS[i], data: r.value } : null).filter(Boolean);
+      if (successes.length > 0) {
+        const ref = successes.reduce((a, b) => b.data.labels.length > a.data.labels.length ? b : a);
+        const series = {};
+        results.forEach((r, i) => { series[BM_DEFS[i].key] = r.status === "fulfilled" ? r.value.pct : null; });
+        const ok = BM_DEFS.map((b, i) => results[i].status === "fulfilled" ? b.label + "✓" : null).filter(Boolean);
+        const fail = BM_DEFS.map((b, i) => results[i].status === "rejected" ? b.label : null).filter(Boolean);
+        bmStatus = `${ok.length}/${BM_DEFS.length} loaded${fail.length ? ` · failed: ${fail.join(", ")}` : ""}`;
+        const fetchable = portfolio.filter(h => h.yahooSymbol);
+        const holdingPriceMaps = {};
+        const CONCURRENCY = 4;
+        const resultsHist = new Array(fetchable.length);
+        async function fetchOne(h, idx) {
+          try {
+            const hist = await fetchHoldingHistory(h.yahooSymbol);
+            if (hist?.priceMap) holdingPriceMaps[h.ticker] = hist.priceMap;
+            else holdingPriceMaps[h.ticker] = null;
+            resultsHist[idx] = { status: "fulfilled" };
+          } catch (e) { resultsHist[idx] = { status: "rejected", reason: e.message }; }
         }
+        let qi = 0;
+        while (qi < fetchable.length) {
+          const batch = fetchable.slice(qi, qi + CONCURRENCY);
+          await Promise.allSettled(batch.map((h, bi) => fetchOne(h, qi + bi)));
+          qi += CONCURRENCY;
+        }
+        setBenchmarks(prev => ({
+          ...prev,
+          labels: ref.data.labels,
+          series,
+          holdingPrices: { ...prev.holdingPrices, ...holdingPriceMaps }
+        }));
       } else {
-        const periodSnaps = allSorted.filter(s => new Date(s.date) >= cutoff);
-        labels = periodSnaps.map(s => fmtMonShort(s.date));
-        vals = periodSnaps.map(s => fromAUD(s.totalValueAUD || 0, displayCur, rates));
-        divCumul = periodSnaps.map(s => {
+        bmStatus = "failed — all benchmarks unavailable";
+        setBenchmarks(prev => ({ ...prev, holdingPrices: {} }));
+      }
+    } catch (e) { bmStatus = "error: " + e.message; }
+
+    const fetchablePrices = portfolio.filter(h => {
+      if (h.yahooSymbol) return true;
+      if (/^(PBS|SBN|SR|ST|FR|ORI|SUKUK)\d/i.test(h.ticker)) return true;
+      if (/^[A-Z]{3}\d{4}[A-Z]{2}$/i.test(h.ticker)) return true;
+      return false;
+    });
+    const newP = { ...prices }, newPP = { ...prevPrices };
+    const errors = {};
+    let successes = 0;
+    function fetchPriceFor(h) {
+      if (h.yahooSymbol) return fetchYahooPrice(h.yahooSymbol);
+      const tk = h.ticker.toUpperCase();
+      if (/^(PBS|SBN|SR|ST|FR|ORI)\d/i.test(tk)) return fetchDJPPRPrice(tk);
+      if (/^[A-Z]{3}\d{4}[A-Z]{2}$/i.test(tk)) return fetchAUFundPrice(tk);
+      return Promise.reject(new Error("No price source"));
+    }
+    const CONCURRENCY_PRICE = 8;
+    const priceResults = new Array(fetchablePrices.length);
+    async function fetchOnePrice(h, idx) {
+      try {
+        const p = await fetchPriceFor(h);
+        priceResults[idx] = { status: "fulfilled", value: { h, p } };
+      } catch (e) { priceResults[idx] = { status: "rejected", reason: e }; }
+    }
+    let qiPrice = 0;
+    while (qiPrice < fetchablePrices.length) {
+      const batch = fetchablePrices.slice(qiPrice, qiPrice + CONCURRENCY_PRICE);
+      await Promise.allSettled(batch.map((h, bi) => fetchOnePrice(h, qiPrice + bi)));
+      qiPrice += CONCURRENCY_PRICE;
+      const done = priceResults.filter(Boolean).length;
+      setFetchSt(s => ({ ...s, fetched: done, total: fetchablePrices.length }));
+    }
+    priceResults.forEach((r, i) => {
+      const h = fetchablePrices[i];
+      if (r?.status === "fulfilled") {
+        const isDJPPR = !h.yahooSymbol && /^(PBS|SBN|SR|ST|FR|ORI)\d/i.test(h.ticker);
+        const mult = (h.isBondPct || isDJPPR) ? (h.faceValue ?? 1000000) / 100 : 1;
+        newP[h.ticker] = r.value.p.current * mult;
+        newPP[h.ticker] = r.value.p.prev * mult;
+        successes++;
+      } else {
+        errors[h.ticker] = r?.reason?.message || "Failed";
+      }
+    });
+    setPrices(newP);
+    setPrevPrices(newPP);
+    const now = new Date();
+    const date = now.toISOString().slice(0, 10);
+    const hs = portfolio.map(h => computeHolding(h, newP, newPP, newRates)).filter(h => h.qty > 0);
+    const snap = { date, totalValueAUD: hs.reduce((s, h) => s + h.currentValue, 0), totalDividendsAUD: hs.reduce((s, h) => s + h.totalDividends, 0) };
+    setHistory(prev => [...prev.filter(s => s.date !== date), snap].sort((a, b) => new Date(a.date) - new Date(b.date)).slice(-90));
+    setFetchSt({
+      loading: false,
+      lastUpdate: now,
+      errors,
+      successes,
+      total: fetchablePrices.length,
+      fetched: fetchablePrices.length,
+      rateOk,
+      bmStatus,
+    });
+  }, [portfolio, prices, prevPrices, rates]);
+
+  const chartData = useMemo(() => {
+    const cutoff = periodCutoff(chartPeriod);
+    const allSorted = [...history].sort((a, b) => new Date(a.date) - new Date(b.date));
+    const hasPriceMaps = Object.keys(benchmarks.holdingPrices || {}).length > 0;
+    const hasBenchmarkLabels = benchmarks.labels && benchmarks.labels.length > 0;
+    let labels = [], vals = [], divCumul = [];
+    let bmLabels = [], bmSeries = {}, bmPortfolio = [];
+    if (hasPriceMaps && hasBenchmarkLabels) {
+      const allBenchmarkDates = benchmarks.labels;
+      const bCutoff = periodCutoff(chartPeriod);
+      const filtIdx = allBenchmarkDates.map((l, i) => new Date(l) >= bCutoff ? i : -1).filter(i => i >= 0);
+      if (filtIdx.length > 1) {
+        bmLabels = filtIdx.map(i => fmtMonShort(allBenchmarkDates[i]));
+        const i0 = filtIdx[0];
+        const BM_KEYS = ["sp500", "brk", "jkse", "eido", "vas"];
+        BM_KEYS.forEach(k => {
+          const s = benchmarks.series[k];
+          if (!s) { bmSeries[k] = filtIdx.map(() => null); return; }
+          const base = s[i0] ?? null;
+          bmSeries[k] = filtIdx.map(i => s[i] != null && base != null ? s[i] - base : null);
+        });
+        const findPrice = (priceMap, dateStr) => {
+          if (!priceMap) return null;
+          if (priceMap[dateStr]) return priceMap[dateStr];
+          const target = new Date(dateStr).getTime();
+          let best = null, bestDiff = 35 * 86400000;
+          for (const [d, p] of Object.entries(priceMap)) {
+            const diff = Math.abs(new Date(d).getTime() - target);
+            if (diff < bestDiff) { bestDiff = diff; best = p; }
+          }
+          return best;
+        };
+        const portfolioValAtDate = (dateStr) => {
+          let totalAUD = 0;
+          for (const h of portfolio) {
+            let units = 0;
+            for (const tx of h.transactions) {
+              if (tx.date > dateStr) continue;
+              if (tx.type === "buy") units += tx.qty;
+              else if (tx.type === "sell") units -= tx.qty;
+            }
+            if (units <= 0) continue;
+            let priceInNative = null;
+            const hp = benchmarks.holdingPrices[h.ticker];
+            if (hp) {
+              priceInNative = findPrice(hp, dateStr);
+              if (h.isBondPct && priceInNative) priceInNative = priceInNative * (h.faceValue || 1000000) / 100;
+            }
+            if (!priceInNative) priceInNative = prices[h.ticker];
+            if (!priceInNative || priceInNative <= 0) continue;
+            const currency = h.currency || "AUD";
+            let valueAUD = units * priceInNative;
+            if (currency === "IDR") valueAUD /= rates.AUD_IDR;
+            else if (currency === "USD") valueAUD /= rates.AUD_USD;
+            totalAUD += valueAUD;
+          }
+          return totalAUD > 0 ? totalAUD : null;
+        };
+        const cumulativeDividendsAtDate = (dateStr) => {
           let divAUD = 0;
-          (portfolio||[]).forEach(h => {
-            if(!h.transactions)return;
-            h.transactions.filter(t => t.type === "dividend" && t.date <= s.date).forEach(t => {
+          for (const h of portfolio) {
+            h.transactions.filter(t => t.type === "dividend" && t.date <= dateStr).forEach(t => {
               divAUD += toAUD(t.totalAmount || 0, h.currency, rates);
             });
-          });
-          return fromAUD(divAUD, displayCur, rates);
-        });
-      }
-      const baseSnap = allSorted.filter(s => new Date(s.date) < cutoff).slice(-1)[0];
-      const monthly = {};
-      const monthlyByTicker = {};
-      const palette = ["#6366f1","#22c55e","#06b6d4","#f59e0b","#ef4444","#8b5cf6","#ec4899","#14b8a6","#f97316","#84cc16","#3b82f6","#a78bfa"];
-      (portfolio||[]).forEach(h => {
-        if(!h.transactions)return;
-        h.transactions.filter(t => t.type === "dividend" && new Date(t.date) >= cutoff).forEach(t => {
-          const m = t.date.slice(0,7);
-          const val = fromAUD(toAUD(t.totalAmount || 0, h.currency, rates), displayCur, rates);
-          monthly[m] = (monthly[m] || 0) + val;
-          if (!monthlyByTicker[h.ticker]) monthlyByTicker[h.ticker] = {};
-          monthlyByTicker[h.ticker][m] = (monthlyByTicker[h.ticker][m] || 0) + val;
-        });
-      });
-      const mKeys = Object.keys(monthly).sort();
-      const divTickers = Object.keys(monthlyByTicker).sort((a,b) => {
-        const totA = Object.values(monthlyByTicker[a]).reduce((s,v)=>s+v,0);
-        const totB = Object.values(monthlyByTicker[b]).reduce((s,v)=>s+v,0);
-        return totB - totA;
-      });
-      const mDatasets = divTickers.map((ticker,i) => ({
-        label: ticker,
-        data: mKeys.map(m => monthlyByTicker[ticker][m] || 0),
-        backgroundColor: palette[i % palette.length] + "aa",
-        borderColor: palette[i % palette.length],
-        borderWidth: 1,
-        borderRadius: 3,
-      }));
-      const byType = {};
-      holdings.forEach(h => { const k = h.assetType || "Other"; byType[k] = (byType[k] || 0) + fromAUD(h.currentValue||0, displayCur, rates); });
-      const byCur = {};
-      holdings.forEach(h => { byCur[h.currency] = (byCur[h.currency] || 0) + fromAUD(h.currentValue||0, displayCur, rates); });
-      const startVal = vals.length ? vals[0] : (baseSnap ? fromAUD(baseSnap.totalValueAUD||0, displayCur, rates) : 0);
-      const endVal = vals.length ? vals[vals.length-1] : fromAUD(totVal, displayCur, rates);
-      let topUps = 0, divInPeriod = 0, netSales = 0;
-      (portfolio||[]).forEach(h => {
-        if(!h.transactions)return;
-        topUps += h.transactions.filter(t => t.type === "buy" && new Date(t.date) >= cutoff).reduce((ss,t) => ss + fromAUD(toAUD(t.qty * t.price, h.currency, rates), displayCur, rates), 0);
-        divInPeriod += h.transactions.filter(t => t.type === "dividend" && new Date(t.date) >= cutoff).reduce((ss,t) => ss + fromAUD(toAUD(t.totalAmount || 0, h.currency, rates), displayCur, rates), 0);
-        netSales += h.transactions.filter(t => t.type === "sell" && new Date(t.date) >= cutoff).reduce((ss,t) => ss + fromAUD(toAUD(t.qty * t.price, h.currency, rates), displayCur, rates), 0);
-      });
-      const capitalGain = endVal - startVal - topUps + netSales - divInPeriod;
-      const waterfallData = [
-        { label: "Start Value", value: startVal, type: "start" },
-        capitalGain >= 0 ? { label: "Capital Gain", value: capitalGain, type: "pos" } : { label: "Capital Loss", value: capitalGain, type: "neg" },
-        { label: "Top-Ups", value: topUps, type: "pos" },
-        { label: "Dividends", value: divInPeriod, type: "pos" },
-        netSales > 0 ? { label: "Sales", value: -netSales, type: "neg" } : null,
-        { label: "End Value", value: endVal, type: "total" },
-      ].filter(Boolean);
-      const divByYear = {};
-      (portfolio||[]).forEach(h => {
-        if(!h.transactions)return;
-        h.transactions.filter(t => t.type === "dividend").forEach(t => {
-          const y = t.date.slice(0,4);
-          const val = fromAUD(toAUD(t.totalAmount || 0, h.currency, rates), displayCur, rates);
-          divByYear[y] = (divByYear[y] || 0) + val;
-        });
-      });
-      const divYears = Object.keys(divByYear).sort();
-      let divCAGR = null, divCAGRYears = 0;
-      if (divYears.length >= 2) {
-        const firstY = divYears[0], lastY = divYears[divYears.length-1];
-        const firstVal = divByYear[firstY], lastVal = divByYear[lastY];
-        divCAGRYears = parseInt(lastY) - parseInt(firstY);
-        if (divCAGRYears > 0 && firstVal > 0 && lastVal > 0) {
-          divCAGR = (Math.pow(lastVal / firstVal, 1 / divCAGRYears) - 1) * 100;
+          }
+          return divAUD;
+        };
+        const bmDates = filtIdx.map(i => allBenchmarkDates[i]);
+        const portVals = bmDates.map(date => portfolioValAtDate(date));
+        const baseIdx = portVals.findIndex(v => v != null);
+        if (baseIdx >= 0) {
+          const baseVal = portVals[baseIdx];
+          bmPortfolio = portVals.map((v, j) => v == null || j < baseIdx ? null : ((v - baseVal) / baseVal) * 100);
         }
+        labels = bmLabels;
+        vals = portVals.map(v => fromAUD(v || 0, displayCur, rates));
+        divCumul = bmDates.map(d => fromAUD(cumulativeDividendsAtDate(d), displayCur, rates));
       }
-      return {
-        labels, vals, divCumul,
-        mLabels: mKeys.map(fmtMon), mVals: mKeys.map(k => monthly[k]), mDatasets,
-        divCAGR, divCAGRYears,
-        tLabels: Object.keys(byType), tVals: Object.values(byType), palette,
-        byCurLabels: Object.keys(byCur), byCurVals: Object.values(byCur), byCurColors: ["#22c55e","#06b6d4","#f59e0b","#8b5cf6"],
-        waterfallData, startVal, endVal,
-        bmLabels, bmSeries, bmPortfolio,
-      };
-    }catch(e){
-      console.warn("chartData error:", e);
-      return { labels:[], vals:[], divCumul:[], mLabels:[], mVals:[], mDatasets:[], divCAGR:null, divCAGRYears:0, tLabels:[], tVals:[], palette:[], byCurLabels:[], byCurVals:[], byCurColors:[], waterfallData:[], startVal:0, endVal:0, bmLabels:[], bmSeries:{}, bmPortfolio:[] };
+    } else {
+      const periodSnaps = allSorted.filter(s => new Date(s.date) >= cutoff);
+      labels = periodSnaps.map(s => fmtMonShort(s.date));
+      vals = periodSnaps.map(s => fromAUD(s.totalValueAUD, displayCur, rates));
+      divCumul = periodSnaps.map(s => {
+        let divAUD = 0;
+        portfolio.forEach(h => {
+          h.transactions.filter(t => t.type === "dividend" && t.date <= s.date).forEach(t => {
+            divAUD += toAUD(t.totalAmount || 0, h.currency, rates);
+          });
+        });
+        return fromAUD(divAUD, displayCur, rates);
+      });
     }
+    const baseSnap = allSorted.filter(s => new Date(s.date) < cutoff).slice(-1)[0];
+    const monthly = {};
+    const monthlyByTicker = {};
+    const palette = ["#6366f1","#22c55e","#06b6d4","#f59e0b","#ef4444","#8b5cf6","#ec4899","#14b8a6","#f97316","#84cc16","#3b82f6","#a78bfa"];
+    portfolio.forEach(h => {
+      h.transactions.filter(t => t.type === "dividend" && new Date(t.date) >= cutoff).forEach(t => {
+        const m = t.date.slice(0,7);
+        const val = fromAUD(toAUD(t.totalAmount || 0, h.currency, rates), displayCur, rates);
+        monthly[m] = (monthly[m] || 0) + val;
+        if (!monthlyByTicker[h.ticker]) monthlyByTicker[h.ticker] = {};
+        monthlyByTicker[h.ticker][m] = (monthlyByTicker[h.ticker][m] || 0) + val;
+      });
+    });
+    const mKeys = Object.keys(monthly).sort();
+    const divTickers = Object.keys(monthlyByTicker).sort((a,b) => {
+      const totA = Object.values(monthlyByTicker[a]).reduce((s,v)=>s+v,0);
+      const totB = Object.values(monthlyByTicker[b]).reduce((s,v)=>s+v,0);
+      return totB - totA;
+    });
+    const mDatasets = divTickers.map((ticker,i) => ({
+      label: ticker,
+      data: mKeys.map(m => monthlyByTicker[ticker][m] || 0),
+      backgroundColor: palette[i % palette.length] + "aa",
+      borderColor: palette[i % palette.length],
+      borderWidth: 1,
+      borderRadius: 3,
+    }));
+    const byType = {};
+    holdings.forEach(h => { const k = h.assetType || "Other"; byType[k] = (byType[k] || 0) + fromAUD(h.currentValue, displayCur, rates); });
+    const byCur = {};
+    holdings.forEach(h => { byCur[h.currency] = (byCur[h.currency] || 0) + fromAUD(h.currentValue, displayCur, rates); });
+    const startVal = vals.length ? vals[0] : (baseSnap ? fromAUD(baseSnap.totalValueAUD, displayCur, rates) : 0);
+    const endVal = vals.length ? vals[vals.length-1] : fromAUD(totVal, displayCur, rates);
+    const topUps = portfolio.reduce((s,h) => s + h.transactions.filter(t => t.type === "buy" && new Date(t.date) >= cutoff).reduce((ss,t) => ss + fromAUD(toAUD(t.qty * t.price, h.currency, rates), displayCur, rates), 0), 0);
+    const divInPeriod = portfolio.reduce((s,h) => s + h.transactions.filter(t => t.type === "dividend" && new Date(t.date) >= cutoff).reduce((ss,t) => ss + fromAUD(toAUD(t.totalAmount || 0, h.currency, rates), displayCur, rates), 0), 0);
+    const netSales = portfolio.reduce((s,h) => s + h.transactions.filter(t => t.type === "sell" && new Date(t.date) >= cutoff).reduce((ss,t) => ss + fromAUD(toAUD(t.qty * t.price, h.currency, rates), displayCur, rates), 0), 0);
+    const capitalGain = endVal - startVal - topUps + netSales - divInPeriod;
+    const waterfallData = [
+      { label: "Start Value", value: startVal, type: "start" },
+      capitalGain >= 0 ? { label: "Capital Gain", value: capitalGain, type: "pos" } : { label: "Capital Loss", value: capitalGain, type: "neg" },
+      { label: "Top-Ups", value: topUps, type: "pos" },
+      { label: "Dividends", value: divInPeriod, type: "pos" },
+      netSales > 0 ? { label: "Sales", value: -netSales, type: "neg" } : null,
+      { label: "End Value", value: endVal, type: "total" },
+    ].filter(Boolean);
+    const divByYear = {};
+    portfolio.forEach(h => {
+      h.transactions.filter(t => t.type === "dividend").forEach(t => {
+        const y = t.date.slice(0,4);
+        const val = fromAUD(toAUD(t.totalAmount || 0, h.currency, rates), displayCur, rates);
+        divByYear[y] = (divByYear[y] || 0) + val;
+      });
+    });
+    const divYears = Object.keys(divByYear).sort();
+    let divCAGR = null, divCAGRYears = 0;
+    if (divYears.length >= 2) {
+      const firstY = divYears[0], lastY = divYears[divYears.length-1];
+      const firstVal = divByYear[firstY], lastVal = divByYear[lastY];
+      divCAGRYears = parseInt(lastY) - parseInt(firstY);
+      if (divCAGRYears > 0 && firstVal > 0 && lastVal > 0) {
+        divCAGR = (Math.pow(lastVal / firstVal, 1 / divCAGRYears) - 1) * 100;
+      }
+    }
+    return {
+      labels, vals, divCumul,
+      mLabels: mKeys.map(fmtMon), mVals: mKeys.map(k => monthly[k]), mDatasets,
+      divCAGR, divCAGRYears,
+      tLabels: Object.keys(byType), tVals: Object.values(byType), palette,
+      byCurLabels: Object.keys(byCur), byCurVals: Object.values(byCur), byCurColors: ["#22c55e","#06b6d4","#f59e0b","#8b5cf6"],
+      waterfallData, startVal, endVal,
+      bmLabels, bmSeries, bmPortfolio,
+    };
   }, [history, holdings, displayCur, rates, portfolio, chartPeriod, periodCutoff, benchmarks, totVal, dark, prices]);
 
   const yFmtD=useCallback((v)=>{
@@ -1770,7 +1788,7 @@ function App(){
   const openDiv = (h) => {
     const hc = computeHolding(h, prices, prevPrices, rates);
     setModal({ mode: "dividend", holding: h });
-    setForm({ amountPerShare: "", entitledQty: String(hc.qty||0), date: new Date().toISOString().slice(0, 10) });
+    setForm({ amountPerShare: "", entitledQty: String(hc.qty), date: new Date().toISOString().slice(0, 10) });
   };
   const openHistory = (h) => setModal({ mode: "history", holding: h });
   const openManualPrice = () => {
@@ -1792,7 +1810,7 @@ function App(){
     setImportSt(s => ({ ...s, step: "parsing", dragOver: false }));
     try {
       const raw = await readFileAsRows(file);
-      if (!raw || !raw.length) { setImportSt(s => ({ ...s, step: "error", errorMsg: "File is empty or has no data rows." })); return; }
+      if (!raw.length) { setImportSt(s => ({ ...s, step: "error", errorMsg: "File is empty or has no data rows." })); return; }
       const { rows, errors, fieldMap } = parseRows(raw);
       setImportSt(s => ({ ...s, step: "preview", rows: raw, parsed: rows, errors, fieldMap, fileName: file.name }));
     } catch (e) { setImportSt(s => ({ ...s, step: "error", errorMsg: e.message })); }
@@ -1856,11 +1874,9 @@ function App(){
     if (form.displayCur) setDisplayCur(form.displayCur);
     setPortfolio(prev => prev.map(h => ({ ...h, yahooSymbol: ys[h.ticker] ?? h.yahooSymbol })));
     const date = new Date().toISOString().slice(0, 10);
-    try {
-      const hs = portfolio.map(h => computeHolding(h, { ...prices, ...c }, { ...prevPrices, ...p }, rates)).filter(h => h && h.qty > 0);
-      const snap = { date, totalValueAUD: hs.reduce((s, h) => s + (h.currentValue||0), 0), totalDividendsAUD: hs.reduce((s, h) => s + (h.totalDividends||0), 0) };
-      setHistory(prev => [...prev.filter(s => s.date !== date), snap].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).slice(-90));
-    } catch(e){ console.warn("Snapshot error in manual price:", e); }
+    const hs = portfolio.map(h => computeHolding(h, { ...prices, ...c }, { ...prevPrices, ...p }, rates)).filter(h => h.qty > 0);
+    const snap = { date, totalValueAUD: hs.reduce((s, h) => s + h.currentValue, 0), totalDividendsAUD: hs.reduce((s, h) => s + h.totalDividends, 0) };
+    setHistory(prev => [...prev.filter(s => s.date !== date), snap].sort((a, b) => new Date(a.date) - new Date(b.date)).slice(-90));
     if (fbUser) cloudSaveAll();
     closeModal();
   };
@@ -1875,7 +1891,7 @@ function App(){
   const fmtNativePrice=(h,v)=>{const cur=h.currency;if(!v&&v!==0)return"—";if(cur==="IDR")return`Rp ${fmtIDR(v)}`;if(cur==="USD")return`US$${fmtAUD(v)}`;return`A$${fmtAUD(v)}`;};
   const fetchBarColor=fetchSt.loading?T.amber:Object.keys(fetchSt.errors).length>0?T.amber:fetchSt.lastUpdate?T.green:T.text3;
 
-  // ========== RENDER ==========
+  // JSX
   return (
     <ErrorBoundary>
       <div style={{minHeight:"100vh",background:T.bg,color:T.text}}>
@@ -2530,3 +2546,5 @@ function App(){
 
 ReactDOM.createRoot(document.getElementById("root")).render(<App />);
 </script>
+</body>
+</html>
