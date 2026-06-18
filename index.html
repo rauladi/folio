@@ -49,17 +49,8 @@ button:active{transform:scale(.97)}
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
-<!-- 🔥 FIX: Force Babel to use classic JSX runtime and script mode -->
 <script>
-  window.Babel = window.Babel || {};
-  window.Babel.options = {
-    presets: [["@babel/preset-react", { runtime: "classic" }]],
-    sourceType: "script"
-  };
-</script>
-
-<!-- Firebase config (outside Babel) -->
-<script>
+// Firebase config
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyBp20SC2Yt9IWkevpLgU6-nXZtA7HuNbN0",
   authDomain: "folio-sync.firebaseapp.com",
@@ -100,7 +91,6 @@ async function signOut(){
 }
 </script>
 
-<!-- Main app script – now with global Babel config, no data-* attributes needed -->
 <script type="text/babel">
 const {useState,useMemo,useCallback,useEffect,useRef}=React;
 
