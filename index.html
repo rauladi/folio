@@ -1226,14 +1226,17 @@ function App(){
 
   useEffect(()=>{document.body.style.background=T.bg;document.body.style.color=T.text;},[T]);
 
-  useEffect(() => {
+useEffect(() => {
   if (!FB_CONFIGURED || !fbAuth) return;
   const unsub = fbAuth.onAuthStateChanged(async (user) => {
+    console.log("Auth state changed:", user ? user.displayName : "null");
     setFbUser(user || null);
     if (user) {
       setSyncSt("idle");
       setSyncMsg("Signed in as " + user.displayName);
-      await cloudLoadAll(); // auto-load on sign-in
+      // Auto-load cloud data when user signs in
+      console.log("Auto-loading cloud data...");
+      await cloudLoadAll();
     } else {
       setSyncSt("idle");
       setSyncMsg("");
@@ -1243,51 +1246,96 @@ function App(){
   return unsub;
 }, []);
   
-  const cloudSaveAll=useCallback(async()=>{
-    if(!fbUser){setSyncMsg("Sign in first");return;}
-    setSyncSt("saving");setSyncMsg("Saving…");
-    try{
-      await cloudSave(fbUser.uid,{
-        portfolio:JSON.stringify(portfolio),
-        prices:JSON.stringify(prices),
-        prevPrices:JSON.stringify(prevPrices),
-        history:JSON.stringify(history),
-        displayCur,
-        dark,
-        monthlyTargetAud,
-        superDrawRate,
-        avgSuperBalanceAud,
-        savedAt:new Date().toISOString(),
-      });
-      setSyncSt("ok");setSyncMsg("Saved ✓ "+new Date().toLocaleTimeString());
-    }catch(e){setSyncSt("error");setSyncMsg("Save failed: "+e.message);}
-  },[fbUser,portfolio,prices,prevPrices,history,displayCur,dark,monthlyTargetAud,superDrawRate,avgSuperBalanceAud]);
-
-  const cloudLoadAll = useCallback(async () => {
+  const cloudSaveAll = useCallback(async () => {
   let user = fbUser;
   if (!user && fbAuth) user = fbAuth.currentUser;
-  if (!user) { setSyncMsg("⚠️ Sign in first"); return; }
+  if (!user) {
+    setSyncMsg("⚠️ Sign in first");
+    return;
+  }
+  setSyncSt("saving");
+  setSyncMsg("Saving to cloud...");
+  try {
+    await cloudSave(user.uid, {
+      portfolio: JSON.stringify(portfolio),
+      prices: JSON.stringify(prices),
+      prevPrices: JSON.stringify(prevPrices),
+      history: JSON.stringify(history),
+      displayCur,
+      dark,
+      monthlyTargetAud,
+      superDrawRate,
+      avgSuperBalanceAud,
+      savedAt: new Date().toISOString(),
+    });
+    setSyncSt("ok");
+    setSyncMsg("✅ Saved ✓ " + new Date().toLocaleTimeString());
+  } catch (e) {
+    setSyncSt("error");
+    setSyncMsg("❌ Save failed: " + e.message);
+  }
+}, [fbUser, portfolio, prices, prevPrices, history, displayCur, dark, monthlyTargetAud, superDrawRate, avgSuperBalanceAud]);
+
+  const cloudLoadAll = useCallback(async () => {
+  console.log("🔄 cloudLoadAll triggered");
+  // Use fbUser, but if null, fallback to fbAuth.currentUser
+  let user = fbUser;
+  if (!user && fbAuth) {
+    user = fbAuth.currentUser;
+    console.log("ℹ️ Using fbAuth.currentUser as fallback");
+  }
+  if (!user) {
+    setSyncMsg("⚠️ Sign in first");
+    console.warn("No user found");
+    return;
+  }
+  console.log("👤 User:", user.displayName, user.uid);
   setSyncSt("loading");
-  setSyncMsg("Loading...");
+  setSyncMsg("Loading from cloud...");
   try {
     const data = await cloudLoad(user.uid);
-    if (!data) { setSyncSt("ok"); setSyncMsg("No cloud data yet"); setCloudReady(true); return; }
-    if (data.portfolio) setPortfolio(JSON.parse(data.portfolio));
-    if (data.prices) setPrices(JSON.parse(data.prices));
-    if (data.prevPrices) setPrevPrices(JSON.parse(data.prevPrices));
-    if (data.history) setHistory(JSON.parse(data.history));
+    console.log("📦 Data from Firestore:", data ? Object.keys(data) : "null");
+    if (!data) {
+      setSyncSt("ok");
+      setSyncMsg("No cloud data yet — save first");
+      setCloudReady(true);
+      return;
+    }
+    // Update all states
+    if (data.portfolio) {
+      const parsed = JSON.parse(data.portfolio);
+      setPortfolio(parsed);
+      console.log("✅ Portfolio loaded, count:", parsed.length);
+    }
+    if (data.prices) {
+      const parsed = JSON.parse(data.prices);
+      setPrices(parsed);
+      console.log("✅ Prices loaded, keys:", Object.keys(parsed));
+    }
+    if (data.prevPrices) {
+      const parsed = JSON.parse(data.prevPrices);
+      setPrevPrices(parsed);
+      console.log("✅ PrevPrices loaded");
+    }
+    if (data.history) {
+      const parsed = JSON.parse(data.history);
+      setHistory(parsed);
+      console.log("✅ History loaded, entries:", parsed.length);
+    }
     if (data.displayCur) setDisplayCur(data.displayCur);
     if (typeof data.dark === "boolean") setDark(data.dark);
     if (typeof data.monthlyTargetAud === "number") setMonthlyTargetAud(data.monthlyTargetAud);
     if (typeof data.superDrawRate === "number") setSuperDrawRate(data.superDrawRate);
     if (typeof data.avgSuperBalanceAud === "number") setAvgSuperBalanceAud(data.avgSuperBalanceAud);
+
     setSyncSt("ok");
     setSyncMsg("✅ Loaded ✓ " + new Date().toLocaleTimeString());
     setCloudReady(true);
+    console.log("✅ cloudLoadAll finished successfully");
   } catch (e) {
+    console.error("❌ Cloud load error:", e);
     setSyncSt("error");
     setSyncMsg("❌ Load failed: " + e.message);
-    console.error(e);
   }
 }, [fbUser]);
   
