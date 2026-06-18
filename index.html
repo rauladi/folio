@@ -1725,6 +1725,7 @@
                     fbUserRef.current = user;
                     await cloudLoadAll(user);
                 } catch (e) {
+                    setSyncSt("error");
                     setSyncMsg(e.message);
                 }
             }, [cloudLoadAll]);
@@ -2801,10 +2802,15 @@
                                                             .amber, maxWidth: 120, overflow: "hidden",
                                                         textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{syncMsg}</span>}
                                             </div>
-                                        ) : (
-                                            <button onClick={handleSignIn} style={{ ...bO(T.teal, { fontSize: 11,
-                                                        padding: "6px 10px", display: "flex", alignItems: "center",
-                                                        gap: 5 }) }}>☁️ {isMob ? "" : "Sync"}</button>
+                        ) : (
+                                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                                <button onClick={handleSignIn} style={{ ...bO(T.teal, { fontSize: 11,
+                                                            padding: "6px 10px", display: "flex", alignItems: "center",
+                                                            gap: 5 }) }}>☁️ {isMob ? "" : "Sync"}</button>
+                                                {syncMsg && <span style={{ fontSize: 9, color: T.red, maxWidth: 180,
+                                                            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                                                        title={syncMsg}>{syncMsg}</span>}
+                                            </div>
                                         )
                                     ) : (
                                         <button onClick={() => setModal({ mode: "firebaseSetup" })} style={{ ...bO(
