@@ -1944,7 +1944,7 @@ function App(){
               <button onClick={()=>setValuesHidden(v=>!v)} title={valuesHidden?"Show values":"Hide values"} style={{...bO(T.text2,{padding:"6px 9px",fontSize:14,lineHeight:1,borderRadius:8})}}>{valuesHidden?"🙈":"👁️"}</button>
               <button onClick={()=>setShowPassiveModal(true)} title="Passive income target & super rate & average super balance" style={{...bO(T.text2,{padding:"6px 9px",fontSize:14,lineHeight:1,borderRadius:8})}}>⚙️</button>
               <button onClick={()=>setDark(d=>!d)} style={{...bO(T.text2,{padding:"6px 9px",fontSize:15,lineHeight:1,borderRadius:8})}}>{dark?"☀️":"🌙"}</button>
-              <button onClick={autoRefresh} disabled={fetchSt.loading} style={{...bO(fetchBarColor,{padding:"6px 10px",fontSize:11,borderColor:fetchBarColor+"66",opacity:fetchSt.loading?.7:1})}}>
+              <button onClick={autoRefresh} disabled={fetchSt.loading} style={{...bO(fetchBarColor,{padding:"6px 10px",fontSize:11,borderColor:fetchBarColor+"66",opacity:fetchSt.loading? 0.7 : 1})}}>
                 <span className={fetchSt.loading?"spin":""} style={{marginRight:4,fontSize:12}}>{fetchSt.loading?"⟳":"🔄"}</span>
                 {isMob?"":"Live Prices"}
               </button>
