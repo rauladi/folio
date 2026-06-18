@@ -50,7 +50,7 @@ button:active{transform:scale(.97)}
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
 <script>
-// Firebase config
+// Firebase config (unchanged)
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyBp20SC2Yt9IWkevpLgU6-nXZtA7HuNbN0",
   authDomain: "folio-sync.firebaseapp.com",
@@ -91,11 +91,8 @@ async function signOut(){
 }
 </script>
 
-<script>
-  Babel.registerPreset("react", Babel.availablePresets["react"]);
-</script>
-
-<script type="text/babel" data-presets="react">
+<!-- FIX: Use only the JSX transform plugin, no presets that add import/export -->
+<script type="text/babel" data-presets="" data-plugins="transform-react-jsx">
 const {useState,useMemo,useCallback,useEffect,useRef}=React;
 
 // ========== ERROR BOUNDARY ==========
