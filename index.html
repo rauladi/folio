@@ -2424,6 +2424,207 @@
             const fetchBarColor = fetchSt.loading ? T.amber : Object.keys(fetchSt.errors).length > 0 ? T.amber : fetchSt
                 .lastUpdate ? T.green : T.text3;
 
+            // ─── Render import modal as a function ──────────────────────────
+            const renderImportModal = () => {
+                const IS = importSt;
+                const valid = IS.parsed.filter(r => !r._errors.length);
+                const invalid = IS.parsed.filter(r => r._errors.length);
+                const tickers = [...new Set(valid.map(r => r.ticker))];
+                const dropZoneStyle = { border: `2px dashed ${IS.dragOver ? T.greenBtn : T.border2}`, borderRadius: 12,
+                    padding: "32px 20px", textAlign: "center", background: IS.dragOver ? (dark ? "#0d2a18" :
+                        "#f0fff4") : T.bg4, transition: "all .2s", cursor: "pointer" };
+                return (
+                    <div>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start",
+                                marginBottom: 4 }}><h2 style={{ fontFamily: "'Space Mono',monospace", fontSize: 15,
+                                    fontWeight: 700, color: T.text }}>📥 Import Transactions</h2>{IS.step ===
+                                "preview" && <span style={{ fontSize: 11, color: T.text3 }}>{IS.fileName}</span>}</div>
+                        <p style={{ fontSize: 11, color: T.text3, marginBottom: 16, lineHeight: 1.6 }}>Upload a CSV or
+                            Excel file with your buy, sell and dividend history. Download a template below to see the
+                            exact format.</p>
+                        <div style={{ display: "flex", gap: 8, marginBottom: 18, flexWrap: "wrap" }}><button onClick={
+                                downloadTemplateCSV} style={{ ...bO(T.teal, { fontSize: 11, padding: "6px 12px" }) }}>⬇
+                                Template CSV</button><button onClick={downloadTemplateXLSX} style={{ ...bO(T.teal, {
+                                    fontSize: 11, padding: "6px 12px" }) }}>⬇ Template Excel (.xlsx)</button><span
+                                style={{ fontSize: 10, color: T.text3, alignSelf: "center", marginLeft: 4 }}>See "Field
+                                Reference" tab in Excel</span></div>
+                        <input ref={importFileRef} type="file" accept=".csv,.xlsx,.xls,.ods,.txt" style={{ display: "none" }}
+                            onChange={e => { if (e.target.files[0]) handleImportFile(e.target.files[0]);
+                                e.target.value = ""; }} />
+                        {(IS.step === "idle" || IS.step === "parsing") && (<div style={dropZoneStyle} onDragOver={e => {
+                                    e.preventDefault();
+                                    setImportSt(s => ({ ...s, dragOver: true })); }}
+                                onDragLeave={() => setImportSt(s => ({ ...s, dragOver: false }))} onDrop={e => {
+                                    e.preventDefault();
+                                    const f = e.dataTransfer.files[0];
+                                    if (f) handleImportFile(f);
+                                }} onClick={() => importFileRef.current && importFileRef.current.click()}><div style={{
+                                        fontSize: 36, marginBottom: 10, opacity: .5 }}>📂</div><div style={{
+                                        fontSize: 14, fontWeight: 600, color: T.text, marginBottom: 4 }}>{IS
+                                        .step === "parsing" ? "⟳ Parsing file…" : "Drag & drop your file here"}</div><div
+                                    style={{ fontSize: 12, color: T.text3, marginBottom: 16 }}>or click to browse · CSV,
+                                    XLSX, XLS supported</div>{IS.step !== "parsing" && (<button style={{ ...bS(
+                                        T.greenBtn, "#fff", { fontSize: 12, padding: "8px 20px" }) }} onClick={e => {
+                                        e.stopPropagation();
+                                        importFileRef.current && importFileRef.current.click();
+                                    }}>Choose File</button>)}</div>)}
+                        {IS.step === "error" && (<div style={{ background: dark ? "#2d0a0a" : "#fee2e2",
+                                    border: `1px solid ${T.redBtn}55`, borderRadius: 10, padding: "14px 16px",
+                                    color: T.red }}><div style={{ fontWeight: 700, marginBottom: 4 }}>Could not read
+                                    file</div><div style={{ fontSize: 12 }}>{IS.errorMsg}</div><button style={{ ...bO(
+                                        T.red, { fontSize: 11, marginTop: 10 }) }} onClick={() => setImportSt(s =>
+                                        ({ ...s, step: "idle" }))}>Try again</button></div>)}
+                        {IS.step === "preview" && (<div>{IS.fieldMap && Object.keys(IS.fieldMap).length > 0 && (<div
+                                    style={{ background: T.bg4, border: `1px solid ${T.border}`, borderRadius: 10,
+                                        padding: "10px 14px", marginBottom: 14 }}><div style={{ fontSize: 10,
+                                            fontWeight: 700, color: T.text2, letterSpacing: 1.2,
+                                            textTransform: "uppercase", marginBottom: 7 }}>Detected Column
+                                        Mapping</div><div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{Object
+                                            .entries(IS.fieldMap).map(([field, col]) => (<span key={field}
+                                                style={{ fontSize: 10, background: T.bg2,
+                                                    border: `1px solid ${T.border2}`, borderRadius: 5,
+                                                    padding: "2px 8px", color: T.text2 }}><span style={{
+                                                        color: T.text3 }}>{col}</span><span style={{
+                                                        color: T.border2, margin: "0 4px" }}>→</span><span
+                                                    style={{ color: T.teal, fontWeight: 600 }}>{field}</span></span>))}</div>{!IS
+                                        .fieldMap.ticker && (<div style={{ marginTop: 8, fontSize: 11, color: T
+                                                    .amber }}>⚠️ No <b>ticker</b> column detected — rename your
+                                            ticker column to exactly <code style={{ background: T.bg3,
+                                                    padding: "1px 4px", borderRadius: 3 }}>ticker</code></div>)}{!IS
+                                        .fieldMap.type && (<div style={{ marginTop: 4, fontSize: 11, color: T
+                                                    .amber }}>⚠️ No <b>type</b> column detected — rename your
+                                            transaction type column to <code style={{ background: T.bg3,
+                                                    padding: "1px 4px", borderRadius: 3 }}>type</code> with values:
+                                            buy, sell, dividend</div>)}</div>)}<div style={{ display: "flex", gap: 8,
+                                        marginBottom: 14, flexWrap: "wrap" }}>{[
+                                        [IS.parsed.length + " rows", T.text],
+                                        [valid.length + " valid", T.green],
+                                        ...(invalid.length ? [[invalid.length + " errors", T.amber]] : []),
+                                        [tickers.length + " tickers", T.teal],
+                                        [valid.filter(r => r.type === "buy").length + " buys", T.text2],
+                                        [valid.filter(r => r.type === "sell").length + " sells", T.text2],
+                                        [valid.filter(r => r.type === "dividend").length + " dividends", T.teal],
+                                    ].map(([l, c]) => (<span key={l} style={{ fontSize: 11, fontWeight: 600,
+                                            color: c, background: T.bg4, border: `1px solid ${T.border}`,
+                                            borderRadius: 6, padding: "3px 10px" }}>{l}</span>))}</div><div
+                                        style={{ display: "flex", alignItems: "center", gap: 10, background: T.bg4,
+                                            border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 14px",
+                                            marginBottom: 14, flexWrap: "wrap" }}><span style={{ fontSize: 12,
+                                                fontWeight: 600, color: T.text }}>Import mode:</span>{[
+                                            ["merge", "Merge with existing"],
+                                            ["replace", "Replace all data"]
+                                        ].map(([v, l]) => (<button key={v} onClick={() => setImportSt(s => ({ ...s,
+                                                    mergeMode: v }))} style={{ padding: "5px 14px", borderRadius: 7,
+                                                border: `1px solid ${IS.mergeMode === v ? T.greenBtn : T.border}`,
+                                                background: IS.mergeMode === v ? (dark ? "#0a2e1e" : "#dcfce7") :
+                                                    "transparent", color: IS.mergeMode === v ? T.greenBtn : T
+                                                    .text3, fontSize: 12, fontWeight: IS.mergeMode === v ? 700 :
+                                                    400 }}>{l}</button>))}<span style={{ fontSize: 10, color: IS
+                                                .mergeMode === "replace" ? T.amber : T.text3 }}>{IS.mergeMode ===
+                                                "merge" ? "Adds new tickers, appends transactions to existing" :
+                                                "Clears ALL current portfolio data first"}</span></div>{IS.errors
+                                        .length > 0 && (<div style={{ background: dark ? "#1a1200" : "#fffbeb",
+                                                border: `1px solid ${T.amber}55`, borderRadius: 10,
+                                                padding: "10px 14px", marginBottom: 14 }}><div style={{
+                                                    fontSize: 12, fontWeight: 700, color: T.amber,
+                                                marginBottom: 6 }}>{IS.errors.length} rows will be skipped</div><div
+                                                style={{ maxHeight: 80, overflowY: "auto" }}>{IS.errors.map(e => (
+                                                    <div key={e.rowNum} style={{ fontSize: 10, color: T.amber,
+                                                            marginBottom: 2 }}>Row {e.rowNum}{e.ticker ? " [" + e
+                                                            .ticker + "]" : ""}: {e.errs.join(" · ")}</div>))}</div></div>)}<div
+                                        style={{ overflowX: "auto", borderRadius: 8, border: `1px solid ${T.border}`,
+                                            marginBottom: 14, maxHeight: 260, overflowY: "auto" }}><table
+                                            style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}><thead
+                                                style={{ position: "sticky", top: 0 }}><tr>{[
+                                                    "",
+                                                    "Row",
+                                                    "Ticker",
+                                                    "Type",
+                                                    "Date",
+                                                    "Qty",
+                                                    "Price",
+                                                    "Ccy",
+                                                    "Div/Unit",
+                                                    "Entitled"
+                                                ].map(c => (<th key={c} style={{ padding: "7px 10px",
+                                                        textAlign: "left", fontSize: 8, letterSpacing: 1.2,
+                                                        color: T.text3, textTransform: "uppercase",
+                                                        background: T.bg2, borderBottom: `1px solid ${T.border}`,
+                                                        whiteSpace: "nowrap" }}>{c}</th>))}</tr></thead><tbody>{IS
+                                                    .parsed.map((r, i) => {
+                                                        const ok = !r._errors.length;
+                                                        const bg = ok ? (i % 2 === 0 ? T.bg3 : T.bg2) :
+                                                            (dark ? "#2a1500" : "#fff7ed");
+                                                        const typeColor = r.type === "buy" ? T.green : r
+                                                            .type === "sell" ? T.red : T.teal;
+                                                        const typeBg = r.type === "buy" ? (dark ?
+                                                                "#0a2e1e" : "#dcfce7") : r
+                                                            .type === "sell" ? (dark ? "#2d0a0a" :
+                                                                "#fee2e2") : (dark ? "#041824" :
+                                                                "#cffafe");
+                                                        return (<tr key={i} style={{ background: bg }}><td
+                                                                style={{ padding: "6px 8px",
+                                                                    borderBottom: `1px solid ${T.border}` }}>{ok ?
+                                                                    "✅" : "⚠️"}</td><td style={{ padding: "6px 8px",
+                                                                    color: T.text3, fontSize: 9,
+                                                                    borderBottom: `1px solid ${T.border}` }}>{r
+                                                                    ._rowNum}</td><td style={{ padding: "6px 8px",
+                                                                    fontFamily: "'Space Mono',monospace",
+                                                                    fontWeight: 700, color: T.text,
+                                                                    borderBottom: `1px solid ${T.border}` }}>{r
+                                                                    .ticker}</td><td style={{ padding: "6px 8px",
+                                                                    borderBottom: `1px solid ${T.border}` }}>{r
+                                                                    .type && <span style={{ padding: "1px 6px",
+                                                                        borderRadius: 4, fontSize: 9,
+                                                                        fontWeight: 700, background: typeBg,
+                                                                        color: typeColor }}>{r.type
+                                                                        .toUpperCase()}</span>}</td><td
+                                                                style={{ padding: "6px 8px", color: T.text2,
+                                                                    borderBottom: `1px solid ${T.border}`,
+                                                                    whiteSpace: "nowrap" }}>{r.date}</td><td
+                                                                style={{ padding: "6px 8px",
+                                                                    fontFamily: "'Space Mono',monospace",
+                                                                    color: T.text2,
+                                                                    borderBottom: `1px solid ${T.border}` }}>{r
+                                                                    .qty || "—"}</td><td style={{ padding: "6px 8px",
+                                                                    fontFamily: "'Space Mono',monospace",
+                                                                    color: T.text2,
+                                                                    borderBottom: `1px solid ${T.border}` }}>{r
+                                                                    .price || "—"}</td><td style={{ padding: "6px 8px",
+                                                                    color: T.text3,
+                                                                    borderBottom: `1px solid ${T.border}` }}>{r
+                                                                    .currency}</td><td style={{ padding: "6px 8px",
+                                                                    fontFamily: "'Space Mono',monospace",
+                                                                    color: T.teal,
+                                                                    borderBottom: `1px solid ${T.border}` }}>{r
+                                                                    .amountPerShare || "—"}</td><td
+                                                                style={{ padding: "6px 8px", color: T.text2,
+                                                                    borderBottom: `1px solid ${T.border}` }}>{r
+                                                                    .entitledQty || "—"}</td></tr>);
+                                                    })}</tbody></table></div>{valid.length === 0 && (<div
+                                        style={{ textAlign: "center", padding: "8px 0", color: T.red, fontSize: 12,
+                                            marginBottom: 12 }}>No valid rows found. Fix the errors and
+                                        re-upload.</div>)}<div style={{ display: "flex", gap: 8,
+                                        justifyContent: "space-between", alignItems: "center", flexWrap: "wrap" }}><button
+                                            style={bO(T.text2, { fontSize: 11 })} onClick={() => setImportSt(s => ({ ...s,
+                                                step: "idle", parsed: [], rows: [], errors: [] }))}>Upload different
+                                            file</button><div style={{ display: "flex", gap: 8 }}><button style={bO(
+                                                T.text2)} onClick={closeModal}>Cancel</button><button style={{ ...bS(
+                                                T.greenBtn, "#fff"), opacity: valid.length ? 1 : .4, cursor: valid
+                                                .length ? "pointer" : "not-allowed" }} disabled={!valid.length}
+                                                onClick={confirmImport}>Import {valid.length} rows {IS.mergeMode ===
+                                                "replace" ? "(replace all)" : "(merge)"}</button></div></div></div>)}
+                        {IS.step === "done" && (<div style={{ textAlign: "center", padding: "24px 0" }}><div
+                                style={{ fontSize: 48, marginBottom: 12 }}>🎉</div><div style={{ fontSize: 18,
+                                    fontWeight: 700, color: T.green, marginBottom: 8 }}>Import complete!</div><div
+                                style={{ fontSize: 13, color: T.text2, marginBottom: 8 }}>{IS.importedCount} transactions
+                                imported.</div><div style={{ fontSize: 11, color: T.text3, marginBottom: 24 }}>Click the
+                                🔄 Live Prices button to fetch current prices for new holdings.</div><button style={bS(
+                                T.greenBtn, "#fff", { padding: "9px 28px", fontSize: 13 })} onClick={closeModal}>Done</button></div>)}
+                    </div>
+                );
+            };
+
             // JSX
             return (
                 <ErrorBoundary>
@@ -4392,511 +4593,7 @@
                                                     Save & Snapshot</button></div>
                                         </>
                                     )}
-                                    {modal.mode === "import" && (() => {
-                                        const IS = importSt;
-                                        const valid = IS.parsed.filter(r => !r._errors.length);
-                                        const invalid = IS.parsed.filter(r => r._errors.length);
-                                        const tickers = [...new Set(valid.map(r => r
-                                            .ticker))];
-                                        const dropZoneStyle = { border: `2px dashed ${IS.dragOver?T.greenBtn:T.border2}`,
-                                            borderRadius: 12, padding: "32px 20px",
-                                            textAlign: "center", background: IS
-                                                .dragOver ? (dark ? "#0d2a18" :
-                                                "#f0fff4") : T.bg4,
-                                            transition: "all .2s", cursor: "pointer" };
-                                        return (
-                                            <div>
-                                                <div style={{ display: "flex", justifyContent: "space-between",
-                                                        alignItems: "flex-start",
-                                                    marginBottom: 4 }}><h2 style={{ fontFamily: "'Space Mono',monospace",
-                                                            fontSize: 15, fontWeight: 700,
-                                                            color: T.text }}>📥 Import
-                                                        Transactions</h2>{IS.step === "preview" &&
-                                                        <span style={{ fontSize: 11, color: T
-                                                                .text3 }}>{IS.fileName}</span>}</div>
-                                                <p style={{ fontSize: 11, color: T.text3,
-                                                        marginBottom: 16,
-                                                    lineHeight: 1.6 }}>Upload a CSV or Excel file
-                                                    with your buy, sell and dividend history.
-                                                    Download a template below to see the exact
-                                                    format.</p>
-                                                <div style={{ display: "flex", gap: 8,
-                                                        marginBottom: 18,
-                                                    flexWrap: "wrap" }}><button onClick={
-                                                        downloadTemplateCSV} style={{ ...bO(T
-                                                            .teal, { fontSize: 11,
-                                                            padding: "6px 12px" }) }}>⬇ Template
-                                                        CSV</button><button onClick={
-                                                        downloadTemplateXLSX} style={{ ...bO(T
-                                                            .teal, { fontSize: 11,
-                                                            padding: "6px 12px" }) }}>⬇ Template
-                                                        Excel (.xlsx)</button><span style={{
-                                                            fontSize: 10, color: T.text3,
-                                                            alignSelf: "center",
-                                                        marginLeft: 4 }}>See "Field Reference"
-                                                        tab in Excel</span></div>
-                                                <input ref={importFileRef} type="file" accept=".csv,.xlsx,.xls,.ods,.txt"
-                                                    style={{ display: "none" }} onChange={e => { if (
-                                                            e.target.files[0]) handleImportFile(
-                                                            e.target.files[0]);
-                                                        e.target.value = ""; }} />
-                                                {(IS.step === "idle" || IS.step === "parsing") &&
-                                                    (<div style={dropZoneStyle} onDragOver={e => {
-                                                            e.preventDefault();
-                                                            setImportSt(s => ({ ...s,
-                                                                dragOver: true })); }}
-                                                        onDragLeave={() => setImportSt(s =>
-                                                            ({ ...s, dragOver: false }))}
-                                                        onDrop={e => { e.preventDefault();
-                                                            const f = e.dataTransfer
-                                                            .files[0]; if (f)
-                                                                handleImportFile(
-                                                                f); }}
-                                                        onClick={() => importFileRef.current &&
-                                                            importFileRef.current
-                                                            .click()}><div style={{
-                                                                fontSize: 36,
-                                                                marginBottom: 10,
-                                                            opacity: .5 }}>📂</div><div style={{
-                                                                fontSize: 14,
-                                                                fontWeight: 600,
-                                                                color: T.text,
-                                                            marginBottom: 4 }}>{IS.step ===
-                                                                "parsing" ? "⟳ Parsing file…" :
-                                                                "Drag & drop your file here"}</div><div
-                                                                style={{ fontSize: 12,
-                                                                    color: T.text3,
-                                                                marginBottom: 16 }}>or click to
-                                                            browse · CSV, XLSX, XLS
-                                                            supported</div>{IS.step !==
-                                                            "parsing" && (<button style={{ ...bS(
-                                                                    T.greenBtn, "#fff", { fontSize: 12,
-                                                                        padding: "8px 20px" }) }}
-                                                                    onClick={e => { e
-                                                                            .stopPropagation();
-                                                                        importFileRef
-                                                                            .current &&
-                                                                            importFileRef
-                                                                            .current
-                                                                            .click(); }}>Choose
-                                                                File</button>)}</div>)}
-                                                {IS.step === "error" && (<div style={{ background: dark ?
-                                                            "#2d0a0a" : "#fee2e2", border: `1px solid ${T.redBtn}55`,
-                                                            borderRadius: 10, padding: "14px 16px",
-                                                        color: T.red }}><div style={{ fontWeight: 700,
-                                                                marginBottom: 4 }}>Could not read
-                                                            file</div><div style={{ fontSize: 12 }}>{IS
-                                                                .errorMsg}</div><button style={{ ...bO(T
-                                                                .red, { fontSize: 11,
-                                                            marginTop: 10 }) }} onClick={() =>
-                                                            setImportSt(s => ({ ...s, step: "idle" }))}>Try
-                                                        again</button></div>)}
-                                                {IS.step === "preview" && (<div>{IS.fieldMap && Object
-                                                            .keys(IS.fieldMap).length > 0 && (<div
-                                                                style={{ background: T.bg4,
-                                                                    border: `1px solid ${T.border}`,
-                                                                    borderRadius: 10,
-                                                                    padding: "10px 14px",
-                                                                marginBottom: 14 }}><div style={{
-                                                                    fontSize: 10, fontWeight: 700,
-                                                                    color: T.text2,
-                                                                    letterSpacing: 1.2,
-                                                                    textTransform: "uppercase",
-                                                                marginBottom: 7 }}>Detected Column
-                                                                Mapping</div><div style={{ display: "flex",
-                                                                        flexWrap: "wrap", gap: 6 }}>{Object
-                                                                    .entries(IS.fieldMap).map((
-                                                                    [field, col]) => (<span key={
-                                                                        field } style={{ fontSize: 10,
-                                                                            background: T
-                                                                            .bg2,
-                                                                            border: `1px solid ${T.border2}`,
-                                                                            borderRadius: 5,
-                                                                            padding: "2px 8px",
-                                                                            color: T
-                                                                            .text2 }}><span style={{
-                                                                                color: T
-                                                                                    .text3 }}>{col}</span><span
-                                                                                style={{ color: T
-                                                                                        .border2,
-                                                                                    margin: "0 4px" }}>→</span><span
-                                                                                style={{ color: T
-                                                                                        .teal,
-                                                                                    fontWeight: 600 }}>{field}</span></span>))}</div>{!IS
-                                                                    .fieldMap.ticker && (<div style={{
-                                                                        marginTop: 8,
-                                                                        fontSize: 11,
-                                                                        color: T.amber }}>⚠️ No <b>ticker</b>
-                                                                    column detected — rename
-                                                                    your ticker column to
-                                                                    exactly <code style={{
-                                                                        background: T
-                                                                            .bg3,
-                                                                        padding: "1px 4px",
-                                                                        borderRadius: 3 }}>ticker</code></div>)}{!IS
-                                                                    .fieldMap.type && (<div style={{
-                                                                        marginTop: 4,
-                                                                        fontSize: 11,
-                                                                        color: T.amber }}>⚠️ No <b>type</b>
-                                                                    column detected — rename
-                                                                    your transaction type
-                                                                    column to <code style={{
-                                                                        background: T
-                                                                            .bg3,
-                                                                        padding: "1px 4px",
-                                                                        borderRadius: 3 }}>type</code> with
-                                                                    values: buy, sell,
-                                                                    dividend</div>)}</div>)}<div
-                                                            style={{ display: "flex", gap: 8,
-                                                                marginBottom: 14,
-                                                            flexWrap: "wrap" }}>{[
-                                                                [IS.parsed.length + " rows",
-                                                                    T.text
-                                                                ],
-                                                                [valid.length + " valid",
-                                                                    T.green
-                                                                ],
-                                                                ...(invalid.length ? [
-                                                                    [invalid.length +
-                                                                        " errors", T
-                                                                        .amber
-                                                                    ]
-                                                                ] : []),
-                                                                [tickers.length +
-                                                                    " tickers", T.teal
-                                                                ],
-                                                                [valid.filter(r => r
-                                                                        .type ===
-                                                                        "buy")
-                                                                        .length +
-                                                                    " buys", T
-                                                                    .text2
-                                                                ],
-                                                                [valid.filter(r => r
-                                                                        .type ===
-                                                                        "sell")
-                                                                        .length +
-                                                                    " sells", T
-                                                                    .text2
-                                                                ],
-                                                                [valid.filter(r => r
-                                                                        .type ===
-                                                                        "dividend")
-                                                                        .length +
-                                                                    " dividends", T
-                                                                    .teal
-                                                                ],
-                                                            ].map(([l, c]) => (<span key={l}
-                                                                    style={{ fontSize: 11,
-                                                                        fontWeight: 600,
-                                                                        color: c,
-                                                                        background: T
-                                                                            .bg4,
-                                                                        border: `1px solid ${T.border}`,
-                                                                        borderRadius: 6,
-                                                                        padding: "3px 10px" }}>{l}</span>))}</div><div
-                                                            style={{ display: "flex",
-                                                                alignItems: "center",
-                                                                gap: 10, background: T
-                                                                    .bg4, border: `1px solid ${T.border}`,
-                                                                borderRadius: 10,
-                                                                padding: "10px 14px",
-                                                                marginBottom: 14,
-                                                                flexWrap: "wrap" }}><span
-                                                                style={{ fontSize: 12,
-                                                                    fontWeight: 600,
-                                                                color: T.text }}>Import
-                                                                mode:</span>{[
-                                                                ["merge",
-                                                                    "Merge with existing"
-                                                                ],
-                                                                ["replace",
-                                                                    "Replace all data"
-                                                                ]
-                                                            ].map(([v, l]) => (<button
-                                                                    key={v} onClick={() =>
-                                                                        setImportSt(
-                                                                            s => ({ ...s,
-                                                                                mergeMode: v
-                                                                                }))}
-                                                                    style={{ padding: "5px 14px",
-                                                                        borderRadius: 7,
-                                                                        border: `1px solid ${IS.mergeMode===v?T.greenBtn:T.border}`,
-                                                                        background: IS
-                                                                            .mergeMode ===
-                                                                        v ? (dark ?
-                                                                            "#0a2e1e" :
-                                                                            "#dcfce7"
-                                                                            ) :
-                                                                        "transparent",
-                                                                        color: IS
-                                                                            .mergeMode ===
-                                                                        v ? T
-                                                                        .greenBtn :
-                                                                        T.text3,
-                                                                        fontSize: 12,
-                                                                        fontWeight: IS
-                                                                            .mergeMode ===
-                                                                        v ? 700 :
-                                                                        400 }}>{l}</button>))}<span
-                                                                style={{ fontSize: 10,
-                                                                    color: IS
-                                                                    .mergeMode ===
-                                                                    "replace" ? T
-                                                                    .amber : T
-                                                                    .text3 }}>{IS
-                                                                    .mergeMode ===
-                                                                    "merge" ?
-                                                                    "Adds new tickers, appends transactions to existing" :
-                                                                    "Clears ALL current portfolio data first"}</span></div>{IS
-                                                            .errors.length > 0 && (<div style={{
-                                                                background: dark ?
-                                                                "#1a1200" :
-                                                                "#fffbeb",
-                                                                border: `1px solid ${T.amber}55`,
-                                                                borderRadius: 10,
-                                                                padding: "10px 14px",
-                                                            marginBottom: 14 }}><div style={{
-                                                                    fontSize: 12,
-                                                                    fontWeight: 700,
-                                                                    color: T.amber,
-                                                                marginBottom: 6 }}>{IS
-                                                                    .errors.length} rows
-                                                                will be skipped</div><div
-                                                                    style={{ maxHeight: 80,
-                                                                        overflowY: "auto" }}>{IS
-                                                                    .errors.map(e => (<div
-                                                                        key={e
-                                                                            .rowNum}
-                                                                        style={{ fontSize: 10,
-                                                                            color: T
-                                                                                .amber,
-                                                                        marginBottom: 2 }}>Row {e
-                                                                            .rowNum}{e
-                                                                            .ticker ?
-                                                                            " [" + e
-                                                                            .ticker +
-                                                                            "]" :
-                                                                            ""}: {e
-                                                                            .errs
-                                                                            .join(
-                                                                                " · "
-                                                                                )}</div>))}</div>)}<div
-                                                            style={{ overflowX: "auto",
-                                                                borderRadius: 8,
-                                                                border: `1px solid ${T.border}`,
-                                                                marginBottom: 14,
-                                                                maxHeight: 260,
-                                                            overflowY: "auto" }}><table
-                                                                style={{ width: "100%",
-                                                                    borderCollapse: "collapse",
-                                                                fontSize: 11 }}><thead
-                                                                    style={{ position: "sticky",
-                                                                    top: 0 }}><tr>{[
-                                                                        "",
-                                                                        "Row",
-                                                                        "Ticker",
-                                                                        "Type",
-                                                                        "Date",
-                                                                        "Qty",
-                                                                        "Price",
-                                                                        "Ccy",
-                                                                        "Div/Unit",
-                                                                        "Entitled"
-                                                                    ].map(c => (<th key={c}
-                                                                            style={{ padding: "7px 10px",
-                                                                                textAlign: "left",
-                                                                                fontSize: 8,
-                                                                                letterSpacing: 1.2,
-                                                                                color: T
-                                                                                    .text3,
-                                                                                textTransform: "uppercase",
-                                                                                background: T
-                                                                                    .bg2,
-                                                                                borderBottom: `1px solid ${T.border}`,
-                                                                            whiteSpace: "nowrap" }}>{c}</th>))}</tr></thead><tbody>{IS
-                                                                    .parsed.map((r, i) => {
-                                                                        const ok = !r
-                                                                            ._errors
-                                                                            .length;
-                                                                        const bg =
-                                                                            ok ? (i %
-                                                                                2 ===
-                                                                                0 ?
-                                                                                T
-                                                                                .bg3 :
-                                                                                T
-                                                                                .bg2
-                                                                                ) :
-                                                                            (dark ?
-                                                                                "#2a1500" :
-                                                                                "#fff7ed"
-                                                                                );
-                                                                        const typeColor =
-                                                                            r
-                                                                            .type ===
-                                                                            "buy" ?
-                                                                            T
-                                                                            .green :
-                                                                            r
-                                                                            .type ===
-                                                                            "sell" ?
-                                                                            T
-                                                                            .red :
-                                                                            T
-                                                                            .teal;
-                                                                        const typeBg =
-                                                                            r
-                                                                            .type ===
-                                                                            "buy" ?
-                                                                            (dark ?
-                                                                                "#0a2e1e" :
-                                                                                "#dcfce7"
-                                                                                ) :
-                                                                            r
-                                                                            .type ===
-                                                                            "sell" ?
-                                                                            (dark ?
-                                                                                "#2d0a0a" :
-                                                                                "#fee2e2"
-                                                                                ) :
-                                                                            (dark ?
-                                                                                "#041824" :
-                                                                                "#cffafe"
-                                                                                );
-                                                                        return (<tr
-                                                                                key={i}
-                                                                                style={{ background: bg }}><td
-                                                                                    style={{ padding: "6px 8px",
-                                                                                        borderBottom: `1px solid ${T.border}` }}>{ok ?
-                                                                                        "✅" :
-                                                                                        "⚠️"}</td><td
-                                                                                    style={{ padding: "6px 8px",
-                                                                                        color: T
-                                                                                            .text3,
-                                                                                        fontSize: 9,
-                                                                                        borderBottom: `1px solid ${T.border}` }}>{r
-                                                                                        ._rowNum}</td><td
-                                                                                    style={{ padding: "6px 8px",
-                                                                                        fontFamily: "'Space Mono',monospace",
-                                                                                        fontWeight: 700,
-                                                                                        color: T
-                                                                                            .text,
-                                                                                        borderBottom: `1px solid ${T.border}` }}>{r
-                                                                                        .ticker}</td><td
-                                                                                    style={{ padding: "6px 8px",
-                                                                                        borderBottom: `1px solid ${T.border}` }}>{r
-                                                                                        .type &&
-                                                                                        <span
-                                                                                            style={{ padding: "1px 6px",
-                                                                                                borderRadius: 4,
-                                                                                                fontSize: 9,
-                                                                                                fontWeight: 700,
-                                                                                                background: typeBg,
-                                                                                            color: typeColor }}>{r
-                                                                                                .type
-                                                                                                .toUpperCase()}</span>}</td><td
-                                                                                    style={{ padding: "6px 8px",
-                                                                                        color: T
-                                                                                            .text2,
-                                                                                        borderBottom: `1px solid ${T.border}`,
-                                                                                        whiteSpace: "nowrap" }}>{r
-                                                                                        .date}</td><td
-                                                                                    style={{ padding: "6px 8px",
-                                                                                        fontFamily: "'Space Mono',monospace",
-                                                                                        color: T
-                                                                                            .text2,
-                                                                                        borderBottom: `1px solid ${T.border}` }}>{r
-                                                                                        .qty ||
-                                                                                        "—"}</td><td
-                                                                                    style={{ padding: "6px 8px",
-                                                                                        fontFamily: "'Space Mono',monospace",
-                                                                                        color: T
-                                                                                            .text2,
-                                                                                        borderBottom: `1px solid ${T.border}` }}>{r
-                                                                                        .price ||
-                                                                                        "—"}</td><td
-                                                                                    style={{ padding: "6px 8px",
-                                                                                        color: T
-                                                                                            .text3,
-                                                                                        borderBottom: `1px solid ${T.border}` }}>{r
-                                                                                        .currency}</td><td
-                                                                                    style={{ padding: "6px 8px",
-                                                                                        fontFamily: "'Space Mono',monospace",
-                                                                                        color: T
-                                                                                            .teal,
-                                                                                        borderBottom: `1px solid ${T.border}` }}>{r
-                                                                                        .amountPerShare ||
-                                                                                        "—"}</td><td
-                                                                                    style={{ padding: "6px 8px",
-                                                                                        color: T
-                                                                                            .text2,
-                                                                                        borderBottom: `1px solid ${T.border}` }}>{r
-                                                                                        .entitledQty ||
-                                                                                        "—"}</td></tr>);
-                                                                    })}</tbody></table></div>{valid
-                                                            .length === 0 && (<div style={{
-                                                                    textAlign: "center",
-                                                                    padding: "8px 0",
-                                                                    color: T.red,
-                                                                fontSize: 12,
-                                                                marginBottom: 12 }}>No valid
-                                                                rows found. Fix the errors and
-                                                                re-upload.</div>)}<div style={{
-                                                                display: "flex", gap: 8,
-                                                                justifyContent: "space-between",
-                                                                alignItems: "center",
-                                                            flexWrap: "wrap" }}><button style={bO(T
-                                                                    .text2, { fontSize: 11 })}
-                                                                onClick={() => setImportSt(s =>
-                                                                    ({ ...s, step: "idle",
-                                                                        parsed: [], rows: [],
-                                                                        errors: [] }))}>Upload
-                                                                different file</button><div
-                                                                    style={{ display: "flex",
-                                                                    gap: 8 }}><button style={bO(
-                                                                        T.text2)} onClick={
-                                                                        closeModal}>Cancel</button><button
-                                                                        style={{ ...bS(T
-                                                                                .greenBtn,
-                                                                            "#fff"), opacity: valid
-                                                                                .length ?
-                                                                            1 : .4,
-                                                                            cursor: valid
-                                                                            .length ?
-                                                                            "pointer" :
-                                                                            "not-allowed" }}
-                                                                        disabled={!valid
-                                                                            .length}
-                                                                        onClick={confirmImport}>Import {valid
-                                                                            .length} rows {IS
-                                                                            .mergeMode ===
-                                                                            "replace" ?
-                                                                            "(replace all)" :
-                                                                            "(merge)"}</button></div></div></div>)}
-                                                {IS.step === "done" && (<div style={{ textAlign: "center",
-                                                            padding: "24px 0" }}><div
-                                                            style={{ fontSize: 48,
-                                                        marginBottom: 12 }}>🎉</div><div
-                                                            style={{ fontSize: 18,
-                                                                fontWeight: 700, color: T
-                                                                    .green,
-                                                        marginBottom: 8 }}>Import complete!</div><div
-                                                            style={{ fontSize: 13, color: T
-                                                                    .text2,
-                                                        marginBottom: 8 }}>{IS.importedCount}
-                                                        transactions imported.</div><div
-                                                            style={{ fontSize: 11, color: T
-                                                                    .text3,
-                                                        marginBottom: 24 }}>Click the 🔄 Live
-                                                        Prices button to fetch current prices
-                                                        for new holdings.</div><button style={bS(
-                                                                T.greenBtn, "#fff", { padding: "9px 28px",
-                                                                    fontSize: 13 })}
-                                                            onClick={closeModal}>Done</button></div>)}
-                                            </div>
-                                        );
-                                    })()}
+                                    {modal.mode === "import" && renderImportModal()}
                                     {modal.mode === "firebaseSetup" && (() => {
                                         const [cfg, setCfg] = React.useState({ apiKey: "",
                                             authDomain: "", projectId: "",
