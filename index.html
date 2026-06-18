@@ -91,7 +91,11 @@ async function signOut(){
 }
 </script>
 
-<script type="text/babel">
+<script>
+  Babel.registerPreset("react", Babel.availablePresets["react"]);
+</script>
+
+<script type="text/babel" data-presets="react">
 const {useState,useMemo,useCallback,useEffect,useRef}=React;
 
 // ========== ERROR BOUNDARY ==========
