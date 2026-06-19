@@ -49,6 +49,7 @@ button:active{transform:scale(.97)}
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
+<!-- Firebase config -->
 <script>
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyBp20SC2Yt9IWkevpLgU6-nXZtA7HuNbN0",
@@ -90,6 +91,7 @@ async function signOut(){
 }
 </script>
 
+<!-- React app code stored as plain text -->
 <script id="babel-script" type="text/plain">
 const {useState,useMemo,useCallback,useEffect,useRef}=React;
 
@@ -804,7 +806,7 @@ function useWindowSize(){
   return w;
 }
 
-// ─── Chart Components (FIXED) ──────────────────────────────────────────────
+// ─── Chart Components ─────────────────────────────────────────────────────────
 function ChartLine({labels,datasets,T,yFmt,y2Fmt,height=220,spanGaps=false}){
   const ref=useRef(null);const inst=useRef(null);
   useEffect(()=>{
@@ -1206,8 +1208,6 @@ function downloadTemplateXLSX(){
 // ─── App ──────────────────────────────────────────────────────────────────────
 function App(){
   const ld=(k,d)=>{try{const s=localStorage.getItem(k);return s?JSON.parse(s):d;}catch{return d;}};
-  
-  // ---- All useState hooks ----
   const[portfolio,setPortfolio]=useState(()=>ld("f6_p",SEED));
   const[prices,setPrices]=useState(()=>ld("f6_pr",INIT_PRICES));
   const[prevPrices,setPrevPrices]=useState(()=>ld("f6_pp",INIT_PREV));
@@ -1238,13 +1238,13 @@ function App(){
   const[superDrawRate, setSuperDrawRate]=useState(()=>ld("f6_superRate", 0));
   const[showPassiveModal, setShowPassiveModal]=useState(false);
   const[avgSuperBalanceAud, setAvgSuperBalanceAud]=useState(()=>ld("f6_avgSuper", 0));
-  const[isCloudLoading, setIsCloudLoading]=useState(false); // ✅ added
+  const[isCloudLoading, setIsCloudLoading]=useState(false);
 
   const T=dark?DARK:LIGHT;
   const winW=useWindowSize();
   const isMob=winW<768;
 
-  // ---- localStorage effects ----
+  // localStorage effects (unchanged)
   useEffect(()=>{localStorage.setItem("f6_p",JSON.stringify(portfolio));},[portfolio]);
   useEffect(()=>{localStorage.setItem("f6_pr",JSON.stringify(prices));},[prices]);
   useEffect(()=>{localStorage.setItem("f6_pp",JSON.stringify(prevPrices));},[prevPrices]);
@@ -1258,7 +1258,7 @@ function App(){
 
   useEffect(()=>{document.body.style.background=T.bg;document.body.style.color=T.text;},[T]);
 
-  // ---- cloudLoadAll and cloudSaveAll (defined before use) ----
+  // ---- cloudLoadAll (defined before being used) ----
   const cloudLoadAll = useCallback(async () => {
     if (!fbUser) {
       setSyncMsg("Sign in first");
@@ -1351,7 +1351,7 @@ function App(){
     }
   }, [fbUser, portfolio, prices, prevPrices, history, displayCur, dark, monthlyTargetAud, superDrawRate, avgSuperBalanceAud]);
 
-  // ---- Auth useEffect (cloudLoadAll is now defined) ----
+  // ---- Auth useEffect (now cloudLoadAll is defined) ----
   useEffect(() => {
     if (!FB_CONFIGURED || !fbAuth) return;
     const unsub = fbAuth.onAuthStateChanged(user => {
@@ -1368,7 +1368,7 @@ function App(){
     return unsub;
   }, []);
 
-  // ---- Auto-save effect ----
+  // ---- Auto-save effect (depends on cloudSaveAll) ----
   useEffect(() => {
     if (!fbUser || !FB_CONFIGURED || isCloudLoading) return;
     const t = setTimeout(() => cloudSaveAll(), 3000);
@@ -1382,7 +1382,7 @@ function App(){
     obs.observe(node);
   },[]);
 
-  // ---- holdings (must be defined before use) ----
+  // ---- holdings ----
   const holdings=useMemo(()=>portfolio.map(h=>computeHolding(h,prices,prevPrices,rates)).filter(h=>h.qty>0),[portfolio,prices,prevPrices,rates]);
 
   // ---- fill missing history snapshots ----
@@ -1876,7 +1876,6 @@ function App(){
     const abs=Math.abs(v);if(abs>=1e6)return`${displayCur==="USD"?"US$":"A$"}${(v/1e6).toFixed(1)}M`;return`${displayCur==="USD"?"US$":"A$"}${(v/1e3).toFixed(0)}K`;
   },[displayCur]);
 
-  // ---- Modal handlers ----
   const closeModal = () => { setModal(null); setForm({}); };
   const openAdd = () => {
     setModal({ mode: "add" });
@@ -1989,7 +1988,6 @@ function App(){
   const histH=modal?.mode==="history"?portfolio.find(p=>p.id===modal.holding.id):null;
   const histC=histH?computeHolding(histH,prices,prevPrices,rates):null;
 
-  // ---- Styling helpers ----
   const card=(x={})=>({background:T.bg3,border:`1px solid ${T.border}`,borderRadius:12,...x});
   const bS=(bg,col,x={})=>({padding:"8px 16px",border:"none",borderRadius:8,background:bg,color:col,fontSize:12,fontWeight:700,...x});
   const bO=(col,x={})=>({padding:"8px 14px",border:`1px solid ${T.border2}`,borderRadius:8,background:"transparent",color:col,fontSize:12,...x});
@@ -1998,13 +1996,10 @@ function App(){
   const fmtNativePrice=(h,v)=>{const cur=h.currency;if(!v&&v!==0)return"—";if(cur==="IDR")return`Rp ${fmtIDR(v)}`;if(cur==="USD")return`US$${fmtAUD(v)}`;return`A$${fmtAUD(v)}`;};
   const fetchBarColor=fetchSt.loading?T.amber:Object.keys(fetchSt.errors).length>0?T.amber:fetchSt.lastUpdate?T.green:T.text3;
 
-  // ============================================================
-  //  FULL JSX (exactly as in your original, with all modals)
-  // ============================================================
+  // ---- JSX ----
   return (
     <ErrorBoundary>
       <div style={{minHeight:"100vh",background:T.bg,color:T.text}}>
-        {/* Header */}
         <header style={{background:T.bg2,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:20,boxShadow:T.shadow}}>
           <div style={{display:"flex",flexDirection:"column",gap:8,padding:"10px 14px"}}>
             <div className="header-main-row" style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
@@ -2105,7 +2100,6 @@ function App(){
           </div>
         </header>
 
-        {/* View switcher */}
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 14px",borderBottom:`1px solid ${T.border}`,background:T.bg2,flexWrap:"wrap",gap:8}}>
           <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
             {view==="treemap"&&tmMode==="performance"&&<>
@@ -2145,7 +2139,6 @@ function App(){
           </div>
         </div>
 
-        {/* Main content */}
         <main style={{padding:"12px 14px"}}>
           {view==="treemap"&&(
             <div className="tm-wrap" style={{display:"flex",gap:12,alignItems:"flex-start",flexWrap:isMob?"wrap":"nowrap"}}>
@@ -2485,7 +2478,6 @@ function App(){
           )}
         </main>
 
-        {/* Modals */}
         {modal && (
           <div onClick={closeModal} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.78)",backdropFilter:"blur(8px)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:12}}>
             <div onClick={e=>e.stopPropagation()} style={{background:T.bg2,border:`1px solid ${T.border}`,borderRadius:14,padding:22,width:"100%",maxWidth:modal?.mode==="import"?720:520,maxHeight:"92vh",overflowY:"auto",boxShadow:T.shadow}}>
