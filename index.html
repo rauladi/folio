@@ -2548,7 +2548,7 @@ function App(){
 ReactDOM.createRoot(document.getElementById("root")).render(<App />);
 </script>
 
-<!-- ✅ FIX: Babel transform using ONLY the JSX plugin (no presets) -->
+<!-- ✅ FIX: Babel transform using ONLY the JSX plugin (classic runtime) -->
 <script>
   (function() {
     const codeEl = document.getElementById('babel-script');
@@ -2557,7 +2557,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(<App />);
     try {
       const result = Babel.transform(code, {
         plugins: [
-          ['transform-react-jsx', { pragma: 'React.createElement', pragmaFrag: 'React.Fragment' }]
+          ['transform-react-jsx', { runtime: 'classic' }]
         ],
         sourceType: 'script',
         compact: false,
