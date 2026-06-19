@@ -49,8 +49,8 @@ button:active{transform:scale(.97)}
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
+<!-- Firebase config (unchanged) -->
 <script>
-// Firebase config (unchanged)
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyBp20SC2Yt9IWkevpLgU6-nXZtA7HuNbN0",
   authDomain: "folio-sync.firebaseapp.com",
@@ -91,8 +91,8 @@ async function signOut(){
 }
 </script>
 
-<!-- FIX: Use only the JSX transform plugin, no presets that add import/export -->
-<script type="text/babel" data-presets="" data-plugins="transform-react-jsx">
+<!-- The React app code is stored as plain text, then manually transformed and eval'd -->
+<script id="babel-script" type="text/plain">
 const {useState,useMemo,useCallback,useEffect,useRef}=React;
 
 // ========== ERROR BOUNDARY ==========
@@ -2544,8 +2544,29 @@ function App(){
     </ErrorBoundary>
   );
 }
-
-ReactDOM.createRoot(document.getElementById("root")).render(<App />);
 </script>
+
+<!-- 🛠️ Manual transformation using Babel's API (avoids import statements) -->
+<script>
+  (function() {
+    const codeEl = document.getElementById('babel-script');
+    if (!codeEl) return;
+    const code = codeEl.textContent;
+    try {
+      const result = Babel.transform(code, {
+        presets: ['react'],            // Only transform JSX
+        sourceType: 'script',          // Prevents module output
+        plugins: ['transform-react-jsx'],
+        compact: false,
+      });
+      // Execute the compiled code
+      eval(result.code);
+    } catch (err) {
+      console.error('Babel transform failed:', err);
+      document.body.innerHTML = `<pre style="color:red;padding:20px;font-family:monospace;">${err.message}</pre>`;
+    }
+  })();
+</script>
+
 </body>
 </html>
