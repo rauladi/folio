@@ -979,32 +979,27 @@
                 divYieldOnCost: divYoc, totalInvested: totalInv };
         }
 
-        // ─── REPAIR PORTFOLIO — ensures each holding has independent transactions ───
+        // ─── REPAIR PORTFOLIO — ensures each holding has independent transactions and unique IDs ───
+        let globalIdCounter = Date.now();
+
         function repairPortfolio(portfolio) {
             if (!Array.isArray(portfolio)) return [];
-            const seenArrays = new WeakMap();
-            let idCounter = Date.now();
-            return portfolio.map(h => {
-                // Ensure id is unique and valid
+            const seenIds = new Set();
+            const result = portfolio.map(h => {
+                // Ensure unique id
                 let id = h.id;
-                if (!id || typeof id !== "number" || isNaN(id)) {
-                    id = ++idCounter;
+                if (!id || typeof id !== "number" || isNaN(id) || seenIds.has(id)) {
+                    id = ++globalIdCounter;
                 }
+                seenIds.add(id);
                 // Clone transactions array to ensure independence
                 let tx = h.transactions;
                 if (!Array.isArray(tx)) tx = [];
-                // If this exact array reference has been seen before, clone it
-                if (seenArrays.has(tx)) {
-                    tx = [...tx];
-                } else {
-                    seenArrays.set(tx, true);
-                    // Always clone to break any shared reference
-                    tx = [...tx];
-                }
-                // Filter out invalid transactions
+                tx = [...tx]; // always clone
                 tx = tx.filter(t => t && typeof t === "object");
                 return { ...h, id, transactions: tx };
             });
+            return result;
         }
 
         // ─── Seed Data ────────────────────────────────────────────────────────────────
@@ -1503,7 +1498,7 @@
                 }
             });
             portfolio.forEach(h => h.transactions.sort((a, b) => new Date(a.date) - new Date(b.date)));
-            // Re-repair to catch any shared references
+            // Re-repair to catch any shared references and ensure unique IDs
             return repairPortfolio(portfolio);
         }
 
@@ -1776,6 +1771,14 @@
                 fbUserRef.current = null;
                 setCloudReady(false);
                 setSyncMsg("");
+            }, []);
+
+            // ── Helper to set portfolio with repair ──
+            const setPortfolioRepaired = useCallback((updater) => {
+                setPortfolio((prev) => {
+                    const next = typeof updater === 'function' ? updater(prev) : updater;
+                    return repairPortfolio(next);
+                });
             }, []);
 
             // ── holdings memo ──
@@ -2363,7 +2366,7 @@
                 const { parsed, mergeMode } = importSt;
                 const base = mergeMode === "replace" ? [] : portfolio;
                 const newPortfolio = buildPortfolioFromRows(parsed, base);
-                setPortfolio(newPortfolio);
+                setPortfolioRepaired(newPortfolio);
                 setImportSt(s => ({ ...s, step: "done", importedCount: parsed.filter(r => !r._errors.length)
                         .length }));
             };
@@ -2375,36 +2378,39 @@
                 const ys = yahooSymbol || suggestYahoo(tk, exchange, assetType);
                 const isBP = isBondPct || false;
                 const fv = faceValue ? +faceValue : undefined;
-                if (portfolio.find(h => h.ticker === tk)) {
-                    setPortfolio(prev => prev.map(h => h.ticker === tk ? { ...h, transactions: [...h.transactions, {
-                            type: "buy",
-                            qty: +qty,
-                            price: +price,
-                            date
-                        }] } : h));
-                } else {
-                    const newH = {
-                        id: Date.now() + Math.random() * 1000,
-                        ticker: tk,
-                        name: name || tk,
-                        currency: currency || "AUD",
-                        assetType: assetType || "Shares / Stocks",
-                        exchange: exchange || "",
-                        yahooSymbol: ys,
-                        transactions: [{ type: "buy", qty: +qty, price: +price, date }]
-                    };
-                    if (isBP) newH.isBondPct = true;
-                    if (fv) newH.faceValue = fv;
-                    setPortfolio(prev => [...prev, newH]);
-                    setPrices(prev => ({ ...prev, [tk]: +price }));
-                    setPrevPrices(prev => ({ ...prev, [tk]: +price }));
-                }
+                setPortfolioRepaired(prev => {
+                    const existing = prev.find(h => h.ticker === tk);
+                    if (existing) {
+                        return prev.map(h => h.ticker === tk ? { ...h, transactions: [...h.transactions, {
+                                type: "buy",
+                                qty: +qty,
+                                price: +price,
+                                date
+                            }] } : h);
+                    } else {
+                        const newH = {
+                            id: Date.now() + Math.random() * 1000,
+                            ticker: tk,
+                            name: name || tk,
+                            currency: currency || "AUD",
+                            assetType: assetType || "Shares / Stocks",
+                            exchange: exchange || "",
+                            yahooSymbol: ys,
+                            transactions: [{ type: "buy", qty: +qty, price: +price, date }]
+                        };
+                        if (isBP) newH.isBondPct = true;
+                        if (fv) newH.faceValue = fv;
+                        setPrices(prevP => ({ ...prevP, [tk]: +price }));
+                        setPrevPrices(prevP => ({ ...prevP, [tk]: +price }));
+                        return [...prev, newH];
+                    }
+                });
                 closeModal();
             };
             const submitTrade = () => {
                 const { qty, price, date } = form;
                 if (!qty || !price) return;
-                setPortfolio(prev => prev.map(h => h.id === modal.holding.id ? { ...h, transactions: [...h
+                setPortfolioRepaired(prev => prev.map(h => h.id === modal.holding.id ? { ...h, transactions: [...h
                             .transactions, { type: modal.tradeType, qty: +qty, price: +price, date }] } : h));
                 closeModal();
             };
@@ -2412,7 +2418,7 @@
                 const { amountPerShare, entitledQty, date } = form;
                 if (!amountPerShare || !entitledQty) return;
                 const qty = +entitledQty;
-                setPortfolio(prev => prev.map(p => p.id === modal.holding.id ? {
+                setPortfolioRepaired(prev => prev.map(p => p.id === modal.holding.id ? {
                     ...p,
                     transactions: [...p.transactions, {
                         type: "dividend",
@@ -2436,7 +2442,7 @@
                 setPrices(prev => ({ ...prev, ...c }));
                 setPrevPrices(prev => ({ ...prev, ...p }));
                 if (form.displayCur) setDisplayCur(form.displayCur);
-                setPortfolio(prev => prev.map(h => ({ ...h, yahooSymbol: ys[h.ticker] ?? h.yahooSymbol })));
+                setPortfolioRepaired(prev => prev.map(h => ({ ...h, yahooSymbol: ys[h.ticker] ?? h.yahooSymbol })));
                 const date = new Date().toISOString().slice(0, 10);
                 const hs = portfolio.map(h => computeHolding(h, { ...prices, ...c }, { ...prevPrices, ...p }, rates))
                     .filter(h => h.qty > 0);
@@ -2450,7 +2456,7 @@
 
             // ─── REPAIR BUTTON ────────────────────────────────────────────────────────────
             const repairNow = () => {
-                setPortfolio(repairPortfolio(portfolio));
+                setPortfolioRepaired(portfolio);
                 setSyncMsg("🔧 Repaired portfolio data ✓");
                 setTimeout(() => setSyncMsg(""), 3000);
             };
@@ -4499,7 +4505,7 @@
                                                                                                 )
                                                                                             )
                                                                                             return;
-                                                                                        setPortfolio(
+                                                                                        setPortfolioRepaired(
                                                                                             p =>
                                                                                             p
                                                                                             .map(
@@ -4804,7 +4810,7 @@
                             if (!h) return null;
                             const tx = editTx.tx;
                             const cur = h.currency || "AUD";
-                            const save = () => { setPortfolio(p => p.map(holding =>
+                            const save = () => { setPortfolioRepaired(p => p.map(holding =>
                                     holding.id === editTx.holdingId ? { ...holding,
                                         transactions: holding.transactions
                                         .map((t, j) => j === editTx
