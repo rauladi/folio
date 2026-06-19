@@ -1238,6 +1238,7 @@ function App(){
   const[superDrawRate, setSuperDrawRate] = useState(()=>ld("f6_superRate", 0));
   const[showPassiveModal, setShowPassiveModal] = useState(false);
   const[avgSuperBalanceAud, setAvgSuperBalanceAud] = useState(()=>ld("f6_avgSuper", 0));
+  const[isCloudLoading, setIsCloudLoading] = useState(false);
 
   const T=dark?DARK:LIGHT;
   const winW=useWindowSize();
@@ -1311,21 +1312,43 @@ useEffect(() => {
     setSyncSt("error");
     return;
   }
+  setIsCloudLoading(true);
   setSyncSt("loading");
   setSyncMsg("Loading cloud data…");
   try {
     const data = await cloudLoad(fbUser.uid);
-    console.log("📥 Raw cloud data:", data); // 👈 added logging
+    console.log("📥 Raw cloud data:", data);
+    console.log("📥 Cloud data keys:", Object.keys(data || {}));
     if (!data) {
       setSyncSt("ok");
       setSyncMsg("No cloud data yet — save first");
       return;
     }
-    // Parse and apply each field
-    if (data.portfolio) setPortfolio(JSON.parse(data.portfolio));
-    if (data.prices) setPrices(JSON.parse(data.prices));
-    if (data.prevPrices) setPrevPrices(JSON.parse(data.prevPrices));
-    if (data.history) setHistory(JSON.parse(data.history));
+    // Check each field
+    if (data.portfolio) {
+      try {
+        const parsed = JSON.parse(data.portfolio);
+        console.log("✅ Portfolio parsed:", parsed);
+        setPortfolio(parsed);
+      } catch (e) {
+        console.error("❌ Failed to parse portfolio:", e);
+      }
+    }
+    if (data.prices) {
+      try {
+        setPrices(JSON.parse(data.prices));
+      } catch (e) { console.error("❌ Failed to parse prices:", e); }
+    }
+    if (data.prevPrices) {
+      try {
+        setPrevPrices(JSON.parse(data.prevPrices));
+      } catch (e) { console.error("❌ Failed to parse prevPrices:", e); }
+    }
+    if (data.history) {
+      try {
+        setHistory(JSON.parse(data.history));
+      } catch (e) { console.error("❌ Failed to parse history:", e); }
+    }
     if (data.displayCur) setDisplayCur(data.displayCur);
     if (typeof data.dark === "boolean") setDark(data.dark);
     if (typeof data.monthlyTargetAud === "number") setMonthlyTargetAud(data.monthlyTargetAud);
@@ -1337,14 +1360,16 @@ useEffect(() => {
     console.error("❌ Cloud load error:", e);
     setSyncSt("error");
     setSyncMsg("Load failed: " + e.message);
+  } finally {
+    setIsCloudLoading(false);
   }
 }, [fbUser]);
   
-  useEffect(()=>{
-    if(!fbUser||!FB_CONFIGURED)return;
-    const t=setTimeout(()=>cloudSaveAll(),3000);
-    return()=>clearTimeout(t);
-  },[portfolio,prices,history,cloudSaveAll]);
+  useEffect(() => {
+  if (!fbUser || !FB_CONFIGURED || isCloudLoading) return; // ← added condition
+  const t = setTimeout(() => cloudSaveAll(), 3000);
+  return () => clearTimeout(t);
+}, [portfolio, prices, history, cloudSaveAll, isCloudLoading]);
 
   const mapRef=useCallback(node=>{
     if(!node)return;
