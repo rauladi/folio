@@ -3251,6 +3251,18 @@
 
             const simulationResult = useMemo(() => runSimulation(), [runSimulation]);
 
+            // ─── What-If treemap rects (computed at top level) ──────────────────────
+            const whatIfItems = useMemo(() => {
+                if (!simulationResult) return [];
+                return simulationResult.adjustedHoldings.map(h => ({ ...h, value: h.adjustedValue }));
+            }, [simulationResult]);
+
+            const whatIfRects = useMemo(() => {
+                const sorted = [...whatIfItems].sort((a, b) => b.value - a.value);
+                if (!sorted.length) return [];
+                return squarify(sorted, 0, 0, whatIfTmSize.w, whatIfTmSize.h);
+            }, [whatIfItems, whatIfTmSize]);
+
             // ─── What-If Render ────────────────────────────────────────────────────────
             const renderWhatIf = () => {
                 if (!holdings.length) {
@@ -3284,14 +3296,6 @@
                     { label: "Projected", data: projectedDivs, borderColor: T.green, backgroundColor: dark ?
                             "rgba(52,168,83,.1)" : "rgba(30,142,62,.08)", fill: true, borderWidth: 2.5 },
                 ];
-
-                // Treemap items
-                const whatIfItems = adjustedHoldings.map(h => ({ ...h, value: h.adjustedValue }));
-                const sortedItems = whatIfItems.sort((a, b) => b.value - a.value);
-                const whatIfRects = useMemo(() => {
-                    if (!sortedItems.length) return [];
-                    return squarify(sortedItems, 0, 0, whatIfTmSize.w, whatIfTmSize.h);
-                }, [sortedItems, whatIfTmSize]);
 
                 const chartHeight = isMob ? 170 : 230;
 
