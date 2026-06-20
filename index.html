@@ -198,6 +198,32 @@
             .whatif-grid {
                 grid-template-columns: 1fr !important;
             }
+            .adj-row {
+                flex-wrap: wrap !important;
+                gap: 4px !important;
+                padding: 6px 8px !important;
+            }
+            .adj-row .ticker {
+                min-width: 40px !important;
+                font-size: 10px !important;
+            }
+            .adj-row .value {
+                min-width: 40px !important;
+                font-size: 9px !important;
+            }
+            .adj-row input[type="range"] {
+                min-width: 60px !important;
+                flex: 1 1 100% !important;
+            }
+            .adj-row .adj-btn {
+                width: 28px !important;
+                height: 28px !important;
+                font-size: 16px !important;
+            }
+            .adj-row .diff-label {
+                min-width: 50px !important;
+                font-size: 9px !important;
+            }
         }
         @media(max-width:480px) {
             .header-kpis {
@@ -457,7 +483,11 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 4px 0;
+            padding: 4px 8px;
+            border-radius: 6px;
+            border: 1px solid var(--border, #3d3d3d);
+            background: var(--bg4, #333333);
+            flex-wrap: nowrap;
         }
         .adj-row .ticker {
             font-weight: 700;
@@ -475,6 +505,7 @@
             flex: 1;
             height: 4px;
             accent-color: var(--green-btn, #34a853);
+            min-width: 40px;
         }
         .adj-row .adj-btn {
             background: var(--bg2, #1e1e1e);
@@ -489,9 +520,16 @@
             cursor: pointer;
             font-size: 14px;
             transition: background 0.15s;
+            flex-shrink: 0;
         }
         .adj-row .adj-btn:hover {
-            background: var(--bg4, #333);
+            background: var(--bg5, #444);
+        }
+        .adj-row .diff-label {
+            font-size: 9px;
+            min-width: 40px;
+            text-align: right;
+            color: var(--text3, #9aa0a6);
         }
     </style>
 </head>
@@ -2030,7 +2068,7 @@
             };
         }
 
-        // ─── Chart Annotations Plugin (improved) ─────────────────────────────────────
+        // ─── Chart Annotations Plugin (robust) ──────────────────────────────────────
         function createAnnotationPlugin(annotationData, T) {
             return {
                 id: 'customAnnotations',
@@ -2040,32 +2078,31 @@
                     const yAxis = chart.scales.y;
                     if (!xAxis || !yAxis) return;
 
-                    const labels = chart.data.labels; // e.g. ["Jan 25", "Feb 25", ...]
+                    const labels = chart.data.labels;
 
                     const findIndex = (dateStr) => {
                         let idx = labels.indexOf(dateStr);
                         if (idx !== -1) return idx;
-                        // Try to match by month/year
+
                         const d = new Date(dateStr + "T12:00:00");
                         const targetMonth = d.getMonth();
                         const targetYear = d.getFullYear();
+
                         let best = -1,
                             bestDiff = Infinity;
                         for (let i = 0; i < labels.length; i++) {
                             const label = labels[i];
-                            const labelDate = new Date(label + " 01 2000"); // fallback year 2000, but we only care about month
-                            // Better: parse label like "Jan 25" -> month and year
                             const parts = label.split(' ');
                             if (parts.length === 2) {
                                 const monthAbbr = parts[0];
                                 const yearSuffix = parts[1];
-                                const month = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].indexOf(monthAbbr);
+                                const month = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov",
+                                    "Dec"
+                                ].indexOf(monthAbbr);
                                 const year = 2000 + parseInt(yearSuffix);
                                 if (month === targetMonth && year === targetYear) {
-                                    // exact month/year match – use this index
                                     return i;
                                 }
-                                // Otherwise compute difference in months
                                 const diffMonths = Math.abs((year - targetYear) * 12 + (month - targetMonth));
                                 if (diffMonths < bestDiff) {
                                     bestDiff = diffMonths;
@@ -2073,11 +2110,11 @@
                                 }
                             }
                         }
-                        if (bestDiff < 2) return best; // within 2 months
-                        return -1;
+                        return bestDiff < 2 ? best : -1;
                     };
 
                     const drawMarker = (item, drawFn) => {
+                        if (!item) return;
                         const idx = findIndex(item.date);
                         if (idx === -1) return;
                         const x = xAxis.getPixelForValue(idx);
@@ -2086,6 +2123,7 @@
                         drawFn(ctx, x, y);
                     };
 
+                    // Draw Buy markers
                     (annotationData.buys || []).forEach(item => {
                         drawMarker(item, (ctx, x, y) => {
                             ctx.save();
@@ -2107,6 +2145,7 @@
                         });
                     });
 
+                    // Draw Dividend markers
                     (annotationData.dividends || []).forEach(item => {
                         drawMarker(item, (ctx, x, y) => {
                             ctx.save();
@@ -2126,6 +2165,7 @@
                         });
                     });
 
+                    // Draw Event markers
                     (annotationData.events || []).forEach(event => {
                         drawMarker(event, (ctx, x, y) => {
                             const yMin = yAxis.top;
@@ -3139,7 +3179,7 @@
             const fetchBarColor = fetchSt.loading ? T.amber : Object.keys(fetchSt.errors).length > 0 ? T.amber : fetchSt
                 .lastUpdate ? T.green : T.text3;
 
-            // What-If Logic (unchanged, but we'll restructure the render)
+            // ─── What-If Logic ────────────────────────────────────────────────────────
             const runSimulation = useCallback(() => {
                 if (!holdings.length) return null;
                 const { growthRate, reinvestRatio, fxRate, simulationYears, adjustments } = whatIf;
@@ -3198,7 +3238,7 @@
 
             const simulationResult = useMemo(() => runSimulation(), [runSimulation]);
 
-            // ─── What-If Render (compact) ─────────────────────────────────────────────
+            // ─── What-If Render ────────────────────────────────────────────────────────
             const renderWhatIf = () => {
                 if (!holdings.length) {
                     return <div style={{ padding: 40, textAlign: "center", color: T.text3 }}>Add holdings first to use the
@@ -3221,6 +3261,7 @@
                     adjustedHoldings,
                 } = sr;
 
+                // Chart data
                 const chartLabels = years.map(y => String(y));
                 const currentDivs = projectedDivs.map(() => adjustedDivs);
 
@@ -3231,9 +3272,29 @@
                             "rgba(52,168,83,.1)" : "rgba(30,142,62,.08)", fill: true, borderWidth: 2.5 },
                 ];
 
-                const allocLabels = adjustedHoldings.map(h => h.ticker);
-                const allocData = adjustedHoldings.map(h => h.adjustedValue);
-                const colors = ["#34a853", "#1a73e8", "#f59e0b", "#ea4335", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316"];
+                // Treemap data
+                const whatIfItems = adjustedHoldings.map(h => ({ ...h, value: h.adjustedValue }));
+                const sortedItems = whatIfItems.sort((a, b) => b.value - a.value);
+
+                // Treemap size tracking
+                const [whatIfTmSize, setWhatIfTmSize] = useState({ w: 300, h: 300 });
+                const tmRef = useRef(null);
+                useEffect(() => {
+                    if (!tmRef.current) return;
+                    const obs = new ResizeObserver(e => {
+                        const { width, height } = e[0].contentRect;
+                        setWhatIfTmSize({ w: width, h: height });
+                    });
+                    obs.observe(tmRef.current);
+                    return () => obs.disconnect();
+                }, []);
+
+                const whatIfRects = useMemo(() => {
+                    if (!sortedItems.length) return [];
+                    return squarify(sortedItems, 0, 0, whatIfTmSize.w, whatIfTmSize.h);
+                }, [sortedItems, whatIfTmSize]);
+
+                const chartHeight = isMob ? 170 : 230;
 
                 return (
                     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -3293,7 +3354,7 @@
                                             <input type="range" min="50" max="150" step="5" value={Math.round(factor * 100)}
                                                 onChange={e => setWhatIf(w => ({ ...w, adjustments: { ...w.adjustments, [h.ticker]: parseFloat(e.target.value) / 100 } }))} />
                                             <button className="adj-btn" onClick={() => setWhatIf(w => ({ ...w, adjustments: { ...w.adjustments, [h.ticker]: Math.min(1.5, factor + 0.05) } }))}>+</button>
-                                            <span style={{ fontSize: 9, color: isPositive ? T.green : T.red, minWidth: 40, textAlign: "right" }}>{isPositive ? "+" : ""}{FC(diff, true)}</span>
+                                            <span className="diff-label" style={{ color: isPositive ? T.green : T.red }}>{isPositive ? "+" : ""}{FC(diff, true)}</span>
                                         </div>
                                     );
                                 })}
@@ -3330,18 +3391,40 @@
                             </div>
                         </div>
 
-                        {/* Charts */}
+                        {/* Charts: 50:50 split */}
                         <div className="chart-row" style={{ display: "flex", gap: 12, flexWrap: isMob ? "wrap" :
                                 "nowrap" }}>
-                            <div style={{ flex: "2 1 280px", ...card({ padding: 12 }) }}>
+                            <div style={{ flex: "1 1 50%", ...card({ padding: 12 }) }}>
                                 <div style={{ fontSize: 11, fontWeight: 600, color: T.text, marginBottom: 2 }}>Dividend Income Projection</div>
                                 <ChartLine labels={chartLabels} datasets={divDatasets} T={T} yFmt={yFmtD}
-                                    height={isMob ? 150 : 200} />
+                                    height={chartHeight} />
                             </div>
-                            <div style={{ flex: "1 1 160px", ...card({ padding: 12 }) }}>
-                                <div style={{ fontSize: 11, fontWeight: 600, color: T.text, marginBottom: 2 }}>Allocation</div>
-                                <ChartDoughnut labels={allocLabels} data={allocData} colors={colors} T={T}
-                                    height={isMob ? 140 : 180} />
+                            <div style={{ flex: "1 1 50%", ...card({ padding: 12 }) }}>
+                                <div style={{ fontSize: 11, fontWeight: 600, color: T.text, marginBottom: 2 }}>Adjusted Allocation</div>
+                                <div ref={tmRef} style={{ height: chartHeight, position: "relative", borderRadius: 12,
+                                        overflow: "hidden", border: "1px solid " + T.border, background: T.bg3 }}>
+                                    {whatIfRects.map(r => {
+                                        const c = getPerformanceColor(r.gainPct || 0, dark);
+                                        return (
+                                            <div key={r.ticker} style={{ position: "absolute", left: r.x, top: r
+                                                        .y, width: r.w, height: r.h, background: c.bg,
+                                                    border: "1px solid " + c.border, display: "flex",
+                                                    flexDirection: "column", alignItems: "center",
+                                                    justifyContent: "center", fontSize: 9, fontWeight: 700,
+                                                    color: c.text, padding: 2, textAlign: "center",
+                                                    overflow: "hidden" }}>
+                                                <span style={{ fontSize: 10 }}>{r.ticker}</span>
+                                                <span style={{ fontSize: 8, opacity: 0.9 }}>{FC(r
+                                                    .adjustedValue, true)}</span>
+                                                <span style={{ fontSize: 7, opacity: 0.7 }}>{fmtPct(r
+                                                    .gainPct || 0)}</span>
+                                            </div>
+                                        );
+                                    })}
+                                    {whatIfRects.length === 0 && <div style={{ position: "absolute", inset: 0,
+                                            display: "flex", alignItems: "center", justifyContent: "center",
+                                            color: T.text3, fontSize: 11 }}>No holdings</div>}
+                                </div>
                             </div>
                         </div>
 
@@ -4975,7 +5058,7 @@
                             {view === "whatif" && renderWhatIf()}
                         </main>
 
-                        {/* Modals - unchanged for brevity, but included in full code */}
+                        {/* Modals */}
                         {modal && (
                             <div onClick={closeModal} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.7)",
                                     backdropFilter: "blur(6px)", zIndex: 100, display: "flex", alignItems: "center",
