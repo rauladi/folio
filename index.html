@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover" />
     <title>FOLIO — Investment Dashboard</title>
     <style>
         *,
@@ -15,6 +15,8 @@
         html,
         body {
             height: 100%;
+            width: 100%;
+            overflow-x: hidden;
         }
         body {
             min-height: 100vh;
@@ -22,6 +24,11 @@
             font-size: 14px;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
+            overflow-x: hidden;
+        }
+        #root {
+            width: 100%;
+            overflow-x: hidden;
         }
         input,
         select {
@@ -116,10 +123,13 @@
             }
             .header-kpis {
                 flex-wrap: wrap !important;
-                gap: 12px !important;
+                gap: 8px !important;
             }
             .header-kpi {
-                min-width: 60px !important;
+                min-width: 50px !important;
+            }
+            .header-kpi .value {
+                font-size: 14px !important;
             }
             .risk-grid {
                 grid-template-columns: 1fr 1fr !important;
@@ -129,6 +139,96 @@
             }
             .whatif-holdings {
                 grid-template-columns: 1fr !important;
+            }
+            header {
+                padding: 6px 8px !important;
+            }
+            main {
+                padding: 6px 8px !important;
+            }
+            .logo-area svg {
+                max-width: 120px !important;
+                height: auto !important;
+            }
+            .header-sysinfo {
+                font-size: 8px !important;
+                gap: 4px !important;
+            }
+            .header-sysinfo .sep {
+                display: none !important;
+            }
+            .header-kpis {
+                gap: 6px !important;
+            }
+            .header-kpi .label {
+                font-size: 7px !important;
+            }
+            .header-kpi .value {
+                font-size: 12px !important;
+            }
+            .header-kpi .sub {
+                font-size: 8px !important;
+            }
+            .table-container {
+                max-height: 400px !important;
+                font-size: 9px !important;
+            }
+            .table-container th,
+            .table-container td {
+                padding: 4px 6px !important;
+                font-size: 8px !important;
+            }
+            .table-container td button {
+                width: 18px !important;
+                height: 18px !important;
+                font-size: 8px !important;
+            }
+            .risk-card {
+                padding: 6px 8px !important;
+            }
+            .risk-card .value {
+                font-size: 13px !important;
+            }
+            .modal-g3 {
+                grid-template-columns: 1fr !important;
+            }
+            .detail-panel {
+                padding: 10px !important;
+            }
+        }
+        @media(max-width:480px) {
+            .header-kpis {
+                gap: 4px !important;
+            }
+            .header-kpi {
+                min-width: 40px !important;
+            }
+            .header-kpi .value {
+                font-size: 10px !important;
+            }
+            .header-kpi .label {
+                font-size: 6px !important;
+            }
+            .logo-area svg {
+                max-width: 80px !important;
+            }
+            .header-sysinfo {
+                font-size: 7px !important;
+                flex-wrap: wrap !important;
+            }
+            .header-sysinfo button {
+                font-size: 9px !important;
+                padding: 2px 4px !important;
+            }
+            .tm-wrap>div:first-child {
+                height: 320px !important;
+            }
+            .risk-grid {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 4px !important;
+            }
+            .risk-card .value {
+                font-size: 11px !important;
             }
         }
         @media(min-width:769px) {
@@ -1894,79 +1994,94 @@
                     if (!xAxis || !yAxis) return;
 
                     const labels = chart.data.labels;
-                    const buyData = annotationData.buys || [];
-                    const divData = annotationData.dividends || [];
-                    const events = annotationData.events || [];
 
-                    buyData.forEach(item => {
-                        const idx = labels.indexOf(item.date);
-                        if (idx === -1) return;
+                    const drawMarker = (item, drawFn) => {
+                        let idx = labels.indexOf(item.date);
+                        if (idx === -1) {
+                            // Find nearest date in labels
+                            const target = new Date(item.date).getTime();
+                            let best = -1,
+                                bestDiff = Infinity;
+                            for (let i = 0; i < labels.length; i++) {
+                                const diff = Math.abs(new Date(labels[i]).getTime() - target);
+                                if (diff < bestDiff) {
+                                    bestDiff = diff;
+                                    best = i;
+                                }
+                            }
+                            if (bestDiff < 30 * 24 * 60 * 60 * 1000) { // within 30 days
+                                idx = best;
+                            } else {
+                                return;
+                            }
+                        }
                         const x = xAxis.getPixelForValue(idx);
                         const y = yAxis.getPixelForValue(item.value);
-                        if (!x || !y) return;
-                        ctx.save();
-                        ctx.fillStyle = '#34a853';
-                        ctx.shadowColor = 'rgba(52,168,83,0.4)';
-                        ctx.shadowBlur = 8;
-                        ctx.beginPath();
-                        ctx.moveTo(x, y - 8);
-                        ctx.lineTo(x - 6, y + 4);
-                        ctx.lineTo(x + 6, y + 4);
-                        ctx.closePath();
-                        ctx.fill();
-                        ctx.shadowBlur = 0;
-                        ctx.fillStyle = '#ffffff';
-                        ctx.font = '6px sans-serif';
-                        ctx.textAlign = 'center';
-                        ctx.fillText('B', x, y + 2);
-                        ctx.restore();
+                        if (!x || !y || !isFinite(y)) return;
+                        drawFn(ctx, x, y);
+                    };
+
+                    (annotationData.buys || []).forEach(item => {
+                        drawMarker(item, (ctx, x, y) => {
+                            ctx.save();
+                            ctx.fillStyle = '#34a853';
+                            ctx.shadowColor = 'rgba(52,168,83,0.4)';
+                            ctx.shadowBlur = 8;
+                            ctx.beginPath();
+                            ctx.moveTo(x, y - 8);
+                            ctx.lineTo(x - 6, y + 4);
+                            ctx.lineTo(x + 6, y + 4);
+                            ctx.closePath();
+                            ctx.fill();
+                            ctx.shadowBlur = 0;
+                            ctx.fillStyle = '#ffffff';
+                            ctx.font = '6px sans-serif';
+                            ctx.textAlign = 'center';
+                            ctx.fillText('B', x, y + 2);
+                            ctx.restore();
+                        });
                     });
 
-                    divData.forEach(item => {
-                        const idx = labels.indexOf(item.date);
-                        if (idx === -1) return;
-                        const x = xAxis.getPixelForValue(idx);
-                        const y = yAxis.getPixelForValue(item.value);
-                        if (!x || !y) return;
-                        ctx.save();
-                        ctx.fillStyle = '#f9a825';
-                        ctx.shadowColor = 'rgba(249,168,37,0.4)';
-                        ctx.shadowBlur = 8;
-                        const size = 7;
-                        ctx.beginPath();
-                        ctx.arc(x, y - size, size * 0.5, 0, Math.PI * 2);
-                        ctx.fill();
-                        ctx.shadowBlur = 0;
-                        ctx.fillStyle = '#ffffff';
-                        ctx.font = '5px sans-serif';
-                        ctx.textAlign = 'center';
-                        ctx.fillText('D', x, y - size + 2);
-                        ctx.restore();
+                    (annotationData.dividends || []).forEach(item => {
+                        drawMarker(item, (ctx, x, y) => {
+                            ctx.save();
+                            ctx.fillStyle = '#f9a825';
+                            ctx.shadowColor = 'rgba(249,168,37,0.4)';
+                            ctx.shadowBlur = 8;
+                            const size = 7;
+                            ctx.beginPath();
+                            ctx.arc(x, y - size, size * 0.5, 0, Math.PI * 2);
+                            ctx.fill();
+                            ctx.shadowBlur = 0;
+                            ctx.fillStyle = '#ffffff';
+                            ctx.font = '5px sans-serif';
+                            ctx.textAlign = 'center';
+                            ctx.fillText('D', x, y - size + 2);
+                            ctx.restore();
+                        });
                     });
 
-                    events.forEach(event => {
-                        const idx = labels.indexOf(event.date);
-                        if (idx === -1) return;
-                        const x = xAxis.getPixelForValue(idx);
-                        const yMin = yAxis.top;
-                        const yMax = yAxis.bottom;
-                        if (!x) return;
-                        ctx.save();
-                        ctx.setLineDash([3, 4]);
-                        ctx.strokeStyle = event.color || '#fdd663';
-                        ctx.lineWidth = 1.5;
-                        ctx.globalAlpha = 0.6;
-                        ctx.beginPath();
-                        ctx.moveTo(x, yMin);
-                        ctx.lineTo(x, yMax);
-                        ctx.stroke();
-                        ctx.globalAlpha = 1;
-                        ctx.setLineDash([]);
-                        ctx.fillStyle = event.color || '#fdd663';
-                        ctx.font = '7px sans-serif';
-                        ctx.textAlign = 'center';
-                        ctx.fillText(event.label, x, yMin + 12);
-                        ctx.restore();
+                    (annotationData.events || []).forEach(event => {
+                        drawMarker(event, (ctx, x, y) => {
+                            const yMin = yAxis.top;
+                            const yMax = yAxis.bottom;
+                            ctx.save();
+                            ctx.setLineDash([3, 4]);
+                            ctx.strokeStyle = event.color || '#fdd663';
+                            ctx.lineWidth = 1.5;
+                            ctx.globalAlpha = 0.6;
+                            ctx.beginPath();
+                            ctx.moveTo(x, yMin);
+                            ctx.lineTo(x, yMax);
+                            ctx.stroke();
+                            ctx.globalAlpha = 1;
+                            ctx.setLineDash([]);
+                            ctx.fillStyle = event.color || '#fdd663';
+                            ctx.font = '7px sans-serif';
+                            ctx.textAlign = 'center';
+                            ctx.fillText(event.label || '', x, yMin + 12);
+                            ctx.restore();
+                        });
                     });
                 }
             };
@@ -2357,6 +2472,85 @@
                 return new Date(0);
             }, []);
 
+            // ─── ANNOTATION DATA — fixed to use portfolio value at transaction dates ──
+            const annotationData = useMemo(() => {
+                // Build map of date -> totalValueAUD from history
+                const historyMap = {};
+                for (const snap of history) {
+                    historyMap[snap.date] = snap.totalValueAUD;
+                }
+
+                const getPortfolioValueAtDate = (dateStr) => {
+                    let valAUD = historyMap[dateStr];
+                    if (valAUD !== undefined) return fromAUD(valAUD, displayCur, rates);
+                    // Find nearest date in history
+                    const dates = Object.keys(historyMap).sort();
+                    let best = null,
+                        bestDiff = Infinity;
+                    const target = new Date(dateStr).getTime();
+                    for (const d of dates) {
+                        const diff = Math.abs(new Date(d).getTime() - target);
+                        if (diff < bestDiff) { bestDiff = diff;
+                            best = d; }
+                    }
+                    if (best && bestDiff < 60 * 24 * 60 * 60 * 1000) {
+                        valAUD = historyMap[best];
+                        return fromAUD(valAUD, displayCur, rates);
+                    }
+                    return fromAUD(totVal, displayCur, rates);
+                };
+
+                const buys = [];
+                const dividends = [];
+                const events = [];
+
+                for (const h of portfolio) {
+                    for (const tx of h.transactions) {
+                        if (tx.type === "buy") {
+                            const val = getPortfolioValueAtDate(tx.date);
+                            buys.push({ date: tx.date, value: val, ticker: h.ticker });
+                        } else if (tx.type === "dividend" && tx.date) {
+                            const val = getPortfolioValueAtDate(tx.date);
+                            dividends.push({ date: tx.date, value: val, ticker: h.ticker });
+                        }
+                    }
+                }
+
+                const buyMap = {};
+                for (const b of buys) {
+                    if (!buyMap[b.date]) buyMap[b.date] = b;
+                }
+                const divMap = {};
+                for (const d of dividends) {
+                    if (!divMap[d.date]) divMap[d.date] = d;
+                }
+
+                const sortedHist = [...history].sort((a, b) => new Date(a.date) - new Date(b.date));
+                for (let i = 1; i < sortedHist.length; i++) {
+                    const prev = sortedHist[i - 1].totalValueAUD;
+                    const curr = sortedHist[i].totalValueAUD;
+                    if (prev > 0) {
+                        const pct = (curr - prev) / prev * 100;
+                        const date = sortedHist[i].date;
+                        const val = fromAUD(curr, displayCur, rates);
+                        if (pct < -5) {
+                            events.push({ date, label: `▼${pct.toFixed(1)}%`, color: '#ea4335', value: val });
+                        } else if (pct > 5) {
+                            events.push({ date, label: `▲${pct.toFixed(1)}%`, color: '#34a853', value: val });
+                        }
+                    }
+                }
+
+                const sortedEvents = events.sort((a, b) => new Date(a.date) - new Date(b.date));
+                const recentEvents = sortedEvents.slice(-8);
+
+                return {
+                    buys: Object.values(buyMap).slice(0, 15),
+                    dividends: Object.values(divMap).slice(0, 15),
+                    events: recentEvents,
+                };
+            }, [portfolio, history, displayCur, rates, totVal]);
+
             const autoRefresh = useCallback(async () => {
                 setFetchSt(s => ({ ...s, loading: true, fetched: 0 }));
                 let newRates = rates,
@@ -2486,51 +2680,6 @@
                     bmStatus,
                 });
             }, [portfolio, prices, prevPrices, rates]);
-
-            // ─── Chart annotation data ────────────────────────────────────────────────
-            const annotationData = useMemo(() => {
-                const buys = [];
-                const dividends = [];
-                const events = [];
-                for (const h of portfolio) {
-                    for (const tx of h.transactions) {
-                        if (tx.type === "buy") {
-                            buys.push({ date: tx.date, value: tx.price || 0, ticker: h.ticker });
-                        } else if (tx.type === "dividend" && tx.date) {
-                            dividends.push({ date: tx.date, value: tx.totalAmount || 0, ticker: h.ticker });
-                        }
-                    }
-                }
-                const buyMap = {};
-                for (const b of buys) {
-                    if (!buyMap[b.date]) buyMap[b.date] = b;
-                }
-                const divMap = {};
-                for (const d of dividends) {
-                    if (!divMap[d.date]) divMap[d.date] = d;
-                }
-                const sortedHist = [...history].sort((a, b) => new Date(a.date) - new Date(b.date));
-                for (let i = 1; i < sortedHist.length; i++) {
-                    const prev = sortedHist[i - 1].totalValueAUD;
-                    const curr = sortedHist[i].totalValueAUD;
-                    if (prev > 0) {
-                        const pct = (curr - prev) / prev * 100;
-                        if (pct < -5) {
-                            events.push({ date: sortedHist[i].date, label: `▼${pct.toFixed(1)}%`, color: '#ea4335' });
-                        } else if (pct > 5) {
-                            events.push({ date: sortedHist[i].date, label: `▲${pct.toFixed(1)}%`, color: '#34a853' });
-                        }
-                    }
-                }
-                const sortedEvents = events.sort((a, b) => new Date(a.date) - new Date(b.date));
-                const recentEvents = sortedEvents.slice(-8);
-
-                return {
-                    buys: Object.values(buyMap).slice(0, 15),
-                    dividends: Object.values(divMap).slice(0, 15),
-                    events: recentEvents,
-                };
-            }, [portfolio, history]);
 
             const chartData = useMemo(() => {
                 const cutoff = periodCutoff(chartPeriod);
@@ -2932,7 +3081,6 @@
                 if (!holdings.length) return null;
                 const { growthRate, reinvestRatio, fxRate, simulationYears, adjustments } = whatIf;
 
-                // Calculate adjusted portfolio
                 let adjustedDivs = 0;
                 let adjustedValue = 0;
                 let totalAdjValue = 0;
@@ -2951,7 +3099,6 @@
 
                 const currentYield = adjustedValue > 0 ? (adjustedDivs / adjustedValue) * 100 : 0;
 
-                // Projection
                 const years = [];
                 const projectedDivs = [];
                 const projectedReinvested = [];
@@ -2963,13 +3110,12 @@
                     projectedDivs.push(div);
                     const reinvested = div * (reinvestRatio / 100);
                     projectedReinvested.push(reinvested);
-                    div = div * (1 + growthRate / 100) + reinvested * (growthRate / 100) * 0.5; // simplified reinvestment growth
+                    div = div * (1 + growthRate / 100) + reinvested * (growthRate / 100) * 0.5;
                 }
 
                 const finalDiv = projectedDivs[projectedDivs.length - 1] || adjustedDivs;
                 const cagr = adjustedDivs > 0 ? (Math.pow(finalDiv / adjustedDivs, 1 / simulationYears) - 1) * 100 : 0;
 
-                // Risk Concentration (top 1 holding)
                 const maxHolding = adjustedHoldings.reduce((max, h) => h.adjustedValue > max ? h.adjustedValue : max, 0);
                 const riskConcentration = adjustedValue > 0 ? (maxHolding / adjustedValue) * 100 : 0;
 
@@ -3011,7 +3157,6 @@
                     adjustedHoldings,
                 } = sr;
 
-                // Prepare chart data
                 const chartLabels = years.map(y => String(y));
                 const currentDivs = projectedDivs.map(() => adjustedDivs);
 
@@ -3022,14 +3167,12 @@
                             "rgba(52,168,83,.1)" : "rgba(30,142,62,.08)", fill: true, borderWidth: 2.5 },
                 ];
 
-                // Allocation chart
                 const allocLabels = adjustedHoldings.map(h => h.ticker);
                 const allocData = adjustedHoldings.map(h => h.adjustedValue);
                 const colors = ["#34a853", "#1a73e8", "#f59e0b", "#ea4335", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316"];
 
                 return (
                     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                        {/* Inputs Row */}
                         <div className="whatif-grid" style={{ display: "grid", gridTemplateColumns: isMob ? "1fr 1fr" :
                                 "1fr 1fr 1fr 1fr", gap: 10 }}>
                             <div style={card({ padding: 14 })}>
@@ -3066,7 +3209,6 @@
                             </div>
                         </div>
 
-                        {/* Holdings Adjustments */}
                         <div style={card({ padding: 14 })}>
                             <div style={{ fontSize: 12, fontWeight: 600, color: T.text, marginBottom: 8 }}>Modify Your
                                 Portfolio</div>
@@ -3119,7 +3261,6 @@
                             </div>
                         </div>
 
-                        {/* KPIs */}
                         <div style={{ display: "grid", gridTemplateColumns: isMob ? "1fr 1fr" : "1fr 1fr 1fr 1fr",
                                 gap: 10 }}>
                             <div style={card({ padding: 14, textAlign: "center" })}>
@@ -3155,7 +3296,6 @@
                             </div>
                         </div>
 
-                        {/* Charts */}
                         <div className="chart-row" style={{ display: "flex", gap: 12, flexWrap: isMob ? "wrap" :
                                 "nowrap" }}>
                             <div style={{ flex: "2 1 280px", ...card({ padding: 14 }) }}>
@@ -3175,7 +3315,6 @@
                             </div>
                         </div>
 
-                        {/* Scenarios */}
                         <div style={card({ padding: 14 })}>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
                                     marginBottom: 8, flexWrap: "wrap", gap: 6 }}>
@@ -4807,7 +4946,7 @@
                             {view === "whatif" && renderWhatIf()}
                         </main>
 
-                        {/* Modals (same as before, trimmed for brevity) */}
+                        {/* Modals */}
                         {modal && (
                             <div onClick={closeModal} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.7)",
                                     backdropFilter: "blur(6px)", zIndex: 100, display: "flex", alignItems: "center",
