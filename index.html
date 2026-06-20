@@ -318,9 +318,6 @@
         .light .table-container tbody tr:hover td {
             background: var(--hover-bg, #f1f3f4);
         }
-        .table-container tbody tr:hover td:first-child {
-            background: var(--hover-bg, #333333);
-        }
         .light .table-container tbody tr:hover td:first-child {
             background: var(--hover-bg, #f1f3f4);
         }
@@ -2021,6 +2018,7 @@
                 adjustments: {},
                 scenarios: [],
                 activeScenario: null,
+                scenarioName: "",
             });
 
             const T = dark ? DARK : LIGHT;
@@ -3079,9 +3077,25 @@
                                     const adjVal = h.currentValue * factor;
                                     const diff = adjVal - h.currentValue;
                                     const isPositive = diff >= 0;
+                                    const btnStyle = {
+                                        background: T.bg2,
+                                        border: "1px solid " + T.border,
+                                        borderRadius: 6,
+                                        width: 24,
+                                        height: 24,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        color: T.text,
+                                        cursor: "pointer",
+                                    };
+                                    const sliderStyle = {
+                                        width: "100%",
+                                        accentColor: T.greenBtn,
+                                    };
                                     return (
                                         <div key={h.ticker} style={{ background: T.bg4, borderRadius: 8,
-                                                padding: "10px 12px", border: `1px solid ${T.border}` }}>
+                                                padding: "10px 12px", border: "1px solid " + T.border }}>
                                             <div style={{ display: "flex", justifyContent: "space-between",
                                                     alignItems: "center", marginBottom: 4 }}>
                                                 <span style={{ fontWeight: 700, fontSize: 12, color: T.text }}>{h
@@ -3092,21 +3106,15 @@
                                             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                                 <button onClick={() => setWhatIf(w => ({ ...w, adjustments: { ...
                                                             w.adjustments, [h.ticker]: Math.max(0.5, factor -
-                                                            0.05) } })} style={{ background: T.bg2, border: `1px solid ${T.border}`,
-                                                        borderRadius: 6, width: 24, height: 24, display: "flex",
-                                                        alignItems: "center", justifyContent: "center", color: T
-                                                            .text }}>-</button>
+                                                            0.05) } })} style={btnStyle}>-</button>
                                                 <input type="range" className="whatif-slider" min="50" max="150"
-                                                    step="5" value={Math.round(factor * 100)}
+                                                    step="5" value={Math.round(factor * 100)} style={sliderStyle}
                                                     onChange={e => setWhatIf(w => ({ ...w, adjustments: { ...
                                                                 w.adjustments, [h.ticker]: parseFloat(e
                                                                 .target.value) / 100 } }))} />
                                                 <button onClick={() => setWhatIf(w => ({ ...w, adjustments: { ...
                                                             w.adjustments, [h.ticker]: Math.min(1.5, factor +
-                                                            0.05) } })} style={{ background: T.bg2, border: `1px solid ${T.border}`,
-                                                        borderRadius: 6, width: 24, height: 24, display: "flex",
-                                                        alignItems: "center", justifyContent: "center", color: T
-                                                            .text }}>+</button>
+                                                            0.05) } })} style={btnStyle}>+</button>
                                             </div>
                                             <div style={{ display: "flex", justifyContent: "space-between",
                                                     marginTop: 4, fontSize: 10 }}>
@@ -3214,7 +3222,7 @@
                                 <div style={{ display: "grid", gridTemplateColumns: isMob ? "1fr" : "1fr 1fr 1fr",
                                         gap: 8, marginTop: 8 }}>
                                     {whatIf.scenarios.slice().reverse().map(s => (
-                                        <div key={s.id} className="scenario-card" style={{ border: `1px solid ${T.border}`,
+                                        <div key={s.id} className="scenario-card" style={{ border: "1px solid " + T.border,
                                                 borderRadius: 8, padding: "10px 12px", background: T.bg3 }}>
                                             <div style={{ display: "flex", justifyContent: "space-between",
                                                     alignItems: "center" }}>
@@ -3256,7 +3264,7 @@
                 const valid = IS.parsed.filter(r => !r._errors.length);
                 const invalid = IS.parsed.filter(r => r._errors.length);
                 const tickers = [...new Set(valid.map(r => r.ticker))];
-                const dropZoneStyle = { border: `2px dashed ${IS.dragOver ? T.greenBtn : T.border2}`, borderRadius: 12,
+                const dropZoneStyle = { border: "2px dashed " + (IS.dragOver ? T.greenBtn : T.border2), borderRadius: 12,
                     padding: "32px 20px", textAlign: "center", background: IS.dragOver ? (dark ? "#1e2a1e" :
                         "#e8f5e9") : T.bg4, transition: "all .2s", cursor: "pointer" };
                 return (
@@ -3295,20 +3303,20 @@
                                         importFileRef.current && importFileRef.current.click();
                                     }}>Choose File</button>)}</div>)}
                         {IS.step === "error" && (<div style={{ background: dark ? "#2d0a0a" : "#fee2e2",
-                                    border: `1px solid ${T.redBtn}55`, borderRadius: 10, padding: "14px 16px",
+                                    border: "1px solid " + T.redBtn + "55", borderRadius: 10, padding: "14px 16px",
                                     color: T.red }}><div style={{ fontWeight: 700, marginBottom: 4 }}>Could not read
                                     file</div><div style={{ fontSize: 12 }}>{IS.errorMsg}</div><button style={{ ...bO(
                                         T.red, { fontSize: 11, marginTop: 10 }) }} onClick={() => setImportSt(s =>
                                         ({ ...s, step: "idle" }))}>Try again</button></div>)}
                         {IS.step === "preview" && (<div>{IS.fieldMap && Object.keys(IS.fieldMap).length > 0 && (<div
-                                    style={{ background: T.bg4, border: `1px solid ${T.border}`, borderRadius: 10,
+                                    style={{ background: T.bg4, border: "1px solid " + T.border, borderRadius: 10,
                                         padding: "10px 14px", marginBottom: 14 }}><div style={{ fontSize: 10,
                                             fontWeight: 700, color: T.text2, letterSpacing: 1.2,
                                             textTransform: "uppercase", marginBottom: 7 }}>Detected Column
                                         Mapping</div><div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{Object
                                             .entries(IS.fieldMap).map(([field, col]) => (<span key={field}
                                                 style={{ fontSize: 10, background: T.bg2,
-                                                    border: `1px solid ${T.border2}`, borderRadius: 5,
+                                                    border: "1px solid " + T.border2, borderRadius: 5,
                                                     padding: "2px 8px", color: T.text2 }}><span style={{
                                                         color: T.text3 }}>{col}</span><span style={{
                                                         color: T.border2, margin: "0 4px" }}>→</span><span
@@ -3331,17 +3339,17 @@
                                         [valid.filter(r => r.type === "sell").length + " sells", T.text2],
                                         [valid.filter(r => r.type === "dividend").length + " dividends", T.teal],
                                     ].map(([l, c]) => (<span key={l} style={{ fontSize: 11, fontWeight: 600,
-                                            color: c, background: T.bg4, border: `1px solid ${T.border}`,
+                                            color: c, background: T.bg4, border: "1px solid " + T.border,
                                             borderRadius: 6, padding: "3px 10px" }}>{l}</span>))}</div><div
                                         style={{ display: "flex", alignItems: "center", gap: 10, background: T.bg4,
-                                            border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 14px",
+                                            border: "1px solid " + T.border, borderRadius: 10, padding: "10px 14px",
                                             marginBottom: 14, flexWrap: "wrap" }}><span style={{ fontSize: 12,
                                                 fontWeight: 600, color: T.text }}>Import mode:</span>{[
                                             ["merge", "Merge with existing"],
                                             ["replace", "Replace all data"]
                                         ].map(([v, l]) => (<button key={v} onClick={() => setImportSt(s => ({ ...s,
                                                     mergeMode: v }))} style={{ padding: "5px 14px", borderRadius: 7,
-                                                border: `1px solid ${IS.mergeMode === v ? T.greenBtn : T.border}`,
+                                                border: "1px solid " + (IS.mergeMode === v ? T.greenBtn : T.border),
                                                 background: IS.mergeMode === v ? (dark ? "#0a2e1e" : "#dcfce7") :
                                                     "transparent", color: IS.mergeMode === v ? T.greenBtn : T
                                                     .text3, fontSize: 12, fontWeight: IS.mergeMode === v ? 700 :
@@ -3350,7 +3358,7 @@
                                                 "merge" ? "Adds new tickers, appends transactions to existing" :
                                                 "Clears ALL current portfolio data first"}</span></div>{IS.errors
                                         .length > 0 && (<div style={{ background: dark ? "#1a1200" : "#fffbeb",
-                                                border: `1px solid ${T.amber}55`, borderRadius: 10,
+                                                border: "1px solid " + T.amber + "55", borderRadius: 10,
                                                 padding: "10px 14px", marginBottom: 14 }}><div style={{
                                                     fontSize: 12, fontWeight: 700, color: T.amber,
                                                 marginBottom: 6 }}>{IS.errors.length} rows will be skipped</div><div
@@ -3358,7 +3366,7 @@
                                                     <div key={e.rowNum} style={{ fontSize: 10, color: T.amber,
                                                             marginBottom: 2 }}>Row {e.rowNum}{e.ticker ? " [" + e
                                                             .ticker + "]" : ""}: {e.errs.join(" · ")}</div>))}</div></div>)}<div
-                                        style={{ overflowX: "auto", borderRadius: 8, border: `1px solid ${T.border}`,
+                                        style={{ overflowX: "auto", borderRadius: 8, border: "1px solid " + T.border,
                                             marginBottom: 14, maxHeight: 260, overflowY: "auto" }}><table
                                             style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}><thead
                                                 style={{ position: "sticky", top: 0 }}><tr>{[
@@ -3375,7 +3383,7 @@
                                                 ].map(c => (<th key={c} style={{ padding: "7px 10px",
                                                         textAlign: "left", fontSize: 8, letterSpacing: 1.2,
                                                         color: T.text3, textTransform: "uppercase",
-                                                        background: T.bg2, borderBottom: `1px solid ${T.border}`,
+                                                        background: T.bg2, borderBottom: "1px solid " + T.border,
                                                         whiteSpace: "nowrap" }}>{c}</th>))}</tr></thead><tbody>{IS
                                                     .parsed.map((r, i) => {
                                                         const ok = !r._errors.length;
@@ -3390,42 +3398,42 @@
                                                                 "#cffafe");
                                                         return (<tr key={i} style={{ background: bg }}><td
                                                                 style={{ padding: "6px 8px",
-                                                                    borderBottom: `1px solid ${T.border}` }}>{ok ?
+                                                                    borderBottom: "1px solid " + T.border }}>{ok ?
                                                                     "✅" : "⚠️"}</td><td style={{ padding: "6px 8px",
                                                                     color: T.text3, fontSize: 9,
-                                                                    borderBottom: `1px solid ${T.border}` }}>{r
+                                                                    borderBottom: "1px solid " + T.border }}>{r
                                                                     ._rowNum}</td><td style={{ padding: "6px 8px",
                                                                     fontFamily: "'Space Mono',monospace",
                                                                     fontWeight: 700, color: T.text,
-                                                                    borderBottom: `1px solid ${T.border}` }}>{r
+                                                                    borderBottom: "1px solid " + T.border }}>{r
                                                                     .ticker}</td><td style={{ padding: "6px 8px",
-                                                                    borderBottom: `1px solid ${T.border}` }}>{r
+                                                                    borderBottom: "1px solid " + T.border }}>{r
                                                                     .type && <span style={{ padding: "1px 6px",
                                                                         borderRadius: 4, fontSize: 9,
                                                                         fontWeight: 700, background: typeBg,
                                                                         color: typeColor }}>{r.type
                                                                         .toUpperCase()}</span>}</td><td
                                                                 style={{ padding: "6px 8px", color: T.text2,
-                                                                    borderBottom: `1px solid ${T.border}`,
+                                                                    borderBottom: "1px solid " + T.border,
                                                                     whiteSpace: "nowrap" }}>{r.date}</td><td
                                                                 style={{ padding: "6px 8px",
                                                                     fontFamily: "'Space Mono',monospace",
                                                                     color: T.text2,
-                                                                    borderBottom: `1px solid ${T.border}` }}>{r
+                                                                    borderBottom: "1px solid " + T.border }}>{r
                                                                     .qty || "—"}</td><td style={{ padding: "6px 8px",
                                                                     fontFamily: "'Space Mono',monospace",
                                                                     color: T.text2,
-                                                                    borderBottom: `1px solid ${T.border}` }}>{r
+                                                                    borderBottom: "1px solid " + T.border }}>{r
                                                                     .price || "—"}</td><td style={{ padding: "6px 8px",
                                                                     color: T.text3,
-                                                                    borderBottom: `1px solid ${T.border}` }}>{r
+                                                                    borderBottom: "1px solid " + T.border }}>{r
                                                                     .currency}</td><td style={{ padding: "6px 8px",
                                                                     fontFamily: "'Space Mono',monospace",
                                                                     color: T.teal,
-                                                                    borderBottom: `1px solid ${T.border}` }}>{r
+                                                                    borderBottom: "1px solid " + T.border }}>{r
                                                                     .amountPerShare || "—"}</td><td
                                                                 style={{ padding: "6px 8px", color: T.text2,
-                                                                    borderBottom: `1px solid ${T.border}` }}>{r
+                                                                    borderBottom: "1px solid " + T.border }}>{r
                                                                     .entitledQty || "—"}</td></tr>);
                                                     })}</tbody></table></div>{valid.length === 0 && (<div
                                         style={{ textAlign: "center", padding: "8px 0", color: T.red, fontSize: 12,
@@ -3456,7 +3464,7 @@
                 <ErrorBoundary>
                     <div style={{ minHeight: "100vh", background: T.bg, color: T.text }}>
                         {/* Header - Two rows */}
-                        <header style={{ background: T.bg2, borderBottom: `1px solid ${T.border}`, position: "sticky",
+                        <header style={{ background: T.bg2, borderBottom: "1px solid " + T.border, position: "sticky",
                                 top: 0, zIndex: 20, boxShadow: T.shadow, padding: "8px 14px" }}>
                             {/* Row 1: Logo + KPIs */}
                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -3548,7 +3556,7 @@
                                 </div>
                                 <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
                                     <div style={{ display: "flex", background: T.bg4, borderRadius: 16, padding: 2,
-                                            border: `1px solid ${T.border}` }}>
+                                            border: "1px solid " + T.border }}>
                                         {CURRENCIES.map(c => <button key={c} onClick={() => setDisplayCur(c)}
                                             style={{ padding: "3px 8px", borderRadius: 14, border: "none",
                                                 background: displayCur === c ? T.bg2 : "transparent",
@@ -3634,7 +3642,7 @@
 
                         {/* View switcher */}
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
-                                padding: "6px 14px", borderBottom: `1px solid ${T.border}`, background: T.bg2,
+                                padding: "6px 14px", borderBottom: "1px solid " + T.border, background: T.bg2,
                                 flexWrap: "wrap", gap: 4 }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                                 {view === "treemap" && tmMode === "performance" && <>
@@ -3676,7 +3684,7 @@
                                     ].map(([y, l]) => { const c = divColor(y, dark); return (<div key={l}
                                             style={{ display: "flex", alignItems: "center", gap: 3 }}><div
                                                 style={{ width: 10, height: 10, borderRadius: 2,
-                                                    background: c.bg, border: `1px solid ${c.border}` }} /><span
+                                                    background: c.bg, border: "1px solid " + c.border }} /><span
                                                 style={{ fontSize: 8, color: T.text3 }}>{l}</span></div>); })}
                                     <span style={{ fontSize: 8, color: T.text4, fontWeight: 400 }}>· Box size =
                                         dividends</span>
@@ -3686,7 +3694,7 @@
                                 {view === "treemap" && (
                                     <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
                                         <div style={{ display: "flex", background: T.bg4, borderRadius: 16,
-                                                padding: 2, border: `1px solid ${T.border}` }}>
+                                                padding: 2, border: "1px solid " + T.border }}>
                                             {[
                                                 ["performance", "📈 Perf"],
                                                 ["day", "☀️ Day"],
@@ -3705,7 +3713,7 @@
                                             <button onClick={() => setTmShowVal(v => !v)} title={tmShowVal ?
                                                     "Show % only" : "Show % + value"}
                                                 style={{ padding: "2px 8px", borderRadius: 14,
-                                                    border: `1px solid ${T.border}`, background: !
+                                                    border: "1px solid " + T.border, background: !
                                                     tmShowVal ? T.teal : T.bg4, color: !tmShowVal ?
                                                     "#fff" : T.text3, fontSize: 9, fontWeight: 600,
                                                     transition: "all .15s", whiteSpace: "nowrap" }}>{tmShowVal ?
@@ -3714,7 +3722,7 @@
                                     </div>
                                 )}
                                 <div style={{ display: "flex", background: T.bg4, borderRadius: 16, padding: 2,
-                                        border: `1px solid ${T.border}` }}>
+                                        border: "1px solid " + T.border }}>
                                     {[
                                         ["treemap", "Map"],
                                         ["table", "Table"],
@@ -3741,7 +3749,7 @@
                                         obs.observe(node); }}
                                     style={{ flex: "1 1 280px", width: isMob ? "100%" : "auto", height: isMob ?
                                             "calc(100vw - 28px)" : 440, position: "relative", borderRadius: 12,
-                                            overflow: "hidden", border: `1px solid ${T.border}`, background: T
+                                            overflow: "hidden", border: "1px solid " + T.border, background: T
                                                 .bg3, minWidth: 200 }}>
                                         {rects.map(r => {
                                             let pct = 0;
@@ -3763,12 +3771,12 @@
                                                         selected ? null : r.ticker)}
                                                 style={{ position: "absolute", left: r.x + 1, top: r
                                                         .y + 1, width: r.w - 2, height: r.h - 2,
-                                                    background: c.bg, border: `1px solid ${c
-                                                        .border}`, borderRadius: 4, display: "flex",
+                                                    background: c.bg, border: "1px solid " + c
+                                                        .border, borderRadius: 4, display: "flex",
                                                     flexDirection: "column", alignItems: "center",
                                                     justifyContent: "center", cursor: "pointer",
                                                     overflow: "hidden", outline: r.ticker ===
-                                                    selected ? `2px solid ${c.text}` : "none",
+                                                    selected ? "2px solid " + c.text : "none",
                                                     transition: "filter .12s" }}
                                                 onMouseEnter={e => e.currentTarget.style.filter =
                                                     "brightness(1.1)"}
@@ -3849,7 +3857,7 @@
                                                                         background: T.bg4,
                                                                         padding: "2px 8px",
                                                                         borderRadius: 12,
-                                                                        border: `1px solid ${T.border}`,
+                                                                        border: "1px solid " + T.border,
                                                                         color: T.text3,
                                                                         whiteSpace: "nowrap",
                                                                         fontWeight: 500 }}>{tag}</span>
@@ -3859,7 +3867,7 @@
                                                                     "#0a2030" : "#e0f9ff",
                                                                     padding: "2px 8px",
                                                                     borderRadius: 12,
-                                                                    border: `1px solid ${T.teal}55`,
+                                                                    border: "1px solid " + T.teal + "55",
                                                                     color: T.teal,
                                                                     whiteSpace: "nowrap",
                                                                     fontWeight: 500 }}>Fixed Rate
@@ -3877,7 +3885,7 @@
                                                 </div>
                                                 {selH.isBondPct && <div style={{ background: dark ?
                                                             "#040e18" : "#f0f9ff",
-                                                        border: `1px solid ${T.teal}44`,
+                                                        border: "1px solid " + T.teal + "44",
                                                         borderRadius: 8, padding: "6px 10px",
                                                         marginBottom: 12, fontSize: 10,
                                                     color: T.teal, fontWeight: 500 }}>
@@ -3923,7 +3931,7 @@
                                                 ].map(sec => (
                                                     <div key={sec.title} style={{ marginBottom: 12,
                                                             paddingBottom: 12, borderBottom:
-                                                            `1px solid ${T.border}` }}>
+                                                            "1px solid " + T.border }}>
                                                         <div style={{ fontSize: 8,
                                                                 letterSpacing: 1.2,
                                                                 color: T.text3,
@@ -3987,7 +3995,7 @@
                             )}
                             {view === "table" && (
                                 <div className="table-container" style={{ overflow: "auto", maxHeight: 600,
-                                        borderRadius: 12, border: `1px solid ${T.border}` }}>
+                                        borderRadius: 12, border: "1px solid " + T.border }}>
                                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
                                         <thead style={{ position: "sticky", top: 0, zIndex: 10, background: T.bg2 }}>
                                             <tr>{["Ticker", "Type", "CCY", "Units", "Avg Cost", "Current",
@@ -3999,7 +4007,7 @@
                                                         textAlign: "left", fontSize: 8,
                                                         letterSpacing: 1.2, color: T.text3,
                                                         textTransform: "uppercase", background: T
-                                                            .bg2, borderBottom: `2px solid ${T.border}`,
+                                                            .bg2, borderBottom: "2px solid " + T.border,
                                                         whiteSpace: "nowrap", fontWeight: 600,
                                                         zIndex: c === "Ticker" ? 15 : 10,
                                                         position: c === "Ticker" ? "sticky" : "sticky",
@@ -4023,7 +4031,7 @@
                                                                 fontFamily: "'Space Mono',monospace",
                                                                 fontWeight: 700, color: T
                                                                     .text, fontSize: 12,
-                                                                borderBottom: `1px solid ${T.border}`,
+                                                                borderBottom: "1px solid " + T.border,
                                                                 whiteSpace: "nowrap",
                                                                 position: "sticky", left: 0,
                                                                 zIndex: 5,
@@ -4036,40 +4044,40 @@
                                                                 color: T.text3, maxWidth: 90,
                                                                 overflow: "hidden",
                                                                 textOverflow: "ellipsis",
-                                                                borderBottom: `1px solid ${T.border}`,
+                                                                borderBottom: "1px solid " + T.border,
                                                                 whiteSpace: "nowrap",
                                                                 fontWeight: 500 }}>{h.assetType ||
                                                                 "—"}</td>
                                                         <td style={{ padding: "10px 12px",
                                                                 fontFamily: "'Space Mono',monospace",
                                                                 color: T.text3, fontSize: 10,
-                                                                borderBottom: `1px solid ${T.border}`,
+                                                                borderBottom: "1px solid " + T.border,
                                                             fontWeight: 500 }}>{h.currency}</td>
                                                         <td style={{ padding: "10px 12px",
                                                                 fontFamily: "'Space Mono',monospace",
                                                                 color: T.text2,
-                                                                borderBottom: `1px solid ${T.border}`,
+                                                                borderBottom: "1px solid " + T.border,
                                                                 fontWeight: 500 }}>{h.qty < 1 ? h
                                                                 .qty.toFixed(6) : h.qty.toFixed(
                                                                 4)}</td>
                                                         <td style={{ padding: "10px 12px",
                                                                 fontFamily: "'Space Mono',monospace",
                                                                 color: T.text2,
-                                                                borderBottom: `1px solid ${T.border}`,
+                                                                borderBottom: "1px solid " + T.border,
                                                                 whiteSpace: "nowrap",
                                                                 fontWeight: 500 }}>{FC(h.costBasis /
                                                                 Math.max(h.qty, 1e-9), false)}</td>
                                                         <td style={{ padding: "10px 12px",
                                                                 fontFamily: "'Space Mono',monospace",
                                                                 color: T.text,
-                                                                borderBottom: `1px solid ${T.border}`,
+                                                                borderBottom: "1px solid " + T.border,
                                                                 whiteSpace: "nowrap",
                                                                 fontWeight: 500 }}>{fmtNativePrice(
                                                                 h, h.currentPrice)}</td>
                                                         <td style={{ padding: "10px 12px",
                                                                 fontFamily: "'Space Mono',monospace",
                                                                 color: pColor(h.dayGain),
-                                                                borderBottom: `1px solid ${T.border}`,
+                                                                borderBottom: "1px solid " + T.border,
                                                                 whiteSpace: "nowrap",
                                                                 fontWeight: 600 }}>{FG(h.dayGain)}<br /><span
                                                                 style={{ fontSize: 9, opacity: .7,
@@ -4078,39 +4086,39 @@
                                                         <td style={{ padding: "10px 12px",
                                                                 fontFamily: "'Space Mono',monospace",
                                                                 color: T.text, fontWeight: 700,
-                                                                borderBottom: `1px solid ${T.border}`,
+                                                                borderBottom: "1px solid " + T.border,
                                                                 whiteSpace: "nowrap" }}>{FC(h
                                                                 .currentValue, true)}</td>
                                                         <td style={{ padding: "10px 12px",
                                                                 fontFamily: "'Space Mono',monospace",
                                                                 color: pColor(h.unrealizedGain),
-                                                                borderBottom: `1px solid ${T.border}`,
+                                                                borderBottom: "1px solid " + T.border,
                                                                 whiteSpace: "nowrap",
                                                                 fontWeight: 600 }}>{FG(h
                                                                 .unrealizedGain)}</td>
                                                         <td style={{ padding: "10px 12px",
                                                                 fontFamily: "'Space Mono',monospace",
                                                                 color: pColor(h.realizedGain),
-                                                                borderBottom: `1px solid ${T.border}`,
+                                                                borderBottom: "1px solid " + T.border,
                                                                 whiteSpace: "nowrap",
                                                                 fontWeight: 600 }}>{FG(h
                                                                 .realizedGain)}</td>
                                                         <td style={{ padding: "10px 12px",
                                                                 fontFamily: "'Space Mono',monospace",
                                                                 color: T.teal,
-                                                                borderBottom: `1px solid ${T.border}`,
+                                                                borderBottom: "1px solid " + T.border,
                                                                 whiteSpace: "nowrap",
                                                                 fontWeight: 600 }}>{FC(h
                                                                 .totalDividends, true)}</td>
                                                         <td style={{ padding: "10px 12px",
                                                                 fontFamily: "'Space Mono',monospace",
                                                                 color: T.teal,
-                                                                borderBottom: `1px solid ${T.border}`,
+                                                                borderBottom: "1px solid " + T.border,
                                                                 whiteSpace: "nowrap",
                                                                 fontWeight: 600 }}>{fmtPct(h
                                                                 .divYieldOnCost)}</td>
                                                         <td style={{ padding: "10px 12px",
-                                                                borderBottom: `1px solid ${T.border}`,
+                                                                borderBottom: "1px solid " + T.border,
                                                                 whiteSpace: "nowrap" }}>
                                                             {(() => { const roi = h
                                                                     .totalInvested > 0 ? ((h
@@ -4136,11 +4144,11 @@
                                                                 fontFamily: "'Space Mono',monospace",
                                                                 color: pColor(h.totalGain),
                                                                 fontWeight: 700,
-                                                                borderBottom: `1px solid ${T.border}`,
+                                                                borderBottom: "1px solid " + T.border,
                                                                 whiteSpace: "nowrap" }}>{FG(h
                                                                 .totalGain)}</td>
                                                         <td style={{ padding: "10px 12px",
-                                                                borderBottom: `1px solid ${T.border}`,
+                                                                borderBottom: "1px solid " + T.border,
                                                                 whiteSpace: "nowrap" }}><span
                                                                 style={{ padding: "2px 10px",
                                                                     borderRadius: 20,
@@ -4151,7 +4159,7 @@
                                                                     fontWeight: 700 }}>{fmtPct(
                                                                     h.gainPct)}</span></td>
                                                         <td style={{ padding: "10px 12px",
-                                                                borderBottom: `1px solid ${T.border}`,
+                                                                borderBottom: "1px solid " + T.border,
                                                                 whiteSpace: "nowrap" }}>
                                                             <div style={{ display: "flex",
                                                                     gap: 3 }}>
@@ -4240,12 +4248,12 @@
                                         <span style={{ fontSize: 10, color: T.text3,
                                             fontWeight: 500 }}>Time period:</span>
                                         <div style={{ display: "flex", gap: 3, background: T.bg3,
-                                                padding: 3, borderRadius: 16, border: `1px solid ${T.border}` }}>
+                                                padding: 3, borderRadius: 16, border: "1px solid " + T.border }}>
                                             {["1M", "3M", "6M", "YTD", "1Y", "5Y"].map(p => (
                                                 <button key={p} onClick={() => setChartPeriod(p)}
                                                     style={{ padding: "3px 10px", borderRadius: 13,
                                                         border: "none", background: chartPeriod ===
-                                                        p ? `linear-gradient(135deg,#34a853,#1a73e8)` :
+                                                        p ? "linear-gradient(135deg,#34a853,#1a73e8)" :
                                                         "transparent", color: chartPeriod === p ?
                                                         "#fff" : T.text3, fontSize: 10,
                                                         fontWeight: chartPeriod === p ? 600 : 500,
@@ -4439,7 +4447,7 @@
                                             ].map((item, idx) => (
                                                 <div key={idx} className="risk-card" style={{
                                                         background: T.cardBg || T.bg3,
-                                                        border: `1px solid ${T.border}`,
+                                                        border: "1px solid " + T.border,
                                                         borderRadius: 8, padding: "10px 12px",
                                                         textAlign: "center" }}>
                                                     <div className="label" style={{ fontSize: 8,
@@ -4521,7 +4529,7 @@
                                                     ].map(([l, v, c, p]) => (
                                                         <div key={l} style={{ background: T
                                                                     .bg4, border:
-                                                                `1px solid ${T.border}`,
+                                                                "1px solid " + T.border,
                                                                 borderRadius: 6,
                                                                 padding: "6px 10px",
                                                                 flex: "1 1 80px",
@@ -4597,7 +4605,7 @@
                                                                     }
                                                                     style={{ padding: "3px 10px",
                                                                         borderRadius: 14,
-                                                                        border: `1.5px solid ${color}`,
+                                                                        border: "1.5px solid " + color,
                                                                         background: on ?
                                                                             color :
                                                                         "transparent",
@@ -4682,7 +4690,7 @@
                                                     2 && <div style={{ fontSize: 9,
                                                         color: T.amber,
                                                         background: T.bg4,
-                                                        border: `1px solid ${T.amber}44`,
+                                                        border: "1px solid " + T.amber + "44",
                                                         borderRadius: 6,
                                                         padding: "4px 10px",
                                                         marginBottom: 6,
@@ -4748,7 +4756,7 @@
                                                                         .key}
                                                                     style={{ background: T
                                                                             .bg4,
-                                                                        border: `1.5px solid ${b.color}`,
+                                                                        border: "1.5px solid " + b.color,
                                                                         borderRadius: 6,
                                                                         padding: "6px 10px",
                                                                         flex: "1 1 60px" }}>
@@ -4818,7 +4826,7 @@
                                     backdropFilter: "blur(6px)", zIndex: 100, display: "flex", alignItems: "center",
                                     justifyContent: "center", padding: 12 }}>
                                 <div onClick={e => e.stopPropagation()} style={{ background: T.bg2,
-                                        border: `1px solid ${T.border}`, borderRadius: 16, padding: 24,
+                                        border: "1px solid " + T.border, borderRadius: 16, padding: 24,
                                         width: "100%", maxWidth: modal?.mode === "import" ? 720 : 520,
                                         maxHeight: "92vh", overflowY: "auto", boxShadow: T.shadow }}>
                                     {modal.mode === "add" && (
@@ -4872,7 +4880,7 @@
                                             {(form.isBondPct || (form.assetType || "").includes("Bond") || (
                                                     form.assetType || "").includes("Sukuk")) && (
                                                 <div style={{ background: dark ? "#040e18" : "#f0f9ff",
-                                                        border: `1px solid ${T.teal}44`, borderRadius: 10,
+                                                        border: "1px solid " + T.teal + "44", borderRadius: 10,
                                                         padding: 12, marginBottom: 10 }}>
                                                     <div style={{ fontSize: 9, color: T.teal,
                                                             letterSpacing: 1.5, textTransform: "uppercase",
@@ -4933,7 +4941,7 @@
                                                                 .value }))} /></div>
                                             </div>
                                             {form.qty && form.price && <div style={{ background: T.bg4,
-                                                    border: `1px solid ${T.border}`, borderRadius: 8,
+                                                    border: "1px solid " + T.border, borderRadius: 8,
                                                     padding: "9px 12px", fontSize: 12, color: T.text2,
                                                     fontWeight: 500,
                                                 marginBottom: 12 }}>Total: <strong style={{ color: T
@@ -4974,7 +4982,7 @@
                                                 ))}
                                             </div>
                                             {form.qty && form.price && <div style={{ background: T.bg4,
-                                                    border: `1px solid ${T.border}`, borderRadius: 8,
+                                                    border: "1px solid " + T.border, borderRadius: 8,
                                                     padding: "9px 12px", fontSize: 12, color: T.text2,
                                                     fontWeight: 500,
                                                 marginBottom: 12 }}>Total: <strong style={{ color: T
@@ -5000,7 +5008,7 @@
                                                 marginBottom: 14 }}>{modal.holding.name} · {modal.holding
                                                     .currency}{modal.holding.isBondPct && ` · Face value: Rp ${fmtIDR(modal.holding.faceValue||1000000)}/unit`}</p>
                                             <div style={{ background: dark ? "#0f1120" : "#f8f9ff",
-                                                    border: `1px solid ${T.border2}`, borderRadius: 10,
+                                                    border: "1px solid " + T.border2, borderRadius: 10,
                                                     padding: "10px 14px", marginBottom: 14, fontSize: 11,
                                                     color: T.text2, lineHeight: 1.6, fontWeight: 500 }}><b
                                                     style={{ color: T
@@ -5066,7 +5074,7 @@
                                                     prices, prevPrices, rates).qty; const isPartial =
                                                     +form.entitledQty < fullQty; return (<div style={{
                                                         background: dark ? "#041824" :
-                                                        "#e0f9f8", border: `1px solid ${T.teal}55`,
+                                                        "#e0f9f8", border: "1px solid " + T.teal + "55",
                                                         borderRadius: 8, padding: "10px 14px",
                                                     marginBottom: 14 }}><div style={{ display: "flex",
                                                             justifyContent: "space-between",
@@ -5081,7 +5089,7 @@
                                                             <div style={{ fontSize: 10, color: T
                                                                     .amber, background: dark ?
                                                                     "#1a1000" : "#fffbeb",
-                                                                    border: `1px solid ${T.amber}44`,
+                                                                    border: "1px solid " + T.amber + "44",
                                                                     borderRadius: 6,
                                                                     padding: "3px 8px",
                                                                     fontWeight: 600 }}>✂️ Partial — {form
@@ -5122,7 +5130,7 @@
                                                     ["Div/Coupons", FC(histC.totalDividends), T
                                                         .teal]
                                                 ].map(([l, v, c]) => (<div key={l} style={{
-                                                        background: T.bg4, border: `1px solid ${T.border}`,
+                                                        background: T.bg4, border: "1px solid " + T.border,
                                                         borderRadius: 8, padding: "7px 12px",
                                                         flex: "1 1 100px"
                                                     }}><div style={{ fontSize: 8, color: T
@@ -5133,7 +5141,7 @@
                                                                 fontSize: 11, fontWeight: 700,
                                                                 color: c, marginTop: 3 }}>{v}</div></div>))}
                                             </div>
-                                            <div style={{ overflowX: "auto", borderRadius: 8, border: `1px solid ${T.border}` }}>
+                                            <div style={{ overflowX: "auto", borderRadius: 8, border: "1px solid " + T.border }}>
                                                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                                                     <thead>
                                                         <tr>
@@ -5147,7 +5155,7 @@
                                                                         color: T.text3,
                                                                         textTransform: "uppercase",
                                                                         background: T.bg,
-                                                                        borderBottom: `1px solid ${T.border}`,
+                                                                        borderBottom: "1px solid " + T.border,
                                                                         whiteSpace: "nowrap",
                                                                     fontWeight: 600 }}>{c}</th>
                                                             ))}
@@ -5240,13 +5248,13 @@
                                                                                 fontSize: 10,
                                                                                 color: T
                                                                                     .text2,
-                                                                                borderBottom: `1px solid ${T.border}`,
+                                                                                borderBottom: "1px solid " + T.border,
                                                                                 whiteSpace: "nowrap",
                                                                                 fontWeight: 500 }}>{fmtDate(
                                                                                 tx
                                                                                 .date)}</td>
                                                                         <td style={{ padding: "8px 10px",
-                                                                                borderBottom: `1px solid ${T.border}` }}><span
+                                                                                borderBottom: "1px solid " + T.border }}><span
                                                                                 style={{ padding: "2px 8px",
                                                                                     borderRadius: 4,
                                                                                     background: t
@@ -5262,14 +5270,14 @@
                                                                                 fontSize: 10,
                                                                                 color: T
                                                                                     .text2,
-                                                                                borderBottom: `1px solid ${T.border}`,
+                                                                                borderBottom: "1px solid " + T.border,
                                                                                 fontWeight: 500 }}>{units}</td>
                                                                         <td style={{ padding: "8px 10px",
                                                                                 fontFamily: "'Space Mono',monospace",
                                                                                 fontSize: 10,
                                                                                 color: T
                                                                                     .text2,
-                                                                                borderBottom: `1px solid ${T.border}`,
+                                                                                borderBottom: "1px solid " + T.border,
                                                                                 fontWeight: 500 }}>{price}</td>
                                                                         <td style={{ padding: "8px 10px",
                                                                                 fontFamily: "'Space Mono',monospace",
@@ -5277,9 +5285,9 @@
                                                                                 fontWeight: 700,
                                                                                 color: t
                                                                                     .c,
-                                                                                borderBottom: `1px solid ${T.border}` }}>{total}</td>
+                                                                                borderBottom: "1px solid " + T.border }}>{total}</td>
                                                                         <td style={{ padding: "4px 8px",
-                                                                                borderBottom: `1px solid ${T.border}` }}>
+                                                                                borderBottom: "1px solid " + T.border }}>
                                                                             <div style={{ display: "flex",
                                                                                     gap: 4 }}>
                                                                                 <button onClick={() =>
@@ -5290,7 +5298,7 @@
                                                                                     style={{ fontSize: 10,
                                                                                         padding: "2px 8px",
                                                                                         borderRadius: 4,
-                                                                                        border: `1px solid ${T.border}`,
+                                                                                        border: "1px solid " + T.border,
                                                                                         background: T
                                                                                             .bg4,
                                                                                         color: T
@@ -5328,7 +5336,7 @@
                                                                                     style={{ fontSize: 10,
                                                                                         padding: "2px 8px",
                                                                                         borderRadius: 4,
-                                                                                        border: `1px solid ${T.red}44`,
+                                                                                        border: "1px solid " + T.red + "44",
                                                                                         background: T
                                                                                             .bg4,
                                                                                         color: T
@@ -5362,21 +5370,21 @@
                                                 symbol.</p>
                                             <div style={{ display: "flex", flexDirection: "column", gap: 8,
                                                     marginBottom: 16 }}><div style={{ background: dark ?
-                                                        "#040e18" : "#f0f9ff", border: `1px solid ${T.teal}44`,
+                                                        "#040e18" : "#f0f9ff", border: "1px solid " + T.teal + "44",
                                                         borderRadius: 10, padding: "9px 14px",
                                                         fontSize: 11, color: T.teal, fontWeight: 500 }}><b>🏦 PBS032 / PBS033
                                                         (Sukuk Negara):</b> Auto-fetched from <b>DJPPR
                                                         Kemenkeu</b>. If the fetch fails, enter the IDR price
                                                     per unit manually (e.g. Rp 1,010,000 = 101% of face
                                                     value).</div><div style={{ background: dark ?
-                                                        "#040e18" : "#f0f9ff", border: `1px solid ${T.teal}44`,
+                                                        "#040e18" : "#f0f9ff", border: "1px solid " + T.teal + "44",
                                                         borderRadius: 10, padding: "9px 14px",
                                                         fontSize: 11, color: T.teal, fontWeight: 500 }}><b>📊 NUL7270AU:</b>
                                                     Fetched from <b>Morningstar AU</b> (security ID 46182).
                                                     &nbsp;<b>NUL5339AU:</b> Fetched from <b>FE fundinfo</b>
                                                     (moneymanagement.com.au). If either fails, enter the AUD
                                                     unit price manually.</div><div style={{ background: dark ?
-                                                        "#14100a" : "#fffbeb", border: `1px solid ${T.amber}44`,
+                                                        "#14100a" : "#fffbeb", border: "1px solid " + T.amber + "44",
                                                         borderRadius: 10, padding: "9px 14px",
                                                         fontSize: 11, color: T.amber, fontWeight: 500 }}><b>📌 Gold (GC=F):</b>
                                                     Fetches USD spot price from COMEX futures. Enter price in
@@ -5389,7 +5397,7 @@
                                                         .value }))}>{CURRENCIES.map(c => <option
                                                             key={c}>{c}</option>)}</select></div>
                                             {holdings.map(h => (<div key={h.ticker} style={{ marginBottom: 16,
-                                                        paddingBottom: 16, borderBottom: `1px solid ${T.border}` }}><div
+                                                        paddingBottom: 16, borderBottom: "1px solid " + T.border }}><div
                                                         style={{ fontSize: 11, color: T.text,
                                                             fontWeight: 700, fontFamily: "'Space Mono',monospace",
                                                         marginBottom: 8 }}>{h.ticker}<span style={{
@@ -5400,14 +5408,14 @@
                                                                     background: dark ? "#041020" :
                                                                     "#e0f9ff", color: T.teal,
                                                                     padding: "2px 8px", borderRadius: 12,
-                                                                    border: `1px solid ${T.teal}44`,
+                                                                    border: "1px solid " + T.teal + "44",
                                                                     fontWeight: 500 }}>BOND</span>}{!h
                                                             .yahooSymbol && <span style={{ marginLeft: 6,
                                                                 fontSize: 9, background: dark ?
                                                                     "#1a100a" : "#fff7ed",
                                                                     color: T.amber, padding: "2px 8px",
                                                                     borderRadius: 12,
-                                                                    border: `1px solid ${T.amber}44`,
+                                                                    border: "1px solid " + T.amber + "44",
                                                                     fontWeight: 500 }}>✏️ Manual
                                                                 only</span>}<span style={{ marginLeft: 6,
                                                                 fontSize: 9, color: T.text3,
@@ -5497,7 +5505,7 @@
                                                     saved only in your browser's
                                                     localStorage — never sent anywhere
                                                     except Firebase itself.</p><div
-                                                    style={{ background: T.bg4, border: `1px solid ${T.border}`,
+                                                    style={{ background: T.bg4, border: "1px solid " + T.border,
                                                         borderRadius: 8, padding: 12,
                                                         marginBottom: 16, fontSize: 11,
                                                         color: T.text2, lineHeight: 1.7, fontWeight: 500 }}><b
@@ -5642,7 +5650,7 @@
                                         display: "flex", alignItems: "center",
                                         justifyContent: "center", padding: 12 }}><div
                                         onClick={e => e.stopPropagation()} style={{
-                                            background: T.bg2, border: `1px solid ${T.border}`,
+                                            background: T.bg2, border: "1px solid " + T.border,
                                             borderRadius: 16, padding: 24, width: "100%",
                                             maxWidth: 400, boxShadow: T.shadow }}><h2
                                             style={{ fontFamily: "'Space Mono',monospace",
@@ -5686,7 +5694,7 @@
                                     zIndex: 200, display: "flex", alignItems: "center",
                                     justifyContent: "center", padding: 12 }}>
                                 <div onClick={e => e.stopPropagation()} style={{ background: T.bg2,
-                                        border: `1px solid ${T.border}`, borderRadius: 16,
+                                        border: "1px solid " + T.border, borderRadius: 16,
                                         padding: 24, width: "100%", maxWidth: 400,
                                     boxShadow: T.shadow }}>
                                     <h2 style={{ fontFamily: "'Space Mono',monospace", fontSize: 16,
