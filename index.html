@@ -18,13 +18,14 @@
         }
         body {
             min-height: 100vh;
-            font-family: 'Roboto', sans-serif;
+            font-family: 'Roboto', 'Segoe UI', system-ui, sans-serif;
             font-size: 14px;
             -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
         input,
         select {
-            font-family: 'Roboto', sans-serif;
+            font-family: inherit;
         }
         input[type=number]::-webkit-inner-spin-button {
             -webkit-appearance: none;
@@ -35,21 +36,23 @@
         button {
             cursor: pointer;
             font-family: inherit;
-            transition: opacity .15s, transform .1s;
+            transition: background-color .15s, transform .1s, box-shadow .15s;
+            border: none;
+            outline: none;
         }
         button:active {
             transform: scale(.97);
         }
         ::-webkit-scrollbar {
-            width: 5px;
-            height: 5px;
+            width: 6px;
+            height: 6px;
         }
         ::-webkit-scrollbar-track {
             background: transparent;
         }
         ::-webkit-scrollbar-thumb {
-            border-radius: 3px;
-            background: #444;
+            border-radius: 4px;
+            background: #888;
         }
         .light ::-webkit-scrollbar-thumb {
             background: #ccc;
@@ -69,7 +72,7 @@
                 opacity: 1;
             }
             50% {
-                opacity: .4;
+                opacity: .5;
             }
         }
         .pulse {
@@ -119,16 +122,42 @@
         }
         .repair-btn {
             font-size: 11px !important;
-            padding: 4px 10px !important;
-            border-radius: 8px !important;
+            padding: 6px 12px !important;
+            border-radius: 20px !important;
             border: 1px solid #f59e0b66 !important;
             background: transparent !important;
             color: #f59e0b !important;
             cursor: pointer !important;
-            transition: all .15s !important;
+            transition: all .2s !important;
+            font-weight: 500 !important;
         }
         .repair-btn:hover {
             background: #f59e0b22 !important;
+        }
+        .export-btn {
+            font-size: 11px !important;
+            padding: 6px 12px !important;
+            border-radius: 20px !important;
+            border: 1px solid #4ade8066 !important;
+            background: transparent !important;
+            color: #4ade80 !important;
+            cursor: pointer !important;
+            transition: all .2s !important;
+            font-weight: 500 !important;
+        }
+        .export-btn:hover {
+            background: #4ade8022 !important;
+        }
+        /* Fix for modal scrolling */
+        .modal-scroll {
+            max-height: 92vh;
+            overflow-y: auto;
+        }
+        /* Table cell ellipsis */
+        .ellipsis {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
     </style>
 </head>
@@ -240,53 +269,58 @@
         ]);
 
         // ─── Themes ───────────────────────────────────────────────────────────────
+        // Google-inspired clean palette
         const DARK = {
-            bg: "#070910",
-            bg2: "#0b0d16",
-            bg3: "#0f1120",
-            bg4: "#141828",
-            bg5: "#1a1f30",
-            border: "#2a3050",
-            border2: "#3a4068",
-            text: "#f0f4ff",
-            text2: "#c0c8f0",
-            text3: "#90a0d0",
-            text4: "#606880",
-            green: "#4ade80",
-            greenBtn: "#22c55e",
-            red: "#f87171",
-            redBtn: "#ef4444",
-            teal: "#2dd4bf",
-            tealBtn: "#0d9488",
-            amber: "#fbbf24",
-            amberBg: "#1a1200",
-            shadow: "0 8px 32px rgba(0,0,0,.6)",
+            bg: "#121212",
+            bg2: "#1e1e1e",
+            bg3: "#2a2a2a",
+            bg4: "#333333",
+            bg5: "#3d3d3d",
+            border: "#3d3d3d",
+            border2: "#555555",
+            text: "#e8eaed",
+            text2: "#bdc1c6",
+            text3: "#9aa0a6",
+            text4: "#6c7278",
+            green: "#81c995",
+            greenBtn: "#34a853",
+            red: "#f28b82",
+            redBtn: "#ea4335",
+            teal: "#8ab4f8",
+            tealBtn: "#1a73e8",
+            amber: "#fdd663",
+            amberBg: "#332d1a",
+            shadow: "0 4px 16px rgba(0,0,0,.5)",
             chartGrid: "rgba(255,255,255,.08)",
-            chartTick: "#a0a8d0",
+            chartTick: "#9aa0a6",
+            cardBg: "#252525",
+            hoverBg: "#333333",
         };
         const LIGHT = {
-            bg: "#f8fafc",
+            bg: "#f1f3f4",
             bg2: "#ffffff",
-            bg3: "#f1f5f9",
-            bg4: "#e2e8f0",
-            bg5: "#cbd5e1",
-            border: "#cbd5e1",
-            border2: "#94a3b8",
-            text: "#0f172a",
-            text2: "#1e293b",
-            text3: "#334155",
-            text4: "#64748b",
-            green: "#15803d",
-            greenBtn: "#16a34a",
-            red: "#b91c1c",
-            redBtn: "#dc2626",
-            teal: "#0e7490",
-            tealBtn: "#0891b2",
-            amber: "#d97706",
-            amberBg: "#fffbeb",
-            shadow: "0 4px 20px rgba(0,0,0,.08)",
+            bg3: "#f8f9fa",
+            bg4: "#e8eaed",
+            bg5: "#dadce0",
+            border: "#dadce0",
+            border2: "#bdc1c6",
+            text: "#202124",
+            text2: "#3c4043",
+            text3: "#5f6368",
+            text4: "#80868b",
+            green: "#1e8e3e",
+            greenBtn: "#1a73e8",
+            red: "#d93025",
+            redBtn: "#d93025",
+            teal: "#1a73e8",
+            tealBtn: "#1a73e8",
+            amber: "#e37400",
+            amberBg: "#fef7e0",
+            shadow: "0 2px 12px rgba(0,0,0,.12)",
             chartGrid: "rgba(0,0,0,.06)",
-            chartTick: "#94a3b8",
+            chartTick: "#5f6368",
+            cardBg: "#ffffff",
+            hoverBg: "#f1f3f4",
         };
 
         // ─── Treemap ──────────────────────────────────────────────────────────────────
@@ -333,18 +367,18 @@
                 if (p >= 3) return { bg: "#166534", text: "#bbf7d0", border: "#4ade80" };
                 if (p >= 1) return { bg: "#14532d", text: "#86efac", border: "#22c55e" };
                 if (p > 0) return { bg: "#0f3d22", text: "#4ade80", border: "#16a34a" };
-                if (p === 0) return { bg: "#1e2235", text: "#9ca3af", border: "#374151" };
+                if (p === 0) return { bg: "#2a2a2a", text: "#9aa0a6", border: "#5f6368" };
                 if (p > -1) return { bg: "#7f1d1d", text: "#fecaca", border: "#f87171" };
                 if (p > -3) return { bg: "#991b1b", text: "#fca5a5", border: "#ef4444" };
                 return { bg: "#b91c1c", text: "#fef2f2", border: "#fca5a5" };
             } else {
-                if (p >= 3) return { bg: "#22c55e", text: "#ffffff", border: "#166534" };
-                if (p >= 1) return { bg: "#16a34a", text: "#ffffff", border: "#14532d" };
-                if (p > 0) return { bg: "#15803d", text: "#ffffff", border: "#0f3d22" };
-                if (p === 0) return { bg: "#e5e7eb", text: "#374151", border: "#9ca3af" };
-                if (p > -1) return { bg: "#dc2626", text: "#ffffff", border: "#991b1b" };
-                if (p > -3) return { bg: "#b91c1c", text: "#ffffff", border: "#7f1d1d" };
-                return { bg: "#991b1b", text: "#ffffff", border: "#450a0a" };
+                if (p >= 3) return { bg: "#137333", text: "#ffffff", border: "#1e8e3e" };
+                if (p >= 1) return { bg: "#1e8e3e", text: "#ffffff", border: "#34a853" };
+                if (p > 0) return { bg: "#34a853", text: "#ffffff", border: "#66bb6a" };
+                if (p === 0) return { bg: "#e8eaed", text: "#3c4043", border: "#bdc1c6" };
+                if (p > -1) return { bg: "#f28b82", text: "#ffffff", border: "#ea4335" };
+                if (p > -3) return { bg: "#ea4335", text: "#ffffff", border: "#d93025" };
+                return { bg: "#d93025", text: "#ffffff", border: "#b3261e" };
             }
         }
 
@@ -353,18 +387,18 @@
                 if (p >= 2) return { bg: "#166534", text: "#bbf7d0", border: "#4ade80" };
                 if (p >= 0.5) return { bg: "#14532d", text: "#86efac", border: "#22c55e" };
                 if (p > 0) return { bg: "#0f3d22", text: "#4ade80", border: "#16a34a" };
-                if (p === 0) return { bg: "#1e2235", text: "#9ca3af", border: "#374151" };
+                if (p === 0) return { bg: "#2a2a2a", text: "#9aa0a6", border: "#5f6368" };
                 if (p > -0.5) return { bg: "#7f1d1d", text: "#fecaca", border: "#f87171" };
                 if (p > -2) return { bg: "#991b1b", text: "#fca5a5", border: "#ef4444" };
                 return { bg: "#b91c1c", text: "#fef2f2", border: "#fca5a5" };
             } else {
-                if (p >= 2) return { bg: "#22c55e", text: "#ffffff", border: "#166534" };
-                if (p >= 0.5) return { bg: "#16a34a", text: "#ffffff", border: "#14532d" };
-                if (p > 0) return { bg: "#15803d", text: "#ffffff", border: "#0f3d22" };
-                if (p === 0) return { bg: "#e5e7eb", text: "#374151", border: "#9ca3af" };
-                if (p > -0.5) return { bg: "#dc2626", text: "#ffffff", border: "#991b1b" };
-                if (p > -2) return { bg: "#b91c1c", text: "#ffffff", border: "#7f1d1d" };
-                return { bg: "#991b1b", text: "#ffffff", border: "#450a0a" };
+                if (p >= 2) return { bg: "#137333", text: "#ffffff", border: "#1e8e3e" };
+                if (p >= 0.5) return { bg: "#1e8e3e", text: "#ffffff", border: "#34a853" };
+                if (p > 0) return { bg: "#34a853", text: "#ffffff", border: "#66bb6a" };
+                if (p === 0) return { bg: "#e8eaed", text: "#3c4043", border: "#bdc1c6" };
+                if (p > -0.5) return { bg: "#f28b82", text: "#ffffff", border: "#ea4335" };
+                if (p > -2) return { bg: "#ea4335", text: "#ffffff", border: "#d93025" };
+                return { bg: "#d93025", text: "#ffffff", border: "#b3261e" };
             }
         }
 
@@ -374,13 +408,13 @@
                 if (y >= 4) return { bg: "#0e7490", text: "#a5f3fc", border: "#06b6d4" };
                 if (y >= 2) return { bg: "#0c4a6e", text: "#7dd3fc", border: "#0891b2" };
                 if (y > 0) return { bg: "#1e3a5f", text: "#93c5fd", border: "#3b82f6" };
-                return { bg: "#1e2235", text: "#6b7280", border: "#374151" };
+                return { bg: "#2a2a2a", text: "#9aa0a6", border: "#5f6368" };
             } else {
                 if (y >= 6) return { bg: "#0d9488", text: "#ffffff", border: "#115e59" };
                 if (y >= 4) return { bg: "#0f766e", text: "#ffffff", border: "#0d5b54" };
                 if (y >= 2) return { bg: "#14b8a6", text: "#ffffff", border: "#0f766e" };
                 if (y > 0) return { bg: "#2dd4bf", text: "#0f172a", border: "#14b8a6" };
-                return { bg: "#e5e7eb", text: "#374151", border: "#9ca3af" };
+                return { bg: "#e8eaed", text: "#3c4043", border: "#bdc1c6" };
             }
         }
 
@@ -986,16 +1020,14 @@
             if (!Array.isArray(portfolio)) return [];
             const seenIds = new Set();
             const result = portfolio.map(h => {
-                // Ensure unique id
                 let id = h.id;
                 if (!id || typeof id !== "number" || isNaN(id) || seenIds.has(id)) {
                     id = ++globalIdCounter;
                 }
                 seenIds.add(id);
-                // Clone transactions array to ensure independence
                 let tx = h.transactions;
                 if (!Array.isArray(tx)) tx = [];
-                tx = [...tx]; // always clone
+                tx = [...tx];
                 tx = tx.filter(t => t && typeof t === "object");
                 return { ...h, id, transactions: tx };
             });
@@ -1095,24 +1127,24 @@
                 if (inst.current) inst.current.destroy();
                 const hasY2 = y2Fmt && datasets.some(d => d.yAxisID === "y2");
                 const scales = {
-                    x: { grid: { color: T.chartGrid }, ticks: { color: T.chartTick, font: { size: 10 } },
+                    x: { grid: { color: T.chartGrid }, ticks: { color: T.chartTick, font: { size: 10, weight: "500" } },
                         border: { color: T.border } },
-                    y: { grid: { color: T.chartGrid }, ticks: { color: T.chartTick, font: { size: 10 },
+                    y: { grid: { color: T.chartGrid }, ticks: { color: T.chartTick, font: { size: 10, weight: "500" },
                             callback: yFmt || (v => `A$${(v/1000).toFixed(0)}K`) }, border: { color: T.border },
                         position: "left" },
                 };
                 if (hasY2) {
                     scales.y2 = {
                         grid: { drawOnChartArea: false },
-                        ticks: { color: "#06b6d4", font: { size: 10 }, callback: y2Fmt },
+                        ticks: { color: "#1a73e8", font: { size: 10, weight: "500" }, callback: y2Fmt },
                         border: { color: T.border },
                         position: "right",
                     };
                 }
                 inst.current = new Chart(ref.current, { type: "line", data: { labels, datasets }, options: { spanGaps: spanGaps,
                         responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: T.text2,
-                                    font: { family: "Roboto", size: 11 }, boxWidth: 10, padding: 12 } },
-                            tooltip: { backgroundColor: T.bg3, borderColor: T.border, borderWidth: 1,
+                                    font: { family: "Roboto", size: 11, weight: "500" }, boxWidth: 10, padding: 12 } },
+                            tooltip: { backgroundColor: T.bg2, borderColor: T.border, borderWidth: 1,
                                 titleColor: T.text, bodyColor: T.text2, padding: 10, cornerRadius: 8,
                                 callbacks: { label: (ctx) => { const fmt = ctx.dataset.yAxisID === "y2" &&
                                         y2Fmt ? y2Fmt : yFmt || (v => `${v}`); return ` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)}`; } } } },
@@ -1130,12 +1162,12 @@
                 if (inst.current) inst.current.destroy();
                 inst.current = new Chart(ref.current, { type: "bar", data: { labels, datasets }, options: { responsive: true,
                         maintainAspectRatio: false, plugins: { legend: { display: stacked, labels: { color: T.text2,
-                                    font: { family: "Roboto", size: 9 }, boxWidth: 8, padding: 6 } },
-                            tooltip: { backgroundColor: T.bg3, borderColor: T.border, borderWidth: 1,
+                                    font: { family: "Roboto", size: 9, weight: "500" }, boxWidth: 8, padding: 6 } },
+                            tooltip: { backgroundColor: T.bg2, borderColor: T.border, borderWidth: 1,
                                 titleColor: T.text, bodyColor: T.text2, padding: 10, cornerRadius: 8 } },
                         scales: { x: { grid: { color: "transparent" }, ticks: { color: T.chartTick,
-                                    font: { size: 10 } }, border: { color: T.border }, stacked: stacked },
-                            y: { grid: { color: T.chartGrid }, ticks: { color: T.chartTick, font: { size: 10 },
+                                    font: { size: 10, weight: "500" } }, border: { color: T.border }, stacked: stacked },
+                            y: { grid: { color: T.chartGrid }, ticks: { color: T.chartTick, font: { size: 10, weight: "500" },
                                     callback: yFmt || (v => `A$${v.toFixed(0)}`) }, border: { color: T.border },
                                 stacked: stacked } } } });
                 return () => { if (inst.current) inst.current.destroy(); };
@@ -1152,10 +1184,10 @@
                 inst.current = new Chart(ref.current, { type: "doughnut", data: { labels, datasets: [{ data,
                             backgroundColor: colors, borderColor: T.bg2, borderWidth: 2 }] },
                     options: { responsive: true, maintainAspectRatio: false, cutout: "62%", plugins: { legend: { position: "right",
-                                labels: { color: T.text2, font: { family: "Roboto", size: 10 }, boxWidth: 10,
-                                    padding: 8 } }, tooltip: { backgroundColor: T.bg3, borderColor: T.border,
-                                borderWidth: 1, titleColor: T.text, bodyColor: T.text2, padding: 10,
-                                cornerRadius: 8 } } } });
+                                labels: { color: T.text2, font: { family: "Roboto", size: 10, weight: "500" },
+                                    boxWidth: 10, padding: 8 } }, tooltip: { backgroundColor: T.bg2,
+                                borderColor: T.border, borderWidth: 1, titleColor: T.text, bodyColor: T.text2,
+                                padding: 10, cornerRadius: 8 } } } });
                 return () => { if (inst.current) inst.current.destroy(); };
             }, [labels, data, colors, T]);
             return <div style={{ height, position: "relative" }}><canvas ref={ref} /></div>;
@@ -1196,14 +1228,14 @@
                     } else if (d.type === "pos") {
                         bases.push(running);
                         tops.push(running + d.value);
-                        bgColors.push("#22c55e");
-                        borderColors.push("#4ade80");
+                        bgColors.push("#34a853");
+                        borderColors.push("#66bb6a");
                         running += d.value;
                     } else {
                         bases.push(running + d.value);
                         tops.push(running);
-                        bgColors.push("#ef4444");
-                        borderColors.push("#f87171");
+                        bgColors.push("#ea4335");
+                        borderColors.push("#f28b82");
                         running += d.value;
                     }
                 });
@@ -1234,7 +1266,7 @@
                         plugins: {
                             legend: { display: false },
                             tooltip: {
-                                backgroundColor: T.bg3,
+                                backgroundColor: T.bg2,
                                 borderColor: T.border,
                                 borderWidth: 1,
                                 titleColor: T.text,
@@ -1258,17 +1290,17 @@
                                         borderWidth: 1, borderDash: [4, 4] },
                                     note: { type: "label", xValue: 0, yValue: yMax,
                                         content: "* Start/End bars compressed for scale", color: T.text3,
-                                        font: { size: 9 } },
+                                        font: { size: 9, weight: "400" } },
                                 }
                             } : {},
                         },
                         scales: {
-                            x: { grid: { color: "transparent" }, ticks: { color: T.chartTick, font: { size: 10 } },
-                                border: { color: T.border } },
+                            x: { grid: { color: "transparent" }, ticks: { color: T.chartTick, font: { size: 10,
+                                        weight: "500" } }, border: { color: T.border } },
                             y: {
                                 grid: { color: T.chartGrid },
-                                ticks: { color: T.chartTick, font: { size: 10 }, callback: yFmt || (v =>
-                                        `A$${(v/1000).toFixed(0)}K`) },
+                                ticks: { color: T.chartTick, font: { size: 10, weight: "500" }, callback: yFmt ||
+                                        (v => `A$${(v/1000).toFixed(0)}K`) },
                                 border: { color: T.border },
                                 ...(useCompressed ? { min: yMin, max: yMax } : {}),
                             },
@@ -1282,7 +1314,7 @@
                     {data.length ?
                         <canvas ref={ref} /> :
                         <div style={{ height, display: "flex", alignItems: "center", justifyContent: "center",
-                            color: T.text3, fontSize: 12 }}>No data for selected period</div>
+                            color: T.text3, fontSize: 12, fontWeight: "500" }}>No data for selected period</div>
                     }
                 </div>
             );
@@ -1461,7 +1493,6 @@
         }
 
         function buildPortfolioFromRows(parsedRows, existingPortfolio = []) {
-            // Repair existing portfolio first to ensure independent transactions
             const repaired = repairPortfolio(existingPortfolio);
             const portfolio = repaired.map(h => ({ ...h, transactions: [...h.transactions] }));
             const valid = parsedRows.filter(r => !r._errors.length);
@@ -1498,7 +1529,6 @@
                 }
             });
             portfolio.forEach(h => h.transactions.sort((a, b) => new Date(a.date) - new Date(b.date)));
-            // Re-repair to catch any shared references and ensure unique IDs
             return repairPortfolio(portfolio);
         }
 
@@ -1577,10 +1607,53 @@
             a.click();
         }
 
+        // ─── Export Transactions ─────────────────────────────────────────────────────
+        function exportTransactionsCSV(portfolio) {
+            const rows = [];
+            const header = [
+                "ticker", "name", "type", "date", "qty", "price",
+                "amount_per_share", "entitled_qty", "total_amount",
+                "currency", "asset_type", "exchange", "yahoo_symbol",
+                "face_value", "is_bond"
+            ];
+            rows.push(header);
+
+            for (const h of portfolio) {
+                for (const tx of h.transactions) {
+                    const row = [
+                        h.ticker,
+                        h.name || "",
+                        tx.type,
+                        tx.date || "",
+                        tx.type === "dividend" ? "" : (tx.qty ?? ""),
+                        tx.type === "dividend" ? "" : (tx.price ?? ""),
+                        tx.type === "dividend" ? (tx.amountPerShare ?? "") : "",
+                        tx.type === "dividend" ? (tx.entitledQty ?? "") : "",
+                        tx.type === "dividend" ? (tx.totalAmount ?? "") : "",
+                        h.currency || "AUD",
+                        h.assetType || "",
+                        h.exchange || "",
+                        h.yahooSymbol || "",
+                        h.faceValue ?? "",
+                        h.isBondPct ? "true" : "",
+                    ];
+                    rows.push(row);
+                }
+            }
+
+            const csv = rows.map(r => r.map(v => String(v).includes(",") ? `"${v}"` : v).join(",")).join("\n");
+            const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+            const a = document.createElement("a");
+            const dateStr = new Date().toISOString().slice(0, 10);
+            a.download = `folio_transactions_${dateStr}.csv`;
+            a.href = URL.createObjectURL(blob);
+            a.click();
+            URL.revokeObjectURL(a.href);
+        }
+
         // ─── App ──────────────────────────────────────────────────────────────────────
         function App() {
             const ld = (k, d) => { try { const s = localStorage.getItem(k); return s ? JSON.parse(s) : d; } catch { return d; } };
-            // Repair portfolio on load
             const [portfolio, setPortfolio] = useState(() => repairPortfolio(ld("f6_p", SEED)));
             const [prices, setPrices] = useState(() => ld("f6_pr", INIT_PRICES));
             const [prevPrices, setPrevPrices] = useState(() => ld("f6_pp", INIT_PREV));
@@ -1619,10 +1692,8 @@
             const winW = useWindowSize();
             const isMob = winW < 768;
 
-            // ── Refs for Firebase user (avoid stale closure) ──
             const fbUserRef = useRef(null);
 
-            // ── localStorage effects ──
             useEffect(() => { localStorage.setItem("f6_p", JSON.stringify(portfolio)); }, [portfolio]);
             useEffect(() => { localStorage.setItem("f6_pr", JSON.stringify(prices)); }, [prices]);
             useEffect(() => { localStorage.setItem("f6_pp", JSON.stringify(prevPrices)); }, [prevPrices]);
@@ -1643,7 +1714,6 @@
             useEffect(() => { document.body.style.background = T.bg;
                 document.body.style.color = T.text; }, [T]);
 
-            // ── Cloud Load (accepts optional user param) ──
             const cloudLoadAll = useCallback(async (userParam) => {
                 console.log("🔄 cloudLoadAll triggered" + (userParam ? " with user param" : ""));
                 let user = userParam || fbUserRef.current || (fbAuth && fbAuth.currentUser);
@@ -1690,7 +1760,6 @@
                 }
             }, []);
 
-            // ── Cloud Save (accepts optional user param) ──
             const cloudSaveAll = useCallback(async (userParam) => {
                 let user = userParam || fbUserRef.current || (fbAuth && fbAuth.currentUser);
                 if (!user) {
@@ -1722,7 +1791,6 @@
                 avgSuperBalanceAud
             ]);
 
-            // ── Firebase auth listener ──
             useEffect(() => {
                 if (!FB_CONFIGURED || !fbAuth) return;
                 const unsub = fbAuth.onAuthStateChanged(async (user) => {
@@ -1743,7 +1811,6 @@
                 return unsub;
             }, [cloudLoadAll]);
 
-            // ── Auto-save effect (only after cloudReady and user signed in) ──
             useEffect(() => {
                 const user = fbUserRef.current || (fbAuth && fbAuth.currentUser);
                 if (!user || !FB_CONFIGURED || !cloudReady) return;
@@ -1751,7 +1818,6 @@
                 return () => clearTimeout(t);
             }, [portfolio, prices, history, cloudReady, cloudSaveAll]);
 
-            // ── Sign-in handler ──
             const handleSignIn = useCallback(async () => {
                 try {
                     const user = await signInGoogle();
@@ -1764,7 +1830,6 @@
                 }
             }, [cloudLoadAll]);
 
-            // ── Sign-out handler ──
             const handleSignOut = useCallback(async () => {
                 await signOut();
                 setFbUser(null);
@@ -1773,7 +1838,6 @@
                 setSyncMsg("");
             }, []);
 
-            // ── Helper to set portfolio with repair ──
             const setPortfolioRepaired = useCallback((updater) => {
                 setPortfolio((prev) => {
                     const next = typeof updater === 'function' ? updater(prev) : updater;
@@ -1781,7 +1845,6 @@
                 });
             }, []);
 
-            // ── holdings memo ──
             const holdings = useMemo(() => portfolio.map(h => computeHolding(h, prices, prevPrices, rates)).filter(h => h
                     .qty > 0), [portfolio, prices, prevPrices, rates]);
 
@@ -2195,7 +2258,7 @@
                 const baseSnap = allSorted.filter(s => new Date(s.date) < cutoff).slice(-1)[0];
                 const monthly = {};
                 const monthlyByTicker = {};
-                const palette = ["#6366f1", "#22c55e", "#06b6d4", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899",
+                const palette = ["#6366f1", "#34a853", "#1a73e8", "#f59e0b", "#ea4335", "#8b5cf6", "#ec4899",
                     "#14b8a6", "#f97316", "#84cc16", "#3b82f6", "#a78bfa"
                 ];
                 portfolio.forEach(h => {
@@ -2287,7 +2350,7 @@
                     palette,
                     byCurLabels: Object.keys(byCur),
                     byCurVals: Object.values(byCur),
-                    byCurColors: ["#22c55e", "#06b6d4", "#f59e0b", "#8b5cf6"],
+                    byCurColors: ["#34a853", "#1a73e8", "#f59e0b", "#8b5cf6"],
                     waterfallData,
                     startVal,
                     endVal,
@@ -2461,18 +2524,25 @@
                 setTimeout(() => setSyncMsg(""), 3000);
             };
 
+            // ─── EXPORT ───────────────────────────────────────────────────────────────────
+            const handleExport = () => {
+                exportTransactionsCSV(portfolio);
+            };
+
             const histH = modal?.mode === "history" ? portfolio.find(p => p.id === modal.holding.id) : null;
             const histC = histH ? computeHolding(histH, prices, prevPrices, rates) : null;
 
-            const card = (x = {}) => ({ background: T.bg3, border: `1px solid ${T.border}`, borderRadius: 12, ...x });
-            const bS = (bg, col, x = {}) => ({ padding: "8px 16px", border: "none", borderRadius: 8, background: bg,
-                color: col, fontSize: 12, fontWeight: 700, ...x });
-            const bO = (col, x = {}) => ({ padding: "8px 14px", border: `1px solid ${T.border2}`, borderRadius: 8,
-                background: "transparent", color: col, fontSize: 12, ...x });
-            const inp = () => ({ width: "100%", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 8,
-                padding: "9px 12px", color: T.text, fontSize: 13, outline: "none" });
-            const lbl = (x = {}) => ({ display: "block", fontSize: 9, letterSpacing: 1.2, color: T.text3,
-                textTransform: "uppercase", marginBottom: 5, fontWeight: 600, ...x });
+            const card = (x = {}) => ({ background: T.cardBg || T.bg3, border: `1px solid ${T.border}`, borderRadius: 12,
+                boxShadow: T.shadow, padding: 16, ...x });
+            const bS = (bg, col, x = {}) => ({ padding: "8px 16px", border: "none", borderRadius: 20, background: bg,
+                color: col, fontSize: 12, fontWeight: 600, transition: "background .2s", ...x });
+            const bO = (col, x = {}) => ({ padding: "8px 14px", border: `1px solid ${T.border2}`, borderRadius: 20,
+                background: "transparent", color: col, fontSize: 12, fontWeight: 500, transition: "background .2s",
+                ...x });
+            const inp = () => ({ width: "100%", background: T.bg, border: `1px solid ${T.border2}`, borderRadius: 8,
+                padding: "10px 14px", color: T.text, fontSize: 13, outline: "none", transition: "border .2s" });
+            const lbl = (x = {}) => ({ display: "block", fontSize: 10, letterSpacing: 1.2, color: T.text3,
+                textTransform: "uppercase", marginBottom: 6, fontWeight: 600, ...x });
             const fmtNativePrice = (h, v) => { const cur = h.currency; if (!v && v !== 0) return "—"; if (cur ===
                     "IDR") return `Rp ${fmtIDR(v)}`; if (cur === "USD") return `US$${fmtAUD(v)}`; return `A$${fmtAUD(v)}`; };
             const fetchBarColor = fetchSt.loading ? T.amber : Object.keys(fetchSt.errors).length > 0 ? T.amber : fetchSt
@@ -2485,8 +2555,8 @@
                 const invalid = IS.parsed.filter(r => r._errors.length);
                 const tickers = [...new Set(valid.map(r => r.ticker))];
                 const dropZoneStyle = { border: `2px dashed ${IS.dragOver ? T.greenBtn : T.border2}`, borderRadius: 12,
-                    padding: "32px 20px", textAlign: "center", background: IS.dragOver ? (dark ? "#0d2a18" :
-                        "#f0fff4") : T.bg4, transition: "all .2s", cursor: "pointer" };
+                    padding: "32px 20px", textAlign: "center", background: IS.dragOver ? (dark ? "#1e2a1e" :
+                        "#e8f5e9") : T.bg4, transition: "all .2s", cursor: "pointer" };
                 return (
                     <div>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start",
@@ -2685,8 +2755,8 @@
                     <div style={{ minHeight: "100vh", background: T.bg, color: T.text }}>
                         {/* Header */}
                         <header style={{ background: T.bg2, borderBottom: `1px solid ${T.border}`, position: "sticky",
-                                top: 0, zIndex: 20, boxShadow: T.shadow }}>
-                            <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "10px 14px" }}>
+                                top: 0, zIndex: 20, boxShadow: T.shadow, padding: "8px 14px" }}>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                                 <div className="header-main-row" style={{ display: "flex", alignItems: "center",
                                         justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
                                     <div className="logo-area" style={{ display: "flex", alignItems: "center",
@@ -2694,9 +2764,9 @@
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 56" width={isMob ? 160 :
                                                 210} height={isMob ? 44 : 56} style={{ display: "block" }}>
                                             <defs><linearGradient id="hbg" x1="0%" y1="100%" x2="100%" y2="0%"><stop
-                                                        offset="0%" stopColor="#22c55e" /><stop offset="55%"
-                                                        stopColor="#10b981" /><stop offset="100%"
-                                                        stopColor="#06b6d4" /></linearGradient>
+                                                        offset="0%" stopColor="#34a853" /><stop offset="55%"
+                                                        stopColor="#1a73e8" /><stop offset="100%"
+                                                        stopColor="#8ab4f8" /></linearGradient>
                                                 <linearGradient id="htg" x1="0%" y1="0%" x2="100%" y2="0%"><stop
                                                         offset="0%" stopColor={T.text} /><stop offset="100%"
                                                         stopColor="#a5f3c0" /></linearGradient>
@@ -2705,20 +2775,20 @@
                                                             in="SourceGraphic" /></feMerge></filter></defs>
                                             <rect x="1" y="4" width="48" height="48" rx="9" fill={T.bg3} stroke="url(#hbg)"
                                                 strokeWidth="1" />
-                                            <rect x="8" y="36" width="6" height="10" rx="1.5" fill="#22c55e"
+                                            <rect x="8" y="36" width="6" height="10" rx="1.5" fill="#34a853"
                                                 opacity="0.7" />
-                                            <rect x="17" y="29" width="6" height="17" rx="1.5" fill="#22c55e"
+                                            <rect x="17" y="29" width="6" height="17" rx="1.5" fill="#34a853"
                                                 opacity="0.85" />
-                                            <rect x="26" y="21" width="6" height="25" rx="1.5" fill="#10b981" />
-                                            <rect x="35" y="13" width="6" height="33" rx="1.5" fill="#06b6d4"
+                                            <rect x="26" y="21" width="6" height="25" rx="1.5" fill="#1a73e8" />
+                                            <rect x="35" y="13" width="6" height="33" rx="1.5" fill="#8ab4f8"
                                                 filter="url(#hgl)" />
                                             <polyline points="11,34 20,27 29,19 38,11" fill="none" stroke="url(#hbg)"
                                                 strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
                                                 opacity="0.9" />
-                                            <circle cx="11" cy="34" r="1.8" fill="#22c55e" />
-                                            <circle cx="20" cy="27" r="1.8" fill="#10b981" />
+                                            <circle cx="11" cy="34" r="1.8" fill="#34a853" />
+                                            <circle cx="20" cy="27" r="1.8" fill="#1a73e8" />
                                             <circle cx="29" cy="19" r="1.8" fill="#0dd6c0" />
-                                            <circle cx="38" cy="11" r="3.5" fill="#06b6d4" filter="url(#hgl)" />
+                                            <circle cx="38" cy="11" r="3.5" fill="#8ab4f8" filter="url(#hgl)" />
                                             <circle cx="38" cy="11" r="1.8" fill="#e0f9ff" />
                                             <text x="58" y="34" fontFamily="'Space Mono',monospace" fontWeight="700"
                                                 fontSize="22" letterSpacing="3" fill="url(#htg)">FOLIO</text>
@@ -2728,7 +2798,7 @@
                                         </svg>
                                     </div>
                                     <div className="hdr-desktop" style={{ display: "flex", alignItems: "stretch",
-                                            flex: 1, flexWrap: "wrap", gap: "8px 16px", overflow: "hidden" }}>
+                                            flex: 1, flexWrap: "wrap", gap: "6px 12px", overflow: "hidden" }}>
                                         {[
                                             ["VALUE", FC(totVal, true), T.text],
                                             ["TOTAL G/L", `${FG(totGain)} (${fmtPct(totPct)})`, pColor(totGain)],
@@ -2752,16 +2822,16 @@
                                             <div key={l} style={{ display: "flex", flexDirection: "column",
                                                     padding: "0 8px 0 0", borderLeft: i > 0 ?
                                                         `1px solid ${T.border}` : "none", minWidth: 0 }}>
-                                                <span style={{ fontSize: 8, letterSpacing: 1.8, color: T.text3,
+                                                <span style={{ fontSize: 8, letterSpacing: 1.2, color: T.text3,
                                                         textTransform: "uppercase", marginBottom: 2,
-                                                        whiteSpace: "nowrap" }}>{l}</span>
-                                                <span style={{ fontSize: 11, fontFamily: "'Space Mono',monospace",
+                                                        whiteSpace: "nowrap", fontWeight: 600 }}>{l}</span>
+                                                <span style={{ fontSize: 12, fontFamily: "'Space Mono',monospace",
                                                         fontWeight: 700, color: c, whiteSpace: "nowrap",
                                                         overflow: "hidden", textOverflow: "ellipsis" }}>{v}</span>
                                             </div>
                                         ))}
                                     </div>
-                                    <div className="hdr-mobile stats-mobile-wrap" style={{ display: "none", gap: 10,
+                                    <div className="hdr-mobile stats-mobile-wrap" style={{ display: "none", gap: 8,
                                             flex: 1, justifyContent: "center", flexWrap: "wrap" }}>
                                         {[
                                             ["VALUE", FC(totVal, true), T.text],
@@ -2779,37 +2849,37 @@
                                                 .green : T.amber
                                             ],
                                         ].map(([l, v, c]) => (
-                                            <div key={l} style={{ textAlign: "center" }}><div style={{ fontSize: 8,
-                                                        color: T.text3, letterSpacing: 1.5,
-                                                        textTransform: "uppercase" }}>{l}</div><div style={{
-                                                        fontFamily: "'Space Mono',monospace", fontSize: 12,
+                                            <div key={l} style={{ textAlign: "center" }}><div style={{ fontSize: 7,
+                                                        color: T.text3, letterSpacing: 1,
+                                                        textTransform: "uppercase", fontWeight: 600 }}>{l}</div><div
+                                                    style={{ fontFamily: "'Space Mono',monospace", fontSize: 11,
                                                         fontWeight: 700, color: c }}>{v}</div></div>
                                         ))}
                                     </div>
                                 </div>
-                                <div className="header-controls-row" style={{ display: "flex", gap: 5,
+                                <div className="header-controls-row" style={{ display: "flex", gap: 4,
                                         alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap" }}>
-                                    <div style={{ display: "flex", background: T.bg4, borderRadius: 8, padding: 2,
+                                    <div style={{ display: "flex", background: T.bg4, borderRadius: 20, padding: 2,
                                             border: `1px solid ${T.border}` }}>
                                         {CURRENCIES.map(c => <button key={c} onClick={() => setDisplayCur(c)}
-                                            style={{ padding: "4px 8px", borderRadius: 6, border: "none",
+                                            style={{ padding: "4px 10px", borderRadius: 18, border: "none",
                                                 background: displayCur === c ? T.bg2 : "transparent",
                                                 color: displayCur === c ? T.text : T.text3, fontSize: 10,
-                                                fontWeight: displayCur === c ? 700 : 400,
+                                                fontWeight: displayCur === c ? 600 : 400,
                                                 fontFamily: "'Space Mono',monospace" }}>{c}</button>)}
                                     </div>
                                     <button onClick={() => setValuesHidden(v => !v)} title={valuesHidden ?
-                                            "Show values" : "Hide values"} style={{ ...bO(T.text2, { padding: "6px 9px",
-                                                fontSize: 14, lineHeight: 1, borderRadius: 8 }) }}>{valuesHidden ?
+                                            "Show values" : "Hide values"} style={{ ...bO(T.text2, { padding: "5px 10px",
+                                                fontSize: 14, lineHeight: 1, borderRadius: 20 }) }}>{valuesHidden ?
                                         "🙈" : "👁️"}</button>
                                     <button onClick={() => setShowPassiveModal(true)} title="Passive income target & super rate & average super balance"
-                                        style={{ ...bO(T.text2, { padding: "6px 9px", fontSize: 14, lineHeight: 1,
-                                                borderRadius: 8 }) }}>⚙️</button>
-                                    <button onClick={() => setDark(d => !d)} style={{ ...bO(T.text2, { padding: "6px 9px",
-                                                fontSize: 15, lineHeight: 1, borderRadius: 8 }) }}>{dark ? "☀️" :
+                                        style={{ ...bO(T.text2, { padding: "5px 10px", fontSize: 14, lineHeight: 1,
+                                                borderRadius: 20 }) }}>⚙️</button>
+                                    <button onClick={() => setDark(d => !d)} style={{ ...bO(T.text2, { padding: "5px 10px",
+                                                fontSize: 14, lineHeight: 1, borderRadius: 20 }) }}>{dark ? "☀️" :
                                         "🌙"}</button>
                                     <button onClick={autoRefresh} disabled={fetchSt.loading} style={{ ...bO(
-                                            fetchBarColor, { padding: "6px 10px", fontSize: 11,
+                                            fetchBarColor, { padding: "5px 12px", fontSize: 11,
                                                 borderColor: fetchBarColor + "66", opacity: fetchSt.loading ? .7 :
                                                 1 }) }}>
                                         <span className={fetchSt.loading ? "spin" : ""} style={{ marginRight: 4,
@@ -2817,26 +2887,28 @@
                                         {isMob ? "" : "Live Prices"}
                                     </button>
                                     <button onClick={openManualPrice} style={{ ...bO(T.text2, { fontSize: 11,
-                                                padding: "6px 10px" }) }}>✏️</button>
+                                                padding: "5px 12px" }) }}>✏️</button>
                                     <button onClick={openImport} style={{ ...bO(T.text2, { fontSize: 11,
-                                                padding: "6px 10px" }) }}>📥</button>
+                                                padding: "5px 12px" }) }}>📥</button>
+                                    <button onClick={handleExport} className="export-btn" title="Export all transactions as CSV"
+                                        style={{ ...bO("#4ade80", { fontSize: 11, padding: "5px 12px" }) }}>📥 Export</button>
                                     <button onClick={repairNow} className="repair-btn" title="Repair portfolio data — fixes shared transaction references (GOTO/SMSM)"
-                                        style={{ ...bO("#f59e0b", { fontSize: 11, padding: "4px 10px" }) }}>🔧</button>
+                                        style={{ ...bO("#f59e0b", { fontSize: 11, padding: "5px 12px" }) }}>🔧</button>
                                     {FB_CONFIGURED ? (
                                         fbUser ? (
                                             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                                                <div style={{ display: "flex", background: T.bg4, borderRadius: 8,
+                                                <div style={{ display: "flex", background: T.bg4, borderRadius: 20,
                                                         border: `1px solid ${T.border}`, overflow: "hidden" }}>
                                                     <button onClick={() => cloudLoadAll()} disabled={syncSt ===
                                                             "loading" || syncSt === "saving"}
-                                                        title="Pull latest data from cloud" style={{ padding: "6px 9px",
+                                                        title="Pull latest data from cloud" style={{ padding: "5px 10px",
                                                             fontSize: 11, border: "none", background: "transparent",
                                                             color: syncSt === "loading" ? T.amber : T.teal,
                                                             cursor: "pointer" }}>{syncSt === "loading" ? "⟳" :
                                                         "⬇️"}</button>
                                                     <button onClick={() => cloudSaveAll()} disabled={syncSt ===
                                                             "loading" || syncSt === "saving"}
-                                                        title="Push local data to cloud" style={{ padding: "6px 9px",
+                                                        title="Push local data to cloud" style={{ padding: "5px 10px",
                                                             fontSize: 11, border: "none", background: "transparent",
                                                             color: syncSt === "saving" ? T.amber : syncSt ===
                                                             "ok" ? T.green : syncSt === "error" ? T.red : T
@@ -2844,11 +2916,11 @@
                                                         "⟳" : "⬆️"}</button>
                                                     <button onClick={handleSignOut} title={"Signed in: " + fbUser
                                                             .displayName + "\nClick to sign out"}
-                                                        style={{ padding: "6px 9px", fontSize: 11, border: "none",
+                                                        style={{ padding: "5px 10px", fontSize: 11, border: "none",
                                                             background: "transparent", color: T.text3,
                                                             cursor: "pointer" }}>{fbUser.photoURL ? <img
-                                                                src={fbUser.photoURL} style={{ width: 16,
-                                                                    height: 16, borderRadius: "50%",
+                                                                src={fbUser.photoURL} style={{ width: 18,
+                                                                    height: 18, borderRadius: "50%",
                                                                     verticalAlign: "middle" }} alt="" /> :
                                                         "👤"}</button>
                                                 </div>
@@ -2860,7 +2932,7 @@
                         ) : (
                                             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                                                 <button onClick={handleSignIn} style={{ ...bO(T.teal, { fontSize: 11,
-                                                            padding: "6px 10px", display: "flex", alignItems: "center",
+                                                            padding: "5px 12px", display: "flex", alignItems: "center",
                                                             gap: 5 }) }}>☁️ {isMob ? "" : "Sync"}</button>
                                                 {syncMsg && <span style={{ fontSize: 9, color: T.red, maxWidth: 180,
                                                             overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
@@ -2869,16 +2941,16 @@
                                         )
                                     ) : (
                                         <button onClick={() => setModal({ mode: "firebaseSetup" })} style={{ ...bO(
-                                                T.text3, { fontSize: 11, padding: "6px 10px" }) }}>☁️ {isMob ? "" :
+                                                T.text3, { fontSize: 11, padding: "5px 12px" }) }}>☁️ {isMob ? "" :
                                             "Setup Sync"}</button>
                                     )}
-                                    <button onClick={openAdd} style={{ ...bS(T.greenBtn, "#fff", { padding: "7px 12px",
+                                    <button onClick={openAdd} style={{ ...bS(T.greenBtn, "#fff", { padding: "6px 14px",
                                                 fontSize: 11 }) }}>+ Add</button>
                                 </div>
                             </div>
                             <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 14px",
                                     background: T.bg, borderTop: `1px solid ${T.border}`, fontSize: 10, color: T
-                                        .text3, flexWrap: "wrap", minHeight: 26 }}>
+                                        .text3, flexWrap: "wrap", minHeight: 24 }}>
                                 <span>1 AUD = {rates.AUD_IDR.toLocaleString("en-AU")} IDR</span>
                                 <span style={{ color: T.border }}>·</span>
                                 <span>1 AUD = {rates.AUD_USD.toFixed(4)} USD</span>
@@ -2919,7 +2991,7 @@
                                         benchmarks</span>}
                                 </span>
                                 <span style={{ color: T.border }}>·</span>
-                                <span>Display: <b style={{ color: T.text2 }}>{displayCur}</b></span>
+                                <span>Display: <b style={{ color: T.text2, fontWeight: 600 }}>{displayCur}</b></span>
                                 <span style={{ color: T.border }}>·</span>
                                 <span>{holdings.length} holdings</span>
                             </div>
@@ -2928,11 +3000,12 @@
                         {/* View switcher */}
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
                                 padding: "8px 14px", borderBottom: `1px solid ${T.border}`, background: T.bg2,
-                                flexWrap: "wrap", gap: 8 }}>
+                                flexWrap: "wrap", gap: 6 }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                                 {view === "treemap" && tmMode === "performance" && <>
                                     <span style={{ fontSize: 9, color: T.text3, letterSpacing: 1,
-                                            textTransform: "uppercase", marginRight: 2 }}>G/L to date:</span>
+                                            textTransform: "uppercase", marginRight: 2, fontWeight: 500 }}>G/L to
+                                        date:</span>
                                     {[
                                         [-4, "≤-3%"],
                                         [-2, "-1%"],
@@ -2944,12 +3017,13 @@
                                                 style={{ width: 11, height: 11, borderRadius: 2,
                                                     background: c.bg, border: `1px solid ${c.border}` }} /><span
                                                 style={{ fontSize: 9, color: T.text3 }}>{l}</span></div>); })}
-                                    <span style={{ fontSize: 9, color: T.text4, marginLeft: 6 }}>· Box size = current
-                                        market value · Colour = total return %</span>
+                                    <span style={{ fontSize: 9, color: T.text4, marginLeft: 6, fontWeight: 400 }}>· Box
+                                        size = current market value · Colour = total return %</span>
                                 </>}
                                 {view === "treemap" && tmMode === "day" && <>
                                     <span style={{ fontSize: 9, color: T.text3, letterSpacing: 1,
-                                            textTransform: "uppercase", marginRight: 2 }}>Day G/L %:</span>
+                                            textTransform: "uppercase", marginRight: 2, fontWeight: 500 }}>Day G/L
+                                        %:</span>
                                     {[
                                         [-3, "≤-2%"],
                                         [-1, "-0.5%"],
@@ -2961,12 +3035,13 @@
                                                 style={{ width: 11, height: 11, borderRadius: 2,
                                                     background: c.bg, border: `1px solid ${c.border}` }} /><span
                                                 style={{ fontSize: 9, color: T.text3 }}>{l}</span></div>); })}
-                                    <span style={{ fontSize: 9, color: T.text4, marginLeft: 6 }}>· Box size = current
-                                        market value · Colour = day return %</span>
+                                    <span style={{ fontSize: 9, color: T.text4, marginLeft: 6, fontWeight: 400 }}>· Box
+                                        size = current market value · Colour = day return %</span>
                                 </>}
                                 {view === "treemap" && tmMode === "dividend" && <>
                                     <span style={{ fontSize: 9, color: T.text3, letterSpacing: 1,
-                                            textTransform: "uppercase", marginRight: 2 }}>Div yld/cost:</span>
+                                            textTransform: "uppercase", marginRight: 2, fontWeight: 500 }}>Div
+                                        yld/cost:</span>
                                     {[
                                         [-1, "0%"],
                                         [0.5, ">0%"],
@@ -2978,14 +3053,14 @@
                                                 style={{ width: 11, height: 11, borderRadius: 2,
                                                     background: c.bg, border: `1px solid ${c.border}` }} /><span
                                                 style={{ fontSize: 9, color: T.text3 }}>{l}</span></div>); })}
-                                    <span style={{ fontSize: 9, color: T.text4, marginLeft: 6 }}>· Box size = total
-                                        dividends received · Colour = yield on cost %</span>
+                                    <span style={{ fontSize: 9, color: T.text4, marginLeft: 6, fontWeight: 400 }}>· Box
+                                        size = total dividends received · Colour = yield on cost %</span>
                                 </>}
                             </div>
-                            <div style={{ display: "flex", gap: 6 }}>
+                            <div style={{ display: "flex", gap: 4 }}>
                                 {view === "treemap" && (
-                                    <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                                        <div style={{ display: "flex", background: T.bg4, borderRadius: 8,
+                                    <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                                        <div style={{ display: "flex", background: T.bg4, borderRadius: 20,
                                                 padding: 2, border: `1px solid ${T.border}` }}>
                                             {[
                                                 ["performance", "📈 Perf"],
@@ -2993,17 +3068,18 @@
                                                 ["dividend", "💰 Div"]
                                             ].map(([v, l]) => (
                                                 <button key={v} onClick={() => setTmMode(v)}
-                                                    style={{ padding: "4px 10px", borderRadius: 6,
+                                                    style={{ padding: "4px 10px", borderRadius: 18,
                                                         border: "none", background: tmMode === v ? T
                                                             .bg2 : "transparent", color: tmMode === v ?
                                                             T.text : T.text3, fontSize: 10,
+                                                        fontWeight: tmMode === v ? 600 : 400,
                                                         transition: "all .15s" }}>{l}</button>
                                             ))}
                                         </div>
                                         {(tmMode === "day" || tmMode === "dividend") && (
                                             <button onClick={() => setTmShowVal(v => !v)} title={tmShowVal ?
                                                     "Show % only" : "Show % and value"}
-                                                style={{ padding: "4px 10px", borderRadius: 8,
+                                                style={{ padding: "4px 10px", borderRadius: 18,
                                                     border: `1px solid ${T.border}`, background: !
                                                     tmShowVal ? T.teal : T.bg4, color: !tmShowVal ?
                                                     "#fff" : T.text3, fontSize: 10, fontWeight: 600,
@@ -3012,7 +3088,7 @@
                                         )}
                                     </div>
                                 )}
-                                <div style={{ display: "flex", background: T.bg4, borderRadius: 8, padding: 2,
+                                <div style={{ display: "flex", background: T.bg4, borderRadius: 20, padding: 2,
                                         border: `1px solid ${T.border}` }}>
                                     {[
                                         ["treemap", "Map"],
@@ -3020,9 +3096,10 @@
                                         ["chart", "Charts"]
                                     ].map(([v, l]) => (
                                         <button key={v} onClick={() => setView(v)} style={{ padding: "4px 10px",
-                                                borderRadius: 6, border: "none", background: view === v ?
+                                                borderRadius: 18, border: "none", background: view === v ?
                                                 T.bg2 : "transparent", color: view === v ? T.text : T
-                                                .text3, fontSize: 10, transition: "all .15s" }}>{l}</button>
+                                                .text3, fontSize: 10, fontWeight: view === v ? 600 : 400,
+                                                transition: "all .15s" }}>{l}</button>
                                     ))}
                                 </div>
                             </div>
@@ -3065,7 +3142,7 @@
                                                     selected ? `2px solid ${c.text}` : "none",
                                                     transition: "filter .12s" }}
                                                 onMouseEnter={e => e.currentTarget.style.filter =
-                                                    "brightness(1.2)"}
+                                                    "brightness(1.1)"}
                                                 onMouseLeave={e => e.currentTarget.style.filter =
                                                     "brightness(1)"}
                                                 >
@@ -3115,7 +3192,7 @@
                                                 display: "flex", alignItems: "center",
                                                 justifyContent: "center", color: T.text4,
                                                 fontFamily: "'Space Mono',monospace", fontSize: 11,
-                                                textAlign: "center", padding: 20 }}>{tmMode ===
+                                                textAlign: "center", padding: 20, fontWeight: 500 }}>{tmMode ===
                                                 "dividend" ? "No dividends recorded yet" :
                                                 "No holdings — tap + Add"}</div>}
                                     </div>
@@ -3133,7 +3210,7 @@
                                                         <div style={{ fontSize: 11, color: T.text3,
                                                                 marginTop: 2, overflow: "hidden",
                                                                 textOverflow: "ellipsis",
-                                                                whiteSpace: "nowrap" }}>{selH.name}</div>
+                                                                whiteSpace: "nowrap", fontWeight: 400 }}>{selH.name}</div>
                                                         <div style={{ display: "flex", gap: 4,
                                                                 marginTop: 5, flexWrap: "wrap" }}>
                                                             {[selH.assetType, selH.currency, selH
@@ -3141,24 +3218,26 @@
                                                             ].filter(Boolean).map(tag => (
                                                                 <span key={tag} style={{ fontSize: 9,
                                                                         background: T.bg4,
-                                                                        padding: "2px 6px",
-                                                                        borderRadius: 4,
+                                                                        padding: "2px 8px",
+                                                                        borderRadius: 12,
                                                                         border: `1px solid ${T.border}`,
                                                                         color: T.text3,
-                                                                        whiteSpace: "nowrap" }}>{tag}</span>
+                                                                        whiteSpace: "nowrap",
+                                                                        fontWeight: 500 }}>{tag}</span>
                                                             ))}
                                                             {selH.isBondPct && <span style={{ fontSize: 9,
                                                                     background: dark ?
                                                                     "#0a2030" : "#e0f9ff",
-                                                                    padding: "2px 6px",
-                                                                    borderRadius: 4,
+                                                                    padding: "2px 8px",
+                                                                    borderRadius: 12,
                                                                     border: `1px solid ${T.teal}55`,
                                                                     color: T.teal,
-                                                                    whiteSpace: "nowrap" }}>Fixed Rate
+                                                                    whiteSpace: "nowrap",
+                                                                    fontWeight: 500 }}>Fixed Rate
                                                                 Bond</span>}
                                                         </div>
                                                     </div>
-                                                    <div style={{ padding: "3px 8px", borderRadius: 20,
+                                                    <div style={{ padding: "3px 10px", borderRadius: 20,
                                                             background: gainColor(selH.gainPct,
                                                             dark).bg, color: gainColor(selH
                                                                 .gainPct, dark).text,
@@ -3172,7 +3251,7 @@
                                                         border: `1px solid ${T.teal}44`,
                                                         borderRadius: 8, padding: "6px 10px",
                                                         marginBottom: 12, fontSize: 10,
-                                                    color: T.teal }}>
+                                                    color: T.teal, fontWeight: 500 }}>
                                                     Face value: Rp {fmtIDR(selH.faceValue ||
                                                             1000000)} · {selH.qty} units
                                                 </div>}
@@ -3217,10 +3296,11 @@
                                                             paddingBottom: 12, borderBottom:
                                                             `1px solid ${T.border}` }}>
                                                         <div style={{ fontSize: 8,
-                                                                letterSpacing: 1.5,
+                                                                letterSpacing: 1.2,
                                                                 color: T.text3,
                                                                 textTransform: "uppercase",
-                                                            marginBottom: 7 }}>{sec.title}</div>
+                                                                marginBottom: 6,
+                                                            fontWeight: 600 }}>{sec.title}</div>
                                                         {sec.rows.map(([l, v, c]) => (
                                                             <div key={l} style={{ display: "flex",
                                                                     justifyContent: "space-between",
@@ -3229,7 +3309,8 @@
                                                                 <span style={{ fontSize: 9,
                                                                         color: T.text3,
                                                                         textTransform: "uppercase",
-                                                                        letterSpacing: .3 }}>{l}</span>
+                                                                        letterSpacing: .3,
+                                                                        fontWeight: 500 }}>{l}</span>
                                                                 <span style={{ fontFamily: "'Space Mono',monospace",
                                                                         fontSize: 10,
                                                                         color: c,
@@ -3246,17 +3327,17 @@
                                                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr",
                                                         gap: 5 }}>
                                                     <button onClick={() => openTrade(selH, "buy")}
-                                                        style={bS(T.greenBtn, "#fff", { padding: "7px 0",
+                                                        style={bS(T.greenBtn, "#fff", { padding: "6px 0",
                                                                 fontSize: 11 })}>Buy</button>
                                                     <button onClick={() => openTrade(selH, "sell")}
-                                                        style={bS(T.redBtn, "#fff", { padding: "7px 0",
+                                                        style={bS(T.redBtn, "#fff", { padding: "6px 0",
                                                                 fontSize: 11 })}>Sell</button>
                                                     <button onClick={() => openDiv(selH)} style={bS(T
-                                                            .tealBtn, "#fff", { padding: "7px 0",
+                                                            .tealBtn, "#fff", { padding: "6px 0",
                                                                 fontSize: 11 })}>💰 {selH.isBondPct ?
                                                             "Coupon" : "Dividend"}</button>
                                                     <button onClick={() => openHistory(selH)} style={bO(T
-                                                            .text2, { padding: "7px 0", fontSize: 11 })}>📋
+                                                            .text2, { padding: "6px 0", fontSize: 11 })}>📋
                                                         History</button>
                                                 </div>
                                             </>
@@ -3268,7 +3349,8 @@
                                                 </div>
                                                 <div style={{ fontFamily: "'Space Mono',monospace",
                                                         fontSize: 11, color: T.text3,
-                                                    lineHeight: 1.8 }}>Tap any box<br />to view details</div>
+                                                    lineHeight: 1.8, fontWeight: 500 }}>Tap any box<br />to
+                                                    view details</div>
                                             </div>
                                         )}
                                     </div>
@@ -3283,12 +3365,12 @@
                                                 "Div/Coupon", "Div Yld", "ROI", "Total G/L", "G/L%",
                                                 "Actions"
                                             ].map(c => (
-                                                <th key={c} style={{ padding: "10px 10px",
+                                                <th key={c} style={{ padding: "10px 12px",
                                                         textAlign: "left", fontSize: 8,
-                                                        letterSpacing: 1.5, color: T.text3,
+                                                        letterSpacing: 1.2, color: T.text3,
                                                         textTransform: "uppercase", background: T
-                                                            .bg2, borderBottom: `1px solid ${T.border}`,
-                                                        whiteSpace: "nowrap" }}>{c}</th>
+                                                            .bg2, borderBottom: `2px solid ${T.border}`,
+                                                        whiteSpace: "nowrap", fontWeight: 600 }}>{c}</th>
                                             ))}</tr>
                                         </thead>
                                         <tbody>
@@ -3299,11 +3381,11 @@
                                                 return (
                                                     <tr key={h.ticker} style={{ background: bg }}
                                                         onMouseEnter={e => e.currentTarget
-                                                            .style.background = T.bg4}
+                                                            .style.background = T.hoverBg}
                                                         onMouseLeave={e => e.currentTarget
                                                             .style.background = bg}
                                                     >
-                                                        <td style={{ padding: "10px 10px",
+                                                        <td style={{ padding: "10px 12px",
                                                                 fontFamily: "'Space Mono',monospace",
                                                                 fontWeight: 700, color: T
                                                                     .text, fontSize: 12,
@@ -3312,77 +3394,86 @@
                                                                 .ticker}{h.isBondPct && <span
                                                                     style={{ fontSize: 8,
                                                                         color: T.teal,
-                                                                    marginLeft: 3 }}>BOND</span>}</td>
-                                                        <td style={{ padding: "10px 10px",
+                                                                        marginLeft: 4,
+                                                                        fontWeight: 500 }}>BOND</span>}</td>
+                                                        <td style={{ padding: "10px 12px",
                                                                 color: T.text3, maxWidth: 90,
                                                                 overflow: "hidden",
                                                                 textOverflow: "ellipsis",
                                                                 borderBottom: `1px solid ${T.border}`,
-                                                                whiteSpace: "nowrap" }}>{h
-                                                                .assetType || "—"}</td>
-                                                        <td style={{ padding: "10px 10px",
+                                                                whiteSpace: "nowrap",
+                                                                fontWeight: 500 }}>{h.assetType ||
+                                                                "—"}</td>
+                                                        <td style={{ padding: "10px 12px",
                                                                 fontFamily: "'Space Mono',monospace",
                                                                 color: T.text3, fontSize: 10,
-                                                                borderBottom: `1px solid ${T.border}` }}>{h
-                                                                .currency}</td>
-                                                        <td style={{ padding: "10px 10px",
-                                                                fontFamily: "'Space Mono',monospace",
-                                                                color: T.text2,
-                                                                borderBottom: `1px solid ${T.border}` }}>{h
-                                                                .qty < 1 ? h.qty.toFixed(
-                                                                6) : h.qty.toFixed(4)}</td>
-                                                        <td style={{ padding: "10px 10px",
+                                                                borderBottom: `1px solid ${T.border}`,
+                                                            fontWeight: 500 }}>{h.currency}</td>
+                                                        <td style={{ padding: "10px 12px",
                                                                 fontFamily: "'Space Mono',monospace",
                                                                 color: T.text2,
                                                                 borderBottom: `1px solid ${T.border}`,
-                                                                whiteSpace: "nowrap" }}>{FC(h
-                                                                .costBasis / Math.max(h
-                                                                    .qty, 1e-9), false)}</td>
-                                                        <td style={{ padding: "10px 10px",
+                                                                fontWeight: 500 }}>{h.qty < 1 ? h
+                                                                .qty.toFixed(6) : h.qty.toFixed(
+                                                                4)}</td>
+                                                        <td style={{ padding: "10px 12px",
+                                                                fontFamily: "'Space Mono',monospace",
+                                                                color: T.text2,
+                                                                borderBottom: `1px solid ${T.border}`,
+                                                                whiteSpace: "nowrap",
+                                                                fontWeight: 500 }}>{FC(h.costBasis /
+                                                                Math.max(h.qty, 1e-9), false)}</td>
+                                                        <td style={{ padding: "10px 12px",
                                                                 fontFamily: "'Space Mono',monospace",
                                                                 color: T.text,
                                                                 borderBottom: `1px solid ${T.border}`,
-                                                                whiteSpace: "nowrap" }}>{fmtNativePrice(
+                                                                whiteSpace: "nowrap",
+                                                                fontWeight: 500 }}>{fmtNativePrice(
                                                                 h, h.currentPrice)}</td>
-                                                        <td style={{ padding: "10px 10px",
+                                                        <td style={{ padding: "10px 12px",
                                                                 fontFamily: "'Space Mono',monospace",
                                                                 color: pColor(h.dayGain),
                                                                 borderBottom: `1px solid ${T.border}`,
-                                                                whiteSpace: "nowrap" }}>{FG(h
-                                                                .dayGain)}<br /><span style={{
-                                                                fontSize: 9, opacity: .7 }}>{fmtPct(
-                                                                h.dayGainPct)}</span></td>
-                                                        <td style={{ padding: "10px 10px",
+                                                                whiteSpace: "nowrap",
+                                                                fontWeight: 600 }}>{FG(h.dayGain)}<br /><span
+                                                                style={{ fontSize: 9, opacity: .7,
+                                                                    fontWeight: 500 }}>{fmtPct(h
+                                                                    .dayGainPct)}</span></td>
+                                                        <td style={{ padding: "10px 12px",
                                                                 fontFamily: "'Space Mono',monospace",
-                                                                color: T.text, fontWeight: 600,
+                                                                color: T.text, fontWeight: 700,
                                                                 borderBottom: `1px solid ${T.border}`,
                                                                 whiteSpace: "nowrap" }}>{FC(h
                                                                 .currentValue, true)}</td>
-                                                        <td style={{ padding: "10px 10px",
+                                                        <td style={{ padding: "10px 12px",
                                                                 fontFamily: "'Space Mono',monospace",
                                                                 color: pColor(h.unrealizedGain),
                                                                 borderBottom: `1px solid ${T.border}`,
-                                                                whiteSpace: "nowrap" }}>{FG(h
+                                                                whiteSpace: "nowrap",
+                                                                fontWeight: 600 }}>{FG(h
                                                                 .unrealizedGain)}</td>
-                                                        <td style={{ padding: "10px 10px",
+                                                        <td style={{ padding: "10px 12px",
                                                                 fontFamily: "'Space Mono',monospace",
                                                                 color: pColor(h.realizedGain),
                                                                 borderBottom: `1px solid ${T.border}`,
-                                                                whiteSpace: "nowrap" }}>{FG(h
+                                                                whiteSpace: "nowrap",
+                                                                fontWeight: 600 }}>{FG(h
                                                                 .realizedGain)}</td>
-                                                        <td style={{ padding: "10px 10px",
+                                                        <td style={{ padding: "10px 12px",
                                                                 fontFamily: "'Space Mono',monospace",
                                                                 color: T.teal,
                                                                 borderBottom: `1px solid ${T.border}`,
-                                                                whiteSpace: "nowrap" }}>{FC(h
+                                                                whiteSpace: "nowrap",
+                                                                fontWeight: 600 }}>{FC(h
                                                                 .totalDividends, true)}</td>
-                                                        <td style={{ padding: "10px 10px",
+                                                        <td style={{ padding: "10px 12px",
                                                                 fontFamily: "'Space Mono',monospace",
                                                                 color: T.teal,
                                                                 borderBottom: `1px solid ${T.border}`,
-                                                                whiteSpace: "nowrap" }}>{fmtPct(
-                                                                h.divYieldOnCost)}</td>
-                                                        <td style={{ padding: "10px 10px",
+                                                                whiteSpace: "nowrap",
+                                                                fontWeight: 600 }}>{fmtPct(h
+                                                                .divYieldOnCost)}</td>
+                                                        <td style={{ padding: "10px 12px",
                                                                 borderBottom: `1px solid ${T.border}`,
                                                                 whiteSpace: "nowrap" }}>
                                                             {(() => { const roi = h
@@ -3393,7 +3484,7 @@
                                                                         .totalInvested) *
                                                                     100 : 0; const rc =
                                                                     gainColor(roi, dark); return (
-                                                                    <span style={{ padding: "2px 8px",
+                                                                    <span style={{ padding: "2px 10px",
                                                                             borderRadius: 20,
                                                                             background: rc
                                                                             .bg, color: rc
@@ -3404,17 +3495,17 @@
                                                                         roi)}</span>
                                                                 ); })()}
                                                         </td>
-                                                        <td style={{ padding: "10px 10px",
+                                                        <td style={{ padding: "10px 12px",
                                                                 fontFamily: "'Space Mono',monospace",
                                                                 color: pColor(h.totalGain),
                                                                 fontWeight: 700,
                                                                 borderBottom: `1px solid ${T.border}`,
                                                                 whiteSpace: "nowrap" }}>{FG(h
                                                                 .totalGain)}</td>
-                                                        <td style={{ padding: "10px 10px",
+                                                        <td style={{ padding: "10px 12px",
                                                                 borderBottom: `1px solid ${T.border}`,
                                                                 whiteSpace: "nowrap" }}><span
-                                                                style={{ padding: "2px 7px",
+                                                                style={{ padding: "2px 10px",
                                                                     borderRadius: 20,
                                                                     background: gc.bg,
                                                                     color: gc.text,
@@ -3422,7 +3513,7 @@
                                                                     fontSize: 9,
                                                                     fontWeight: 700 }}>{fmtPct(
                                                                     h.gainPct)}</span></td>
-                                                        <td style={{ padding: "10px 10px",
+                                                        <td style={{ padding: "10px 12px",
                                                                 borderBottom: `1px solid ${T.border}`,
                                                                 whiteSpace: "nowrap" }}>
                                                             <div style={{ display: "flex",
@@ -3441,9 +3532,9 @@
                                                                     ],
                                                                 ].map(([l, fn, bg]) => (
                                                                     <button key={l} onClick={fn}
-                                                                        style={{ width: 22,
-                                                                            height: 22,
-                                                                            borderRadius: 4,
+                                                                        style={{ width: 24,
+                                                                            height: 24,
+                                                                            borderRadius: 12,
                                                                             border: "none",
                                                                             background: bg,
                                                                             color: bg ===
@@ -3464,8 +3555,8 @@
                                             {holdings.length === 0 && <tr><td colSpan={16} style={{ padding: 48,
                                                         textAlign: "center", color: T.text4,
                                                         fontFamily: "'Space Mono',monospace",
-                                                    fontSize: 11 }}>No holdings — tap "+ Add" to get
-                                                started</td></tr>}
+                                                        fontSize: 11, fontWeight: 500 }}>No holdings — tap "+ Add"
+                                                to get started</td></tr>}
                                         </tbody>
                                     </table>
                                 </div>
@@ -3503,7 +3594,7 @@
                                                         <span style={{ fontSize: 10, color: T.text3,
                                                                 letterSpacing: 1,
                                                                 textTransform: "uppercase",
-                                                            fontWeight: 600 }}>{l}</span>
+                                                                fontWeight: 600 }}>{l}</span>
                                                     </div>
                                                     <div style={{ fontFamily: "'Space Mono',monospace",
                                                             fontSize: 13, fontWeight: 700,
@@ -3518,21 +3609,22 @@
                                         <span style={{ fontSize: 11, color: T.text3,
                                             fontWeight: 500 }}>Time period:</span>
                                         <div style={{ display: "flex", gap: 3, background: T.bg3,
-                                                padding: 3, borderRadius: 10, border: `1px solid ${T.border}` }}>
+                                                padding: 3, borderRadius: 20, border: `1px solid ${T.border}` }}>
                                             {["1M", "3M", "6M", "YTD", "1Y", "5Y"].map(p => (
                                                 <button key={p} onClick={() => setChartPeriod(p)}
-                                                    style={{ padding: "5px 12px", borderRadius: 7,
+                                                    style={{ padding: "4px 12px", borderRadius: 18,
                                                         border: "none", background: chartPeriod ===
-                                                        p ? `linear-gradient(135deg,#22c55e,#06b6d4)` :
+                                                        p ? `linear-gradient(135deg,#34a853,#1a73e8)` :
                                                         "transparent", color: chartPeriod === p ?
                                                         "#fff" : T.text3, fontSize: 11,
-                                                        fontWeight: chartPeriod === p ? 700 : 500,
+                                                        fontWeight: chartPeriod === p ? 600 : 500,
                                                         transition: "all .15s",
                                                     cursor: "pointer" }}>{p}</button>
                                             ))}
                                         </div>
                                         <span style={{ fontSize: 10, color: T.text3,
-                                            marginLeft: 4 }}>{chartData.labels.length} data points</span>
+                                            marginLeft: 4, fontWeight: 500 }}>{chartData.labels.length} data
+                                            points</span>
                                     </div>
                                     <div className="chart-row" style={{ display: "flex", gap: 12,
                                             flexWrap: isMob ? "wrap" : "nowrap" }}>
@@ -3544,12 +3636,12 @@
                                                             color: T.text,
                                                         marginBottom: 2 }}>Portfolio Value Over Time</div>
                                                     <div style={{ fontSize: 11, color: T
-                                                            .text3 }}>{displayCur} · {chartPeriod} view</div>
+                                                            .text3, fontWeight: 500 }}>{displayCur} · {chartPeriod} view</div>
                                                 </div>
                                                 {chartData.labels.length >= 2 && <div style={{
                                                         textAlign: "right" }}>
                                                     <div style={{ fontSize: 10, color: T
-                                                            .text3 }}>Period return</div>
+                                                            .text3, fontWeight: 500 }}>Period return</div>
                                                     <div style={{ fontFamily: "'Space Mono',monospace",
                                                             fontSize: 12, fontWeight: 700,
                                                             color: pColor(chartData.endVal -
@@ -3563,16 +3655,16 @@
                                             <ChartLine labels={chartData.labels} datasets={[
                                                 { label: "Portfolio Value", data: chartData
                                                         .vals, borderColor: dark ?
-                                                        "#22c55e" : "#16a34a",
+                                                        "#34a853" : "#1e8e3e",
                                                     backgroundColor: dark ?
-                                                        "rgba(34,197,94,.07)" :
-                                                        "rgba(22,163,74,.06)",
+                                                        "rgba(52,168,83,.08)" :
+                                                        "rgba(30,142,62,.06)",
                                                     fill: true, borderWidth: 2,
                                                     yAxisID: "y" },
                                                 { label: "Cum. Dividends / Coupons",
                                                     data: chartData.divCumul,
-                                                    borderColor: dark ? "#06b6d4" :
-                                                    "#0891b2",
+                                                    borderColor: dark ? "#8ab4f8" :
+                                                    "#1a73e8",
                                                     backgroundColor: "transparent",
                                                     borderDash: [5, 4], borderWidth: 1.5,
                                                     yAxisID: "y2" }
@@ -3583,7 +3675,7 @@
                                             <div style={{ fontSize: 12, fontWeight: 600, color: T
                                                         .text, marginBottom: 2 }}>Asset Allocation</div>
                                             <div style={{ fontSize: 11, color: T.text3,
-                                                    marginBottom: 12 }}>by type · {displayCur}</div>
+                                                    marginBottom: 12, fontWeight: 500 }}>by type · {displayCur}</div>
                                             <ChartDoughnut labels={chartData.tLabels} data={chartData
                                                     .tVals} colors={chartData.palette} T={T}
                                                 height={isMob ? 180 : 230} />
@@ -3600,14 +3692,15 @@
                                                         marginBottom: 2 }}>Monthly Income — Div &amp;
                                                         Coupons</div>
                                                     <div style={{ fontSize: 11, color: T
-                                                            .text3 }}>{chartData.mLabels.length} months
+                                                            .text3, fontWeight: 500 }}>{chartData.mLabels.length} months
                                                         · {chartPeriod} · {displayCur}</div>
                                                 </div>
                                                 {chartData.divCAGR != null && <div style={{
                                                         textAlign: "right" }}>
                                                     <div style={{ fontSize: 9, color: T.text3,
                                                             letterSpacing: .5,
-                                                            textTransform: "uppercase" }}>Dividend
+                                                            textTransform: "uppercase",
+                                                            fontWeight: 600 }}>Dividend
                                                         CAGR</div>
                                                     <div style={{ fontFamily: "'Space Mono',monospace",
                                                             fontSize: 13, fontWeight: 700,
@@ -3616,7 +3709,7 @@
                                                             .divCAGR >= 0 ? "+" : ""}{chartData
                                                             .divCAGR.toFixed(1)}%</div>
                                                     <div style={{ fontSize: 9, color: T
-                                                            .text3 }}>{chartData.divCAGRYears}yr
+                                                            .text3, fontWeight: 500 }}>{chartData.divCAGRYears}yr
                                                         growth</div>
                                                 </div>}
                                             </div>
@@ -3625,10 +3718,10 @@
                                                     chartData.mDatasets : [{ label: "Income",
                                                         data: chartData.mVals,
                                                         backgroundColor: dark ?
-                                                        "rgba(6,182,212,.72)" :
-                                                        "rgba(8,145,178,.6)",
-                                                        borderColor: dark ? "#06b6d4" :
-                                                        "#0891b2", borderWidth: 1,
+                                                        "rgba(138,180,248,.6)" :
+                                                        "rgba(26,115,232,.5)",
+                                                        borderColor: dark ? "#8ab4f8" :
+                                                        "#1a73e8", borderWidth: 1,
                                                         borderRadius: 5
                                                     }]} T={T} yFmt={yFmtD} height={isMob ? 160 :
                                                 210} stacked={!!(chartData.mDatasets && chartData
@@ -3638,7 +3731,7 @@
                                             <div style={{ fontSize: 12, fontWeight: 600, color: T
                                                         .text, marginBottom: 2 }}>Currency Split</div>
                                             <div style={{ fontSize: 11, color: T.text3,
-                                                    marginBottom: 12 }}>by holding currency · {displayCur}</div>
+                                                    marginBottom: 12, fontWeight: 500 }}>by holding currency · {displayCur}</div>
                                             <ChartDoughnut labels={chartData.byCurLabels} data={chartData
                                                     .byCurVals} colors={chartData.byCurColors} T={T}
                                                 height={isMob ? 160 : 210} />
@@ -3652,16 +3745,17 @@
                                                 <div style={{ fontSize: 12, fontWeight: 600,
                                                         color: T.text,
                                                     marginBottom: 2 }}>📊 Growth Contributors — {chartPeriod}</div>
-                                                <div style={{ fontSize: 11, color: T.text3 }}>Breakdown of
+                                                <div style={{ fontSize: 11, color: T.text3,
+                                                        fontWeight: 500 }}>Breakdown of
                                                     what drove your portfolio value change</div>
                                             </div>
                                             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                                                 {[
                                                     ["Start / End", "#6366f155"],
-                                                    ["Capital Gain", "#22c55e"],
-                                                    ["Capital Loss", "#ef4444"],
-                                                    ["Top-Up (Buy)", "#22c55e"],
-                                                    ["Dividends", "#22c55e"]
+                                                    ["Capital Gain", "#34a853"],
+                                                    ["Capital Loss", "#ea4335"],
+                                                    ["Top-Up (Buy)", "#34a853"],
+                                                    ["Dividends", "#34a853"]
                                                 ].map(([l, c]) => (
                                                     <div key={l} style={{ display: "flex",
                                                             alignItems: "center", gap: 4 }}>
@@ -3669,7 +3763,7 @@
                                                                 borderRadius: 2,
                                                             background: c }} />
                                                         <span style={{ fontSize: 10, color: T
-                                                                .text3 }}>{l}</span>
+                                                                .text3, fontWeight: 500 }}>{l}</span>
                                                     </div>
                                                 ))}
                                             </div>
@@ -3692,7 +3786,7 @@
                                                     {[
                                                         ["💹 Capital G/L", capItem?.value ??
                                                             0, capItem?.value >= 0 ?
-                                                            "#22c55e" : "#ef4444", pct(
+                                                            "#34a853" : "#ea4335", pct(
                                                             capItem?.value ?? 0)
                                                         ],
                                                         ["💸 Top-Ups", topUp?.value ?? 0,
@@ -3713,6 +3807,7 @@
                                                             minWidth: 100 }}>
                                                             <div style={{ fontSize: 10,
                                                                     color: T.text3,
+                                                                    fontWeight: 500,
                                                                 marginBottom: 3 }}>{l}</div>
                                                             <div style={{ fontFamily: "'Space Mono',monospace",
                                                                     fontSize: 12,
@@ -3721,6 +3816,7 @@
                                                                     true)}</div>
                                                             <div style={{ fontSize: 10,
                                                                     color: T.text3,
+                                                                    fontWeight: 500,
                                                                 marginTop: 1 }}>{p} of
                                                                 change</div>
                                                         </div>
@@ -3734,7 +3830,7 @@
                                             <div style={{ fontSize: 12, fontWeight: 600, color: T
                                                         .text, marginBottom: 2 }}>📐 Benchmark Comparison — {chartPeriod}</div>
                                             <div style={{ fontSize: 11, color: T.text3,
-                                                    marginBottom: 10 }}>Your portfolio vs selected
+                                                    marginBottom: 10, fontWeight: 500 }}>Your portfolio vs selected
                                                 benchmarks · % return from period start</div>
                                             {(() => {
                                                 const BM_DEF = [
@@ -3743,11 +3839,11 @@
                                                     { key: "brk", label: "BRK-B",
                                                         color: "#f59e0b" },
                                                     { key: "jkse", label: "IDX Composite",
-                                                        color: "#ef4444" },
+                                                        color: "#ea4335" },
                                                     { key: "eido", label: "EIDO",
                                                         color: "#8b5cf6" },
                                                     { key: "vas", label: "VAS",
-                                                        color: "#06b6d4" },
+                                                        color: "#1a73e8" },
                                                 ];
                                                 return (
                                                     <div style={{ display: "flex",
@@ -3777,7 +3873,7 @@
                                                                             })
                                                                         )
                                                                     }
-                                                                    style={{ padding: "4px 10px",
+                                                                    style={{ padding: "4px 12px",
                                                                         borderRadius: 20,
                                                                         border: `1.5px solid ${color}`,
                                                                         background: on ?
@@ -3803,7 +3899,7 @@
                                                     background: T.bg4, border:
                                                     `1px solid ${T.amber}44`,
                                                     borderRadius: 8, padding: "6px 12px",
-                                                marginBottom: 8 }}>
+                                                    marginBottom: 8, fontWeight: 500 }}>
                                                 <span style={{ fontSize: 11, color: T
                                                         .amber }}>⚠️ Click <b>🔄 Live
                                                         Prices</b> to load benchmark
@@ -3818,13 +3914,13 @@
                                                     color: "#f59e0b", dash: [4,
                                                     3] },
                                                 { key: "jkse", label: "IDX Composite",
-                                                    color: "#ef4444", dash: [2,
+                                                    color: "#ea4335", dash: [2,
                                                     2] },
                                                 { key: "eido", label: "EIDO",
                                                     color: "#8b5cf6", dash: [6,
                                                     2] },
                                                 { key: "vas", label: "VAS (ASX)",
-                                                    color: "#06b6d4", dash: [4,
+                                                    color: "#1a73e8", dash: [4,
                                                     2] },
                                             ];
                                             const portPoints = chartData
@@ -3839,11 +3935,11 @@
                                                     data: chartData
                                                         .bmPortfolio,
                                                     borderColor: dark ?
-                                                    "#22c55e" :
-                                                    "#16a34a",
+                                                    "#34a853" :
+                                                    "#1e8e3e",
                                                     backgroundColor: dark ?
-                                                    "rgba(34,197,94,.07)" :
-                                                    "rgba(22,163,74,.06)",
+                                                    "rgba(52,168,83,.08)" :
+                                                    "rgba(30,142,62,.06)",
                                                     fill: true,
                                                     borderWidth: 2.5,
                                                     borderDash: [],
@@ -3879,7 +3975,8 @@
                                                             border: `1px solid ${T.amber}44`,
                                                             borderRadius: 6,
                                                             padding: "6px 10px",
-                                                        marginBottom: 8 }}>
+                                                            marginBottom: 8,
+                                                            fontWeight: 500 }}>
                                                         ⏳ Fetching historical prices for
                                                         each holding… Click 🔄 if this
                                                         doesn't appear.
@@ -3891,7 +3988,8 @@
                                                         border: `1px solid ${T.amber}44`,
                                                         borderRadius: 6,
                                                         padding: "6px 10px",
-                                                    marginBottom: 8 }}>
+                                                        marginBottom: 8,
+                                                        fontWeight: 500 }}>
                                                         ⚠️ Not enough historical price
                                                         data found for your holdings for
                                                         this period.
@@ -3903,7 +4001,8 @@
                                                         border: `1px solid ${T.border}`,
                                                         borderRadius: 6,
                                                         padding: "6px 10px",
-                                                    marginBottom: 8 }}>
+                                                        marginBottom: 8,
+                                                        fontWeight: 500 }}>
                                                         ℹ️ Holdings without live price
                                                         history (PBS032, PBS033,
                                                         NUL5339AU, NUL7270AU) use
@@ -3922,22 +4021,23 @@
                                                     <div style={{ background: T
                                                                 .bg4, border: "1.5px solid " +
                                                             (dark ?
-                                                                "#22c55e" :
-                                                                "#16a34a"
+                                                                "#34a853" :
+                                                                "#1e8e3e"
                                                                 ),
                                                             borderRadius: 8,
                                                             padding: "8px 12px",
                                                             flex: "1 1 80px" }}>
                                                         <div style={{ fontSize: 9,
                                                                 color: T.text3,
+                                                                fontWeight: 500,
                                                             marginBottom: 2 }}>Your
                                                             Portfolio</div>
                                                         <div style={{ fontFamily: "'Space Mono',monospace",
                                                                 fontSize: 12,
                                                                 fontWeight: 700,
                                                                 color: dark ?
-                                                                "#22c55e" :
-                                                            "#16a34a" }}>{lastPort >=
+                                                                "#34a853" :
+                                                            "#1e8e3e" }}>{lastPort >=
                                                             0 ? "+" : ""}{lastPort
                                                                 .toFixed(2)}%</div>
                                                     </div>
@@ -3973,6 +4073,7 @@
                                                                     <div style={{ fontSize: 9,
                                                                             color: T
                                                                                 .text3,
+                                                                            fontWeight: 500,
                                                                         marginBottom: 2 }}>{b
                                                                             .label}</div>
                                                                     <div style={{ fontFamily: "'Space Mono',monospace",
@@ -3990,6 +4091,7 @@
                                                                                 .green :
                                                                                 T
                                                                                 .red,
+                                                                            fontWeight: 600,
                                                                         marginTop: 2 }}>{diff >=
                                                                         0 ? "▲ " :
                                                                         "▼ "}{Math
@@ -4009,7 +4111,7 @@
                                                     flexDirection: "column",
                                                     alignItems: "center",
                                                     justifyContent: "center",
-                                                    gap: 10, color: T.text3 }}>
+                                                    gap: 10, color: T.text3, fontWeight: 500 }}>
                                                 <div style={{ fontSize: 32,
                                                     opacity: .3 }}>📐</div>
                                                 <div style={{ fontSize: 13,
@@ -4029,16 +4131,16 @@
 
                         {/* Modals */}
                         {modal && (
-                            <div onClick={closeModal} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.78)",
-                                    backdropFilter: "blur(8px)", zIndex: 100, display: "flex", alignItems: "center",
+                            <div onClick={closeModal} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.7)",
+                                    backdropFilter: "blur(6px)", zIndex: 100, display: "flex", alignItems: "center",
                                     justifyContent: "center", padding: 12 }}>
                                 <div onClick={e => e.stopPropagation()} style={{ background: T.bg2,
-                                        border: `1px solid ${T.border}`, borderRadius: 14, padding: 22,
+                                        border: `1px solid ${T.border}`, borderRadius: 16, padding: 24,
                                         width: "100%", maxWidth: modal?.mode === "import" ? 720 : 520,
                                         maxHeight: "92vh", overflowY: "auto", boxShadow: T.shadow }}>
                                     {modal.mode === "add" && (
                                         <>
-                                            <h2 style={{ fontFamily: "'Space Mono',monospace", fontSize: 15,
+                                            <h2 style={{ fontFamily: "'Space Mono',monospace", fontSize: 16,
                                                     fontWeight: 700, color: T.text,
                                                 marginBottom: 16 }}>Add New Position</h2>
                                             <div className="modal-g2" style={{ display: "grid",
@@ -4091,6 +4193,7 @@
                                                         padding: 12, marginBottom: 10 }}>
                                                     <div style={{ fontSize: 9, color: T.teal,
                                                             letterSpacing: 1.5, textTransform: "uppercase",
+                                                            fontWeight: 600,
                                                         marginBottom: 8 }}>🏦 Bond / Sukuk Settings</div>
                                                     <div className="modal-g2" style={{ display: "grid",
                                                             gridTemplateColumns: "1fr 1fr", gap: 10 }}>
@@ -4102,7 +4205,7 @@
                                                                 setForm(f => ({ ...f, faceValue: e
                                                                     .target.value }))} /><div style={{
                                                                     fontSize: 9, color: T.text3,
-                                                                    marginTop: 3 }}>Nominal per unit (e.g.
+                                                                    marginTop: 3, fontWeight: 400 }}>Nominal per unit (e.g.
                                                                 Rp 1,000,000)</div></div>
                                                         <div><label style={lbl({ color: T.teal })}>Yahoo
                                                                 Symbol</label><input style={inp()}
@@ -4111,7 +4214,7 @@
                                                                 setForm(f => ({ ...f, yahooSymbol: e
                                                                     .target.value }))} /><div style={{
                                                                     fontSize: 9, color: T.text3,
-                                                                    marginTop: 3 }}>Price is % of face value
+                                                                    marginTop: 3, fontWeight: 400 }}>Price is % of face value
                                                                 on IDX</div></div>
                                                     </div>
                                                 </div>
@@ -4149,8 +4252,9 @@
                                             {form.qty && form.price && <div style={{ background: T.bg4,
                                                     border: `1px solid ${T.border}`, borderRadius: 8,
                                                     padding: "9px 12px", fontSize: 12, color: T.text2,
+                                                    fontWeight: 500,
                                                 marginBottom: 12 }}>Total: <strong style={{ color: T
-                                                        .text }}>{form.currency === "IDR" ? `Rp ${fmtIDR(+form.qty*+form.price)}` :
+                                                        .text, fontWeight: 700 }}>{form.currency === "IDR" ? `Rp ${fmtIDR(+form.qty*+form.price)}` :
                                                         form.currency === "USD" ? `US$${(+form.qty*+form.price).toFixed(2)}` :
                                                         `A$${(+form.qty*+form.price).toFixed(2)}`}</strong></div>}
                                             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
@@ -4162,11 +4266,11 @@
                                     )}
                                     {modal.mode === "trade" && (
                                         <>
-                                            <h2 style={{ fontFamily: "'Space Mono',monospace", fontSize: 15,
+                                            <h2 style={{ fontFamily: "'Space Mono',monospace", fontSize: 16,
                                                     fontWeight: 700, color: T.text,
                                                 marginBottom: 6 }}>{modal.tradeType === "buy" ? "Buy More —" :
                                                 "Sell —"} {modal.holding.ticker}</h2>
-                                            <p style={{ color: T.text3, fontSize: 12,
+                                            <p style={{ color: T.text3, fontSize: 12, fontWeight: 500,
                                                 marginBottom: 16 }}>{modal.holding.name} · {modal.holding
                                                     .assetType} · Held: {modal.holding.qty.toFixed(4)}</p>
                                             <div className="modal-g3" style={{ display: "grid",
@@ -4189,8 +4293,9 @@
                                             {form.qty && form.price && <div style={{ background: T.bg4,
                                                     border: `1px solid ${T.border}`, borderRadius: 8,
                                                     padding: "9px 12px", fontSize: 12, color: T.text2,
+                                                    fontWeight: 500,
                                                 marginBottom: 12 }}>Total: <strong style={{ color: T
-                                                        .text }}>{modal.holding.currency === "IDR" ? `Rp ${fmtIDR(+form.qty*+form.price)}` :
+                                                        .text, fontWeight: 700 }}>{modal.holding.currency === "IDR" ? `Rp ${fmtIDR(+form.qty*+form.price)}` :
                                                         modal.holding.currency === "USD" ?
                                                         `US$${(+form.qty*+form.price).toFixed(2)}` :
                                                         `A$${(+form.qty*+form.price).toFixed(2)}`}</strong></div>}
@@ -4204,21 +4309,23 @@
                                     )}
                                     {modal.mode === "dividend" && (
                                         <>
-                                            <h2 style={{ fontFamily: "'Space Mono',monospace", fontSize: 15,
+                                            <h2 style={{ fontFamily: "'Space Mono',monospace", fontSize: 16,
                                                     fontWeight: 700, color: T.text,
                                                 marginBottom: 4 }}>{modal.holding.isBondPct ? "🏦 Record Coupon" :
                                                 "💰 Record Dividend"} — {modal.holding.ticker}</h2>
-                                            <p style={{ color: T.text3, fontSize: 12,
+                                            <p style={{ color: T.text3, fontSize: 12, fontWeight: 500,
                                                 marginBottom: 14 }}>{modal.holding.name} · {modal.holding
                                                     .currency}{modal.holding.isBondPct && ` · Face value: Rp ${fmtIDR(modal.holding.faceValue||1000000)}/unit`}</p>
                                             <div style={{ background: dark ? "#0f1120" : "#f8f9ff",
                                                     border: `1px solid ${T.border2}`, borderRadius: 10,
                                                     padding: "10px 14px", marginBottom: 14, fontSize: 11,
-                                                    color: T.text2, lineHeight: 1.6 }}><b style={{ color: T
-                                                        .text }}>📅 Ex-Dividend Date tip:</b> If you bought
+                                                    color: T.text2, lineHeight: 1.6, fontWeight: 500 }}><b
+                                                    style={{ color: T
+                                                        .text, fontWeight: 600 }}>📅 Ex-Dividend Date tip:</b> If you bought
                                                 shares <em>after</em> the ex-date, those shares do not
                                                 qualify. Reduce the entitled units below accordingly. Total
-                                                holding: <b style={{ color: T.text, fontFamily: "'Space Mono',monospace" }}>{computeHolding(
+                                                holding: <b style={{ color: T.text, fontFamily: "'Space Mono',monospace",
+                                                        fontWeight: 700 }}>{computeHolding(
                                                         modal.holding, prices, prevPrices, rates)
                                                         .qty.toFixed(4)}</b> units.</div>
                                             <div className="modal-g3" style={{ display: "grid",
@@ -4233,7 +4340,8 @@
                                                             setForm(f => ({ ...f, amountPerShare: e
                                                                     .target.value }))} />{modal.holding
                                                         .isBondPct && <div style={{ fontSize: 9,
-                                                                color: T.text3, marginTop: 3 }}>
+                                                                color: T.text3, marginTop: 3,
+                                                                fontWeight: 400 }}>
                                                             Semi-annual coupon per unit</div>}</div>
                                                 <div><label style={lbl()}>Entitled Units</label><input style={{
                                                             ...inp(), borderColor: form
@@ -4247,8 +4355,8 @@
                                                         value={form.entitledQty || ""} onChange={e =>
                                                             setForm(f => ({ ...f, entitledQty: e
                                                                     .target.value }))} /><div style={{
-                                                            fontSize: 9, marginTop: 3, color: form
-                                                                .entitledQty && +form
+                                                            fontSize: 9, marginTop: 3, fontWeight: 500,
+                                                            color: form.entitledQty && +form
                                                                 .entitledQty < computeHolding(
                                                                     modal.holding,
                                                                     prices, prevPrices,
@@ -4281,22 +4389,24 @@
                                                             justifyContent: "space-between",
                                                             alignItems: "center", flexWrap: "wrap",
                                                         gap: 6 }}><div><span style={{ fontSize: 11,
-                                                                color: T.teal }}>Total {modal.holding
+                                                                color: T.teal, fontWeight: 500 }}>Total {modal.holding
                                                                 .isBondPct ? "coupon" :
                                                             "dividend"}: </span><strong style={{
                                                                 fontFamily: "'Space Mono',monospace",
                                                                 fontSize: 14, color: T
-                                                                .teal }}>{totalFmt}</strong></div>{isPartial &&
+                                                                .teal, fontWeight: 700 }}>{totalFmt}</strong></div>{isPartial &&
                                                             <div style={{ fontSize: 10, color: T
                                                                     .amber, background: dark ?
                                                                     "#1a1000" : "#fffbeb",
                                                                     border: `1px solid ${T.amber}44`,
                                                                     borderRadius: 6,
-                                                                    padding: "3px 8px" }}>✂️ Partial — {form
+                                                                    padding: "3px 8px",
+                                                                    fontWeight: 600 }}>✂️ Partial — {form
                                                                     .entitledQty} of {fullQty
                                                                         .toFixed(4)} units</div>}</div><div
                                                             style={{ fontSize: 10, color: T
-                                                                .text3, marginTop: 4 }}>{form
+                                                                .text3, marginTop: 4,
+                                                            fontWeight: 500 }}>{form
                                                             .amountPerShare} × {form
                                                             .entitledQty} units = {totalFmt}</div></div>);
                                                 })()}
@@ -4314,10 +4424,10 @@
                                             <div style={{ display: "flex", justifyContent: "space-between",
                                                     alignItems: "flex-start", marginBottom: 14,
                                                 gap: 10 }}><div><h2 style={{ fontFamily: "'Space Mono',monospace",
-                                                        fontSize: 15, fontWeight: 700, color: T
+                                                        fontSize: 16, fontWeight: 700, color: T
                                                         .text, marginBottom: 4 }}>📋 Transaction
                                                     History</h2><p style={{ fontSize: 11, color: T
-                                                        .text3 }}>{modal.holding.ticker} — {modal
+                                                        .text3, fontWeight: 500 }}>{modal.holding.ticker} — {modal
                                                         .holding.name}</p></div></div>
                                             <div style={{ display: "flex", gap: 8, marginBottom: 14,
                                                     flexWrap: "wrap" }}>{[
@@ -4334,7 +4444,8 @@
                                                         flex: "1 1 100px"
                                                     }}><div style={{ fontSize: 8, color: T
                                                             .text3, letterSpacing: 1.2,
-                                                            textTransform: "uppercase" }}>{l}</div><div
+                                                            textTransform: "uppercase",
+                                                            fontWeight: 600 }}>{l}</div><div
                                                             style={{ fontFamily: "'Space Mono',monospace",
                                                                 fontSize: 11, fontWeight: 700,
                                                                 color: c, marginTop: 3 }}>{v}</div></div>))}
@@ -4349,12 +4460,13 @@
                                                                 <th key={c} style={{ padding: "8px 10px",
                                                                         textAlign: "left",
                                                                         fontSize: 8,
-                                                                        letterSpacing: 1.5,
+                                                                        letterSpacing: 1.2,
                                                                         color: T.text3,
                                                                         textTransform: "uppercase",
                                                                         background: T.bg,
                                                                         borderBottom: `1px solid ${T.border}`,
-                                                                    whiteSpace: "nowrap" }}>{c}</th>
+                                                                        whiteSpace: "nowrap",
+                                                                    fontWeight: 600 }}>{c}</th>
                                                             ))}
                                                         </tr>
                                                     </thead>
@@ -4446,12 +4558,13 @@
                                                                                 color: T
                                                                                     .text2,
                                                                                 borderBottom: `1px solid ${T.border}`,
-                                                                                whiteSpace: "nowrap" }}>{fmtDate(
+                                                                                whiteSpace: "nowrap",
+                                                                                fontWeight: 500 }}>{fmtDate(
                                                                                 tx
                                                                                 .date)}</td>
                                                                         <td style={{ padding: "8px 10px",
                                                                                 borderBottom: `1px solid ${T.border}` }}><span
-                                                                                style={{ padding: "2px 7px",
+                                                                                style={{ padding: "2px 8px",
                                                                                     borderRadius: 4,
                                                                                     background: t
                                                                                         .bg,
@@ -4466,13 +4579,15 @@
                                                                                 fontSize: 10,
                                                                                 color: T
                                                                                     .text2,
-                                                                                borderBottom: `1px solid ${T.border}` }}>{units}</td>
+                                                                                borderBottom: `1px solid ${T.border}`,
+                                                                                fontWeight: 500 }}>{units}</td>
                                                                         <td style={{ padding: "8px 10px",
                                                                                 fontFamily: "'Space Mono',monospace",
                                                                                 fontSize: 10,
                                                                                 color: T
                                                                                     .text2,
-                                                                                borderBottom: `1px solid ${T.border}` }}>{price}</td>
+                                                                                borderBottom: `1px solid ${T.border}`,
+                                                                                fontWeight: 500 }}>{price}</td>
                                                                         <td style={{ padding: "8px 10px",
                                                                                 fontFamily: "'Space Mono',monospace",
                                                                                 fontSize: 11,
@@ -4490,14 +4605,15 @@
                                                                                             txIndex: origIdx,
                                                                                             tx: { ...tx } })}
                                                                                     style={{ fontSize: 10,
-                                                                                        padding: "2px 7px",
+                                                                                        padding: "2px 8px",
                                                                                         borderRadius: 4,
                                                                                         border: `1px solid ${T.border}`,
                                                                                         background: T
                                                                                             .bg4,
                                                                                         color: T
                                                                                             .text2,
-                                                                                        cursor: "pointer" }}>✏️</button>
+                                                                                        cursor: "pointer",
+                                                                                        fontWeight: 500 }}>✏️</button>
                                                                                 <button onClick={() => {
                                                                                         if (!
                                                                                             confirm(
@@ -4527,14 +4643,15 @@
                                                                                             );
                                                                                     }}
                                                                                     style={{ fontSize: 10,
-                                                                                        padding: "2px 7px",
+                                                                                        padding: "2px 8px",
                                                                                         borderRadius: 4,
                                                                                         border: `1px solid ${T.red}44`,
                                                                                         background: T
                                                                                             .bg4,
                                                                                         color: T
                                                                                             .red,
-                                                                                        cursor: "pointer" }}>🗑️</button>
+                                                                                        cursor: "pointer",
+                                                                                        fontWeight: 500 }}>🗑️</button>
                                                                             </div>
                                                                         </td>
                                                                     </tr>
@@ -4546,17 +4663,17 @@
                                             <div style={{ display: "flex", justifyContent: "space-between",
                                                     alignItems: "center", marginTop: 12 }}><span
                                                     style={{ fontSize: 10, color: T
-                                                    .text3 }}>{histH.transactions.length} transactions
+                                                    .text3, fontWeight: 500 }}>{histH.transactions.length} transactions
                                                 total</span><button style={bO(T.text2)} onClick={closeModal}>Close</button>
                                             </div>
                                         </>
                                     )}
                                     {modal.mode === "price" && (
                                         <>
-                                            <h2 style={{ fontFamily: "'Space Mono',monospace", fontSize: 15,
+                                            <h2 style={{ fontFamily: "'Space Mono',monospace", fontSize: 16,
                                                     fontWeight: 700, color: T.text,
                                                 marginBottom: 4 }}>✏️ Manual Price Override</h2>
-                                            <p style={{ color: T.text3, fontSize: 11,
+                                            <p style={{ color: T.text3, fontSize: 11, fontWeight: 500,
                                                 marginBottom: 12 }}>Override prices or edit Yahoo
                                                 symbols. Auto-fetch skips holdings with no Yahoo
                                                 symbol.</p>
@@ -4564,21 +4681,21 @@
                                                     marginBottom: 16 }}><div style={{ background: dark ?
                                                         "#040e18" : "#f0f9ff", border: `1px solid ${T.teal}44`,
                                                         borderRadius: 10, padding: "9px 14px",
-                                                        fontSize: 11, color: T.teal }}><b>🏦 PBS032 / PBS033
+                                                        fontSize: 11, color: T.teal, fontWeight: 500 }}><b>🏦 PBS032 / PBS033
                                                         (Sukuk Negara):</b> Auto-fetched from <b>DJPPR
                                                         Kemenkeu</b>. If the fetch fails, enter the IDR price
                                                     per unit manually (e.g. Rp 1,010,000 = 101% of face
                                                     value).</div><div style={{ background: dark ?
                                                         "#040e18" : "#f0f9ff", border: `1px solid ${T.teal}44`,
                                                         borderRadius: 10, padding: "9px 14px",
-                                                        fontSize: 11, color: T.teal }}><b>📊 NUL7270AU:</b>
+                                                        fontSize: 11, color: T.teal, fontWeight: 500 }}><b>📊 NUL7270AU:</b>
                                                     Fetched from <b>Morningstar AU</b> (security ID 46182).
                                                     &nbsp;<b>NUL5339AU:</b> Fetched from <b>FE fundinfo</b>
                                                     (moneymanagement.com.au). If either fails, enter the AUD
                                                     unit price manually.</div><div style={{ background: dark ?
                                                         "#14100a" : "#fffbeb", border: `1px solid ${T.amber}44`,
                                                         borderRadius: 10, padding: "9px 14px",
-                                                        fontSize: 11, color: T.amber }}><b>📌 Gold (GC=F):</b>
+                                                        fontSize: 11, color: T.amber, fontWeight: 500 }}><b>📌 Gold (GC=F):</b>
                                                     Fetches USD spot price from COMEX futures. Enter price in
                                                     AUD manually if needed.</div></div>
                                             <div style={{ marginBottom: 16 }}><label style={lbl()}>Display
@@ -4599,16 +4716,19 @@
                                                                 style={{ marginLeft: 6, fontSize: 9,
                                                                     background: dark ? "#041020" :
                                                                     "#e0f9ff", color: T.teal,
-                                                                    padding: "2px 6px", borderRadius: 4,
-                                                                    border: `1px solid ${T.teal}44` }}>BOND</span>}{!h
+                                                                    padding: "2px 8px", borderRadius: 12,
+                                                                    border: `1px solid ${T.teal}44`,
+                                                                    fontWeight: 500 }}>BOND</span>}{!h
                                                             .yahooSymbol && <span style={{ marginLeft: 6,
                                                                 fontSize: 9, background: dark ?
                                                                     "#1a100a" : "#fff7ed",
-                                                                color: T.amber, padding: "2px 6px",
-                                                                borderRadius: 4,
-                                                                border: `1px solid ${T.amber}44` }}>✏️ Manual
+                                                                color: T.amber, padding: "2px 8px",
+                                                                borderRadius: 12,
+                                                                border: `1px solid ${T.amber}44`,
+                                                                fontWeight: 500 }}>✏️ Manual
                                                                 only</span>}<span style={{ marginLeft: 6,
-                                                                fontSize: 9, color: T.text3 }}>({h
+                                                                fontSize: 9, color: T.text3,
+                                                                fontWeight: 400 }}>({h
                                                                 .currency})</span></div><div className="modal-g3"
                                                         style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr",
                                                             gap: 8 }}><div><label style={lbl()}>Current
@@ -4645,7 +4765,8 @@
                                                                                 .value
                                                                             }))} /></div></div>{fetchSt
                                                         .errors[h.ticker] && <div style={{ fontSize: 10,
-                                                                color: T.amber, marginTop: 4 }}>⚠️ Last
+                                                                color: T.amber, marginTop: 4,
+                                                                fontWeight: 500 }}>⚠️ Last
                                                             auto-fetch: {fetchSt.errors[h.ticker]}</div>}</div>))}
                                             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end",
                                                     marginTop: 4 }}><button style={bO(T.text2)} onClick={
@@ -4683,12 +4804,12 @@
                                         return (<div style={{ maxWidth: 500, width: "100%",
                                                     ...card({ padding: 24 }) }}><h2
                                                     style={{ fontFamily: "'Space Mono',monospace",
-                                                        fontSize: 15, fontWeight: 700,
+                                                        fontSize: 16, fontWeight: 700,
                                                         color: T.text,
                                                     marginBottom: 4 }}>☁️ Set Up Cloud
                                                 Sync</h2><p style={{ fontSize: 11,
                                                         color: T.text3, marginBottom: 16,
-                                                    lineHeight: 1.6 }}>Enter your Firebase
+                                                        lineHeight: 1.6, fontWeight: 500 }}>Enter your Firebase
                                                     project credentials below. These are
                                                     saved only in your browser's
                                                     localStorage — never sent anywhere
@@ -4696,8 +4817,8 @@
                                                     style={{ background: T.bg4, border: `1px solid ${T.border}`,
                                                         borderRadius: 8, padding: 12,
                                                         marginBottom: 16, fontSize: 11,
-                                                        color: T.text2, lineHeight: 1.7 }}><b
-                                                        style={{ color: T.teal }}>Don't
+                                                        color: T.text2, lineHeight: 1.7, fontWeight: 500 }}><b
+                                                        style={{ color: T.teal, fontWeight: 600 }}>Don't
                                                         have a Firebase project
                                                     yet?</b><br />1. Go to <b>console
                                                         .firebase.google.com</b><br />2.
@@ -4720,7 +4841,8 @@
                                                                 fontSize: 10,
                                                                 color: T.text3,
                                                                 letterSpacing: 1,
-                                                                textTransform: "uppercase" }}>{label}</label><input
+                                                                textTransform: "uppercase",
+                                                                fontWeight: 600 }}>{label}</label><input
                                                                 style={{ ...inp(),
                                                                     marginTop: 2 }}
                                                                 placeholder={ph}
@@ -4731,7 +4853,7 @@
                                                                         .target
                                                                         .value }))} /></div>))}</div><div
                                                     style={{ fontSize: 10, color: T
-                                                            .amber, marginBottom: 12 }}>⚠️
+                                                            .amber, marginBottom: 12, fontWeight: 500 }}>⚠️
                                                     After saving, you need to <b>reload the
                                                         page</b> for Firebase to
                                                     initialise.</div><div style={{
@@ -4821,7 +4943,8 @@
                             placeholder = "") => (<div key={field}><label
                                     style={{ fontSize: 10, color: T.text3,
                                         letterSpacing: 1,
-                                    textTransform: "uppercase" }}>{label}</label><input
+                                        textTransform: "uppercase",
+                                    fontWeight: 600 }}>{label}</label><input
                                     type={type} style={{ ...inp(), marginTop: 2 }}
                                     value={tx[field] ?? ""} placeholder={
                                         placeholder} onChange={e => { const v =
@@ -4832,18 +4955,18 @@
                                                     .tx, [field]: v } })); }} /></div>);
                             return (<div onClick={() => setEditTx(null)} style={{ position: "fixed",
                                         inset: 0, background: "rgba(0,0,0,.82)",
-                                        backdropFilter: "blur(8px)", zIndex: 200,
+                                        backdropFilter: "blur(6px)", zIndex: 200,
                                         display: "flex", alignItems: "center",
                                         justifyContent: "center", padding: 12 }}><div
                                         onClick={e => e.stopPropagation()} style={{
                                             background: T.bg2, border: `1px solid ${T.border}`,
-                                            borderRadius: 14, padding: 22, width: "100%",
+                                            borderRadius: 16, padding: 24, width: "100%",
                                             maxWidth: 400, boxShadow: T.shadow }}><h2
                                             style={{ fontFamily: "'Space Mono',monospace",
-                                                fontSize: 14, fontWeight: 700,
+                                                fontSize: 15, fontWeight: 700,
                                             color: T.text, marginBottom: 4 }}>✏️ Edit
                                             Transaction</h2><p style={{ fontSize: 11,
-                                                color: T.text3,
+                                                color: T.text3, fontWeight: 500,
                                             marginBottom: 16 }}>{h.ticker} — {tx.type
                                                 ?.toUpperCase()}</p><div style={{
                                                 display: "flex", flexDirection: "column",
@@ -4876,23 +4999,23 @@
                         })()}
                         {showPassiveModal && (
                             <div onClick={() => setShowPassiveModal(false)} style={{ position: "fixed", inset: 0,
-                                    background: "rgba(0,0,0,.78)", backdropFilter: "blur(8px)",
+                                    background: "rgba(0,0,0,.7)", backdropFilter: "blur(6px)",
                                     zIndex: 200, display: "flex", alignItems: "center",
                                     justifyContent: "center", padding: 12 }}>
                                 <div onClick={e => e.stopPropagation()} style={{ background: T.bg2,
-                                        border: `1px solid ${T.border}`, borderRadius: 14,
-                                        padding: 22, width: "100%", maxWidth: 400,
+                                        border: `1px solid ${T.border}`, borderRadius: 16,
+                                        padding: 24, width: "100%", maxWidth: 400,
                                     boxShadow: T.shadow }}>
-                                    <h2 style={{ fontFamily: "'Space Mono',monospace", fontSize: 15,
+                                    <h2 style={{ fontFamily: "'Space Mono',monospace", fontSize: 16,
                                             fontWeight: 700, color: T.text,
                                         marginBottom: 4 }}>⚙️ Passive Income & Super Benchmark
                                         Settings</h2>
-                                    <p style={{ fontSize: 11, color: T.text3,
+                                    <p style={{ fontSize: 11, color: T.text3, fontWeight: 500,
                                         marginBottom: 16 }}>Set your monthly target, super draw
                                         rate, and average super balance for your age.</p>
                                     <div style={{ marginBottom: 12 }}><label style={{ fontSize: 10,
                                             color: T.text3, letterSpacing: 1,
-                                        textTransform: "uppercase" }}>Monthly Target
+                                        textTransform: "uppercase", fontWeight: 600 }}>Monthly Target
                                         (AUD)</label><input type="number" step="100"
                                             value={monthlyTargetAud} onChange={e => setMonthlyTargetAud(
                                                 parseFloat(e.target.value) || 0)}
@@ -4900,24 +5023,24 @@
                                             placeholder="e.g. 5000" /></div>
                                     <div style={{ marginBottom: 12 }}><label style={{ fontSize: 10,
                                             color: T.text3, letterSpacing: 1,
-                                        textTransform: "uppercase" }}>Superannuation Annual Draw
+                                        textTransform: "uppercase", fontWeight: 600 }}>Superannuation Annual Draw
                                         Rate (%)</label><input type="number" step="0.1"
                                             value={superDrawRate} onChange={e => setSuperDrawRate(
                                                 parseFloat(e.target.value) || 0)}
                                             style={{ ...inp(), marginTop: 4 }}
                                             placeholder="e.g. 4.0" /><div style={{ fontSize: 10,
-                                                color: T.text3, marginTop: 4 }}>Applied to
+                                                color: T.text3, marginTop: 4, fontWeight: 500 }}>Applied to
                                             NUL5339AU + NUL7270AU market value</div></div>
                                     <div style={{ marginBottom: 20 }}><label style={{ fontSize: 10,
                                             color: T.text3, letterSpacing: 1,
-                                        textTransform: "uppercase" }}>Average Super Balance for
+                                        textTransform: "uppercase", fontWeight: 600 }}>Average Super Balance for
                                         Your Age (AUD)</label><input type="number" step="1000"
                                             value={avgSuperBalanceAud} onChange={e =>
                                                 setAvgSuperBalanceAud(parseFloat(e.target
                                                     .value) || 0)} style={{ ...inp(),
                                                 marginTop: 4 }} placeholder="e.g. 100000" /><div
                                             style={{ fontSize: 10, color: T.text3,
-                                                marginTop: 4 }}>Used to calculate how your super
+                                                marginTop: 4, fontWeight: 500 }}>Used to calculate how your super
                                             compares to the average (e.g., 128% = above
                                             average)</div></div>
                                     <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
