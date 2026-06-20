@@ -2911,14 +2911,14 @@
             const histH = modal?.mode === "history" ? portfolio.find(p => p.id === modal.holding.id) : null;
             const histC = histH ? computeHolding(histH, prices, prevPrices, rates) : null;
 
-            const card = (x = {}) => ({ background: T.cardBg || T.bg3, border: `1px solid ${T.border}`, borderRadius: 12,
+            const card = (x = {}) => ({ background: T.cardBg || T.bg3, border: "1px solid " + T.border, borderRadius: 12,
                 boxShadow: T.shadow, padding: 16, ...x });
             const bS = (bg, col, x = {}) => ({ padding: "8px 16px", border: "none", borderRadius: 20, background: bg,
                 color: col, fontSize: 12, fontWeight: 600, transition: "background .2s", ...x });
-            const bO = (col, x = {}) => ({ padding: "8px 14px", border: `1px solid ${T.border2}`, borderRadius: 20,
+            const bO = (col, x = {}) => ({ padding: "8px 14px", border: "1px solid " + T.border2, borderRadius: 20,
                 background: "transparent", color: col, fontSize: 12, fontWeight: 500, transition: "background .2s",
                 ...x });
-            const inp = () => ({ width: "100%", background: T.bg, border: `1px solid ${T.border2}`, borderRadius: 8,
+            const inp = () => ({ width: "100%", background: T.bg, border: "1px solid " + T.border2, borderRadius: 8,
                 padding: "10px 14px", color: T.text, fontSize: 13, outline: "none", transition: "border .2s" });
             const lbl = (x = {}) => ({ display: "block", fontSize: 10, letterSpacing: 1.2, color: T.text3,
                 textTransform: "uppercase", marginBottom: 6, fontWeight: 600, ...x });
@@ -3077,22 +3077,6 @@
                                     const adjVal = h.currentValue * factor;
                                     const diff = adjVal - h.currentValue;
                                     const isPositive = diff >= 0;
-                                    const btnStyle = {
-                                        background: T.bg2,
-                                        border: "1px solid " + T.border,
-                                        borderRadius: 6,
-                                        width: 24,
-                                        height: 24,
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        color: T.text,
-                                        cursor: "pointer",
-                                    };
-                                    const sliderStyle = {
-                                        width: "100%",
-                                        accentColor: T.greenBtn,
-                                    };
                                     return (
                                         <div key={h.ticker} style={{ background: T.bg4, borderRadius: 8,
                                                 padding: "10px 12px", border: "1px solid " + T.border }}>
@@ -3106,15 +3090,22 @@
                                             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                                 <button onClick={() => setWhatIf(w => ({ ...w, adjustments: { ...
                                                             w.adjustments, [h.ticker]: Math.max(0.5, factor -
-                                                            0.05) } })} style={btnStyle}>-</button>
+                                                            0.05) } })} style={{ background: T.bg2, border: "1px solid " + T.border,
+                                                        borderRadius: 6, width: 24, height: 24, display: "flex",
+                                                        alignItems: "center", justifyContent: "center", color: T
+                                                            .text, cursor: "pointer" }}>-</button>
                                                 <input type="range" className="whatif-slider" min="50" max="150"
-                                                    step="5" value={Math.round(factor * 100)} style={sliderStyle}
+                                                    step="5" value={Math.round(factor * 100)} style={{ width: "100%",
+                                                        accentColor: T.greenBtn }}
                                                     onChange={e => setWhatIf(w => ({ ...w, adjustments: { ...
                                                                 w.adjustments, [h.ticker]: parseFloat(e
                                                                 .target.value) / 100 } }))} />
                                                 <button onClick={() => setWhatIf(w => ({ ...w, adjustments: { ...
                                                             w.adjustments, [h.ticker]: Math.min(1.5, factor +
-                                                            0.05) } })} style={btnStyle}>+</button>
+                                                            0.05) } })} style={{ background: T.bg2, border: "1px solid " + T.border,
+                                                        borderRadius: 6, width: 24, height: 24, display: "flex",
+                                                        alignItems: "center", justifyContent: "center", color: T
+                                                            .text, cursor: "pointer" }}>+</button>
                                             </div>
                                             <div style={{ display: "flex", justifyContent: "space-between",
                                                     marginTop: 4, fontSize: 10 }}>
