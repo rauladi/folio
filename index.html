@@ -2241,6 +2241,19 @@
                 scenarioName: "",
             });
 
+            // Treemap state for What-If
+            const [whatIfTmSize, setWhatIfTmSize] = useState({ w: 300, h: 300 });
+            const whatIfTmRef = useRef(null);
+            useEffect(() => {
+                if (!whatIfTmRef.current) return;
+                const obs = new ResizeObserver(e => {
+                    const { width, height } = e[0].contentRect;
+                    setWhatIfTmSize({ w: width, h: height });
+                });
+                obs.observe(whatIfTmRef.current);
+                return () => obs.disconnect();
+            }, []);
+
             const T = dark ? DARK : LIGHT;
             const winW = useWindowSize();
             const isMob = winW < 768;
@@ -3272,23 +3285,9 @@
                             "rgba(52,168,83,.1)" : "rgba(30,142,62,.08)", fill: true, borderWidth: 2.5 },
                 ];
 
-                // Treemap data
+                // Treemap items
                 const whatIfItems = adjustedHoldings.map(h => ({ ...h, value: h.adjustedValue }));
                 const sortedItems = whatIfItems.sort((a, b) => b.value - a.value);
-
-                // Treemap size tracking
-                const [whatIfTmSize, setWhatIfTmSize] = useState({ w: 300, h: 300 });
-                const tmRef = useRef(null);
-                useEffect(() => {
-                    if (!tmRef.current) return;
-                    const obs = new ResizeObserver(e => {
-                        const { width, height } = e[0].contentRect;
-                        setWhatIfTmSize({ w: width, h: height });
-                    });
-                    obs.observe(tmRef.current);
-                    return () => obs.disconnect();
-                }, []);
-
                 const whatIfRects = useMemo(() => {
                     if (!sortedItems.length) return [];
                     return squarify(sortedItems, 0, 0, whatIfTmSize.w, whatIfTmSize.h);
@@ -3401,7 +3400,7 @@
                             </div>
                             <div style={{ flex: "1 1 50%", ...card({ padding: 12 }) }}>
                                 <div style={{ fontSize: 11, fontWeight: 600, color: T.text, marginBottom: 2 }}>Adjusted Allocation</div>
-                                <div ref={tmRef} style={{ height: chartHeight, position: "relative", borderRadius: 12,
+                                <div ref={whatIfTmRef} style={{ height: chartHeight, position: "relative", borderRadius: 12,
                                         overflow: "hidden", border: "1px solid " + T.border, background: T.bg3 }}>
                                     {whatIfRects.map(r => {
                                         const c = getPerformanceColor(r.gainPct || 0, dark);
