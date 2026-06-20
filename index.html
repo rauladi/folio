@@ -159,6 +159,14 @@
             text-overflow: ellipsis;
             white-space: nowrap;
         }
+        /* Treemap legend gradient bar */
+        .gradient-bar {
+            width: 120px;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(to right, #ea4335, #9aa0a6, #34a853);
+            margin: 0 6px;
+        }
     </style>
 </head>
 <body>
@@ -362,61 +370,44 @@
         }
 
         // ─── Colors ──────────────────────────────────────────────────────────────────
-        function gainColor(p, d) {
-            if (d) {
-                if (p >= 3) return { bg: "#166534", text: "#bbf7d0", border: "#4ade80" };
-                if (p >= 1) return { bg: "#14532d", text: "#86efac", border: "#22c55e" };
-                if (p > 0) return { bg: "#0f3d22", text: "#4ade80", border: "#16a34a" };
-                if (p === 0) return { bg: "#2a2a2a", text: "#9aa0a6", border: "#5f6368" };
-                if (p > -1) return { bg: "#7f1d1d", text: "#fecaca", border: "#f87171" };
-                if (p > -3) return { bg: "#991b1b", text: "#fca5a5", border: "#ef4444" };
-                return { bg: "#b91c1c", text: "#fef2f2", border: "#fca5a5" };
-            } else {
-                if (p >= 3) return { bg: "#137333", text: "#ffffff", border: "#1e8e3e" };
-                if (p >= 1) return { bg: "#1e8e3e", text: "#ffffff", border: "#34a853" };
-                if (p > 0) return { bg: "#34a853", text: "#ffffff", border: "#66bb6a" };
-                if (p === 0) return { bg: "#e8eaed", text: "#3c4043", border: "#bdc1c6" };
-                if (p > -1) return { bg: "#f28b82", text: "#ffffff", border: "#ea4335" };
-                if (p > -3) return { bg: "#ea4335", text: "#ffffff", border: "#d93025" };
-                return { bg: "#d93025", text: "#ffffff", border: "#b3261e" };
+        // Google-style performance color: continuous green-red gradient
+        function getPerformanceColor(pct, dark) {
+            // Clamp to +/- 10% for full saturation, but allow any value
+            const maxAbs = 10;
+            const clamped = Math.max(-maxAbs, Math.min(maxAbs, pct));
+            const ratio = clamped / maxAbs; // -1 to 1
+            // Neutral grey for near-zero
+            if (Math.abs(pct) < 0.05) {
+                return {
+                    bg: dark ? "#3d3d3d" : "#e8eaed",
+                    text: dark ? "#bdc1c6" : "#3c4043",
+                    border: dark ? "#555555" : "#bdc1c6",
+                };
             }
+            // Map ratio: -1 -> red (hue 0), 0 -> grey (hue 60 but we'll treat as separate), 1 -> green (hue 120)
+            // Actually we want red at -1, green at 1, and a smooth transition through yellow.
+            // We'll use HSL: hue from 0 (red) to 120 (green)
+            const hue = 120 - ((ratio + 1) / 2) * 120; // ratio -1..1 -> hue 120..0
+            // Saturation and lightness based on dark/light mode
+            const sat = 75;
+            const light = dark ? 32 : 45;
+            const bg = `hsl(${hue}, ${sat}%, ${light}%)`;
+            // Text color: white always for better contrast
+            const text = "#ffffff";
+            // Border: slightly darker/lighter
+            const borderLight = dark ? 22 : 35;
+            const border = `hsl(${hue}, ${sat}%, ${borderLight}%)`;
+            return { bg, text, border };
         }
 
-        function dayColor(p, d) {
-            if (d) {
-                if (p >= 2) return { bg: "#166534", text: "#bbf7d0", border: "#4ade80" };
-                if (p >= 0.5) return { bg: "#14532d", text: "#86efac", border: "#22c55e" };
-                if (p > 0) return { bg: "#0f3d22", text: "#4ade80", border: "#16a34a" };
-                if (p === 0) return { bg: "#2a2a2a", text: "#9aa0a6", border: "#5f6368" };
-                if (p > -0.5) return { bg: "#7f1d1d", text: "#fecaca", border: "#f87171" };
-                if (p > -2) return { bg: "#991b1b", text: "#fca5a5", border: "#ef4444" };
-                return { bg: "#b91c1c", text: "#fef2f2", border: "#fca5a5" };
-            } else {
-                if (p >= 2) return { bg: "#137333", text: "#ffffff", border: "#1e8e3e" };
-                if (p >= 0.5) return { bg: "#1e8e3e", text: "#ffffff", border: "#34a853" };
-                if (p > 0) return { bg: "#34a853", text: "#ffffff", border: "#66bb6a" };
-                if (p === 0) return { bg: "#e8eaed", text: "#3c4043", border: "#bdc1c6" };
-                if (p > -0.5) return { bg: "#f28b82", text: "#ffffff", border: "#ea4335" };
-                if (p > -2) return { bg: "#ea4335", text: "#ffffff", border: "#d93025" };
-                return { bg: "#d93025", text: "#ffffff", border: "#b3261e" };
-            }
-        }
+        // For day and dividend we use same function but with different max ranges
+        // We'll reuse getPerformanceColor and pass the appropriate pct
+        // The treemap will call it with the relevant metric.
 
-        function divColor(y, d) {
-            if (d) {
-                if (y >= 6) return { bg: "#155e75", text: "#cffafe", border: "#22d3ee" };
-                if (y >= 4) return { bg: "#0e7490", text: "#a5f3fc", border: "#06b6d4" };
-                if (y >= 2) return { bg: "#0c4a6e", text: "#7dd3fc", border: "#0891b2" };
-                if (y > 0) return { bg: "#1e3a5f", text: "#93c5fd", border: "#3b82f6" };
-                return { bg: "#2a2a2a", text: "#9aa0a6", border: "#5f6368" };
-            } else {
-                if (y >= 6) return { bg: "#0d9488", text: "#ffffff", border: "#115e59" };
-                if (y >= 4) return { bg: "#0f766e", text: "#ffffff", border: "#0d5b54" };
-                if (y >= 2) return { bg: "#14b8a6", text: "#ffffff", border: "#0f766e" };
-                if (y > 0) return { bg: "#2dd4bf", text: "#0f172a", border: "#14b8a6" };
-                return { bg: "#e8eaed", text: "#3c4043", border: "#bdc1c6" };
-            }
-        }
+        // Legacy functions kept for compatibility but we'll override usage
+        const gainColor = (p, d) => getPerformanceColor(p, d);
+        const dayColor = (p, d) => getPerformanceColor(p, d);
+        const divColor = (y, d) => getPerformanceColor(y, d);
 
         // ─── Currency helpers ────────────────────────────────────────────────────────
         const toAUD = (a, cur, R) => { if (cur === "IDR") return a / R.AUD_IDR; if (cur === "USD") return a / R.AUD_USD;
@@ -3006,37 +2997,29 @@
                                     <span style={{ fontSize: 9, color: T.text3, letterSpacing: 1,
                                             textTransform: "uppercase", marginRight: 2, fontWeight: 500 }}>G/L to
                                         date:</span>
-                                    {[
-                                        [-4, "≤-3%"],
-                                        [-2, "-1%"],
-                                        [0, "0"],
-                                        [1, "+1%"],
-                                        [4, "+3%+"]
-                                    ].map(([p, l]) => { const c = gainColor(p, dark); return (<div key={l}
-                                            style={{ display: "flex", alignItems: "center", gap: 3 }}><div
-                                                style={{ width: 11, height: 11, borderRadius: 2,
-                                                    background: c.bg, border: `1px solid ${c.border}` }} /><span
-                                                style={{ fontSize: 9, color: T.text3 }}>{l}</span></div>); })}
-                                    <span style={{ fontSize: 9, color: T.text4, marginLeft: 6, fontWeight: 400 }}>· Box
-                                        size = current market value · Colour = total return %</span>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                        <span style={{ fontSize: 9, color: T.text3, fontWeight: 400 }}>⏤</span>
+                                        <div className="gradient-bar" style={{ background: dark ?
+                                                "linear-gradient(to right, #ea4335, #3d3d3d, #34a853)" :
+                                                "linear-gradient(to right, #ea4335, #e8eaed, #34a853)" }} />
+                                        <span style={{ fontSize: 9, color: T.text3, fontWeight: 400 }}>+</span>
+                                    </div>
+                                    <span style={{ fontSize: 9, color: T.text4, marginLeft: 4, fontWeight: 400 }}>·
+                                        Box size = current market value · Colour = total return %</span>
                                 </>}
                                 {view === "treemap" && tmMode === "day" && <>
                                     <span style={{ fontSize: 9, color: T.text3, letterSpacing: 1,
                                             textTransform: "uppercase", marginRight: 2, fontWeight: 500 }}>Day G/L
                                         %:</span>
-                                    {[
-                                        [-3, "≤-2%"],
-                                        [-1, "-0.5%"],
-                                        [0, "0"],
-                                        [0.6, "+0.5%"],
-                                        [3, "+2%+"]
-                                    ].map(([p, l]) => { const c = dayColor(p, dark); return (<div key={l}
-                                            style={{ display: "flex", alignItems: "center", gap: 3 }}><div
-                                                style={{ width: 11, height: 11, borderRadius: 2,
-                                                    background: c.bg, border: `1px solid ${c.border}` }} /><span
-                                                style={{ fontSize: 9, color: T.text3 }}>{l}</span></div>); })}
-                                    <span style={{ fontSize: 9, color: T.text4, marginLeft: 6, fontWeight: 400 }}>· Box
-                                        size = current market value · Colour = day return %</span>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                        <span style={{ fontSize: 9, color: T.text3, fontWeight: 400 }}>⏤</span>
+                                        <div className="gradient-bar" style={{ background: dark ?
+                                                "linear-gradient(to right, #ea4335, #3d3d3d, #34a853)" :
+                                                "linear-gradient(to right, #ea4335, #e8eaed, #34a853)" }} />
+                                        <span style={{ fontSize: 9, color: T.text3, fontWeight: 400 }}>+</span>
+                                    </div>
+                                    <span style={{ fontSize: 9, color: T.text4, marginLeft: 4, fontWeight: 400 }}>·
+                                        Box size = current market value · Colour = day return %</span>
                                 </>}
                                 {view === "treemap" && tmMode === "dividend" && <>
                                     <span style={{ fontSize: 9, color: T.text3, letterSpacing: 1,
@@ -3053,8 +3036,8 @@
                                                 style={{ width: 11, height: 11, borderRadius: 2,
                                                     background: c.bg, border: `1px solid ${c.border}` }} /><span
                                                 style={{ fontSize: 9, color: T.text3 }}>{l}</span></div>); })}
-                                    <span style={{ fontSize: 9, color: T.text4, marginLeft: 6, fontWeight: 400 }}>· Box
-                                        size = total dividends received · Colour = yield on cost %</span>
+                                    <span style={{ fontSize: 9, color: T.text4, marginLeft: 6, fontWeight: 400 }}>·
+                                        Box size = total dividends received · Colour = yield on cost %</span>
                                 </>}
                             </div>
                             <div style={{ display: "flex", gap: 4 }}>
@@ -3118,11 +3101,12 @@
                                             overflow: "hidden", border: `1px solid ${T.border}`, background: T
                                                 .bg3, minWidth: 200 }}>
                                         {rects.map(r => {
-                                            const c = tmSlider != null && sliderRects != null ? gainColor(r
-                                                    .gainPct ?? 0, dark) : (tmMode === "performance" ?
-                                                    gainColor(r.gainPct, dark) : tmMode === "day" ?
-                                                    dayColor(r.dayGainPct, dark) : divColor(r
-                                                        .divYieldOnCost, dark));
+                                            // Use continuous color based on mode
+                                            let pct = 0;
+                                            if (tmMode === "performance") pct = r.gainPct;
+                                            else if (tmMode === "day") pct = r.dayGainPct;
+                                            else pct = r.divYieldOnCost;
+                                            const c = getPerformanceColor(pct, dark);
                                             const area = r.w * r.h;
                                             const minDim = Math.min(r.w, r.h);
                                             const baseFont = Math.max(8, Math.min(19, minDim / 7));
@@ -3135,7 +3119,7 @@
                                                 style={{ position: "absolute", left: r.x + 1, top: r
                                                         .y + 1, width: r.w - 2, height: r.h - 2,
                                                     background: c.bg, border: `1px solid ${c
-                                                        .border}`, borderRadius: 5, display: "flex",
+                                                        .border}`, borderRadius: 4, display: "flex",
                                                     flexDirection: "column", alignItems: "center",
                                                     justifyContent: "center", cursor: "pointer",
                                                     overflow: "hidden", outline: r.ticker ===
@@ -3238,9 +3222,9 @@
                                                         </div>
                                                     </div>
                                                     <div style={{ padding: "3px 10px", borderRadius: 20,
-                                                            background: gainColor(selH.gainPct,
-                                                            dark).bg, color: gainColor(selH
-                                                                .gainPct, dark).text,
+                                                            background: getPerformanceColor(selH.gainPct,
+                                                            dark).bg, color: getPerformanceColor(
+                                                                selH.gainPct, dark).text,
                                                             fontFamily: "'Space Mono',monospace",
                                                             fontSize: 10, fontWeight: 700,
                                                             whiteSpace: "nowrap" }}>{fmtPct(selH
@@ -3376,7 +3360,7 @@
                                         <tbody>
                                             {holdings.sort((a, b) => b.currentValue - a.currentValue).map((
                                             h, i) => {
-                                                const gc = gainColor(h.gainPct, dark);
+                                                const gc = getPerformanceColor(h.gainPct, dark);
                                                 const bg = i % 2 === 0 ? T.bg3 : T.bg2;
                                                 return (
                                                     <tr key={h.ticker} style={{ background: bg }}
@@ -3483,7 +3467,8 @@
                                                                         .totalInvested) / h
                                                                         .totalInvested) *
                                                                     100 : 0; const rc =
-                                                                    gainColor(roi, dark); return (
+                                                                    getPerformanceColor(roi,
+                                                                    dark); return (
                                                                     <span style={{ padding: "2px 10px",
                                                                             borderRadius: 20,
                                                                             background: rc
@@ -4722,10 +4707,10 @@
                                                             .yahooSymbol && <span style={{ marginLeft: 6,
                                                                 fontSize: 9, background: dark ?
                                                                     "#1a100a" : "#fff7ed",
-                                                                color: T.amber, padding: "2px 8px",
-                                                                borderRadius: 12,
-                                                                border: `1px solid ${T.amber}44`,
-                                                                fontWeight: 500 }}>✏️ Manual
+                                                                    color: T.amber, padding: "2px 8px",
+                                                                    borderRadius: 12,
+                                                                    border: `1px solid ${T.amber}44`,
+                                                                    fontWeight: 500 }}>✏️ Manual
                                                                 only</span>}<span style={{ marginLeft: 6,
                                                                 fontSize: 9, color: T.text3,
                                                                 fontWeight: 400 }}>({h
