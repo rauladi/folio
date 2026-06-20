@@ -124,6 +124,12 @@
             .risk-grid {
                 grid-template-columns: 1fr 1fr !important;
             }
+            .whatif-grid {
+                grid-template-columns: 1fr !important;
+            }
+            .whatif-holdings {
+                grid-template-columns: 1fr !important;
+            }
         }
         @media(min-width:769px) {
             .hdr-mobile {
@@ -266,6 +272,82 @@
             border-radius: 3px;
             background: linear-gradient(to right, #ea4335, #9aa0a6, #34a853);
             margin: 0 6px;
+        }
+        /* Sticky Table Styles */
+        .table-container {
+            overflow: auto;
+            max-height: 600px;
+            border-radius: 12px;
+            border: 1px solid var(--border, #3d3d3d);
+        }
+        .table-container table {
+            border-collapse: separate;
+            border-spacing: 0;
+            width: 100%;
+        }
+        .table-container thead th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: var(--bg2, #1e1e1e);
+            border-bottom: 2px solid var(--border, #3d3d3d);
+        }
+        .table-container tbody td:first-child {
+            position: sticky;
+            left: 0;
+            z-index: 5;
+            background: var(--bg3, #2a2a2a);
+        }
+        .table-container thead th:first-child {
+            z-index: 15;
+            left: 0;
+            background: var(--bg2, #1e1e1e);
+        }
+        .light .table-container tbody td:first-child {
+            background: var(--bg3, #f8f9fa);
+        }
+        .light .table-container thead th {
+            background: var(--bg2, #ffffff);
+        }
+        .light .table-container thead th:first-child {
+            background: var(--bg2, #ffffff);
+        }
+        .table-container tbody tr:hover td {
+            background: var(--hover-bg, #333333);
+        }
+        .light .table-container tbody tr:hover td {
+            background: var(--hover-bg, #f1f3f4);
+        }
+        .table-container tbody tr:hover td:first-child {
+            background: var(--hover-bg, #333333);
+        }
+        .light .table-container tbody tr:hover td:first-child {
+            background: var(--hover-bg, #f1f3f4);
+        }
+        /* What-If Styles */
+        .whatif-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .whatif-holdings {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .whatif-slider {
+            width: 100%;
+            accent-color: var(--green-btn, #34a853);
+        }
+        .scenario-card {
+            border-radius: 10px;
+            padding: 12px 14px;
+            border: 1px solid var(--border, #3d3d3d);
+            background: var(--bg3, #2a2a2a);
+        }
+        .scenario-card.active {
+            border-color: var(--green-btn, #34a853);
+            box-shadow: 0 0 0 2px var(--green-btn, #34a853);
         }
     </style>
 </head>
@@ -1930,6 +2012,17 @@
             const [showPassiveModal, setShowPassiveModal] = useState(false);
             const [avgSuperBalanceAud, setAvgSuperBalanceAud] = useState(() => ld("f6_avgSuper", 0));
 
+            // What-If State
+            const [whatIf, setWhatIf] = useState({
+                growthRate: 5.0,
+                reinvestRatio: 50,
+                fxRate: 0.0,
+                simulationYears: 5,
+                adjustments: {},
+                scenarios: [],
+                activeScenario: null,
+            });
+
             const T = dark ? DARK : LIGHT;
             const winW = useWindowSize();
             const isMob = winW < 768;
@@ -1952,6 +2045,7 @@
             useEffect(() => { localStorage.setItem("f6_avgSuper", JSON.stringify(avgSuperBalanceAud)); }, [
                 avgSuperBalanceAud
             ]);
+            useEffect(() => { localStorage.setItem("f6_whatif", JSON.stringify(whatIf)); }, [whatIf]);
 
             useEffect(() => { document.body.style.background = T.bg;
                 document.body.style.color = T.text; }, [T]);
@@ -1990,6 +2084,8 @@
                     if (typeof data.monthlyTargetAud === "number") setMonthlyTargetAud(data.monthlyTargetAud);
                     if (typeof data.superDrawRate === "number") setSuperDrawRate(data.superDrawRate);
                     if (typeof data.avgSuperBalanceAud === "number") setAvgSuperBalanceAud(data.avgSuperBalanceAud);
+                    if (data.whatIf) { const parsed = JSON.parse(data.whatIf);
+                        setWhatIf(parsed); }
 
                     setSyncSt("ok");
                     setSyncMsg("✅ Loaded ✓ " + new Date().toLocaleTimeString());
@@ -2021,6 +2117,7 @@
                         monthlyTargetAud,
                         superDrawRate,
                         avgSuperBalanceAud,
+                        whatIf: JSON.stringify(whatIf),
                         savedAt: new Date().toISOString(),
                     });
                     setSyncSt("ok");
@@ -2030,7 +2127,7 @@
                     setSyncMsg("❌ Save failed: " + e.message);
                 }
             }, [portfolio, prices, prevPrices, history, displayCur, dark, monthlyTargetAud, superDrawRate,
-                avgSuperBalanceAud
+                avgSuperBalanceAud, whatIf
             ]);
 
             useEffect(() => {
@@ -2832,6 +2929,328 @@
             const fetchBarColor = fetchSt.loading ? T.amber : Object.keys(fetchSt.errors).length > 0 ? T.amber : fetchSt
                 .lastUpdate ? T.green : T.text3;
 
+            // What-If Logic
+            const runSimulation = useCallback(() => {
+                if (!holdings.length) return null;
+                const { growthRate, reinvestRatio, fxRate, simulationYears, adjustments } = whatIf;
+
+                // Calculate adjusted portfolio
+                let adjustedDivs = 0;
+                let adjustedValue = 0;
+                let totalAdjValue = 0;
+                const adjustedHoldings = holdings.map(h => {
+                    const factor = adjustments[h.ticker] || 1.0;
+                    const adjVal = h.currentValue * factor;
+                    const adjDiv = h.totalDividends * factor;
+                    totalAdjValue += adjVal;
+                    return { ...h, adjustedValue: adjVal, adjustedDividends: adjDiv };
+                });
+
+                adjustedHoldings.forEach(h => {
+                    adjustedDivs += h.adjustedDividends;
+                    adjustedValue += h.adjustedValue;
+                });
+
+                const currentYield = adjustedValue > 0 ? (adjustedDivs / adjustedValue) * 100 : 0;
+
+                // Projection
+                const years = [];
+                const projectedDivs = [];
+                const projectedReinvested = [];
+                let div = adjustedDivs;
+                const fxFactor = 1 + fxRate / 100;
+
+                for (let i = 0; i <= simulationYears; i++) {
+                    years.push(new Date().getFullYear() + i);
+                    projectedDivs.push(div);
+                    const reinvested = div * (reinvestRatio / 100);
+                    projectedReinvested.push(reinvested);
+                    div = div * (1 + growthRate / 100) + reinvested * (growthRate / 100) * 0.5; // simplified reinvestment growth
+                }
+
+                const finalDiv = projectedDivs[projectedDivs.length - 1] || adjustedDivs;
+                const cagr = adjustedDivs > 0 ? (Math.pow(finalDiv / adjustedDivs, 1 / simulationYears) - 1) * 100 : 0;
+
+                // Risk Concentration (top 1 holding)
+                const maxHolding = adjustedHoldings.reduce((max, h) => h.adjustedValue > max ? h.adjustedValue : max, 0);
+                const riskConcentration = adjustedValue > 0 ? (maxHolding / adjustedValue) * 100 : 0;
+
+                return {
+                    adjustedDivs,
+                    adjustedValue,
+                    currentYield,
+                    finalDiv,
+                    cagr,
+                    riskConcentration,
+                    years,
+                    projectedDivs,
+                    projectedReinvested,
+                    adjustedHoldings,
+                };
+            }, [holdings, whatIf]);
+
+            const simulationResult = useMemo(() => runSimulation(), [runSimulation]);
+
+            const renderWhatIf = () => {
+                if (!holdings.length) {
+                    return <div style={{ padding: 40, textAlign: "center", color: T.text3 }}>Add holdings first to use the
+                        What-If simulator.</div>;
+                }
+
+                const sr = simulationResult;
+                if (!sr) return null;
+
+                const {
+                    adjustedDivs,
+                    adjustedValue,
+                    currentYield,
+                    finalDiv,
+                    cagr,
+                    riskConcentration,
+                    years,
+                    projectedDivs,
+                    projectedReinvested,
+                    adjustedHoldings,
+                } = sr;
+
+                // Prepare chart data
+                const chartLabels = years.map(y => String(y));
+                const currentDivs = projectedDivs.map(() => adjustedDivs);
+
+                const divDatasets = [
+                    { label: "Current", data: currentDivs, borderColor: T.text3, borderDash: [5, 4], borderWidth: 1.5,
+                        pointRadius: 0 },
+                    { label: "Projected", data: projectedDivs, borderColor: T.green, backgroundColor: dark ?
+                            "rgba(52,168,83,.1)" : "rgba(30,142,62,.08)", fill: true, borderWidth: 2.5 },
+                ];
+
+                // Allocation chart
+                const allocLabels = adjustedHoldings.map(h => h.ticker);
+                const allocData = adjustedHoldings.map(h => h.adjustedValue);
+                const colors = ["#34a853", "#1a73e8", "#f59e0b", "#ea4335", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316"];
+
+                return (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                        {/* Inputs Row */}
+                        <div className="whatif-grid" style={{ display: "grid", gridTemplateColumns: isMob ? "1fr 1fr" :
+                                "1fr 1fr 1fr 1fr", gap: 10 }}>
+                            <div style={card({ padding: 14 })}>
+                                <label style={lbl({ fontSize: 9 })}>Dividend Growth Rate</label>
+                                <input type="range" className="whatif-slider" min="0" max="15" step="0.5"
+                                    value={whatIf.growthRate}
+                                    onChange={e => setWhatIf(w => ({ ...w, growthRate: parseFloat(e.target.value) }))} />
+                                <div style={{ textAlign: "center", fontWeight: 700, fontSize: 14, color: T.text }}>{whatIf
+                                        .growthRate}%</div>
+                            </div>
+                            <div style={card({ padding: 14 })}>
+                                <label style={lbl({ fontSize: 9 })}>Reinvestment Ratio</label>
+                                <input type="range" className="whatif-slider" min="0" max="100" step="5"
+                                    value={whatIf.reinvestRatio}
+                                    onChange={e => setWhatIf(w => ({ ...w, reinvestRatio: parseFloat(e.target.value) }))} />
+                                <div style={{ textAlign: "center", fontWeight: 700, fontSize: 14, color: T.text }}>{whatIf
+                                        .reinvestRatio}%</div>
+                            </div>
+                            <div style={card({ padding: 14 })}>
+                                <label style={lbl({ fontSize: 9 })}>FX Rate Change</label>
+                                <input type="range" className="whatif-slider" min="-5" max="5" step="0.5"
+                                    value={whatIf.fxRate}
+                                    onChange={e => setWhatIf(w => ({ ...w, fxRate: parseFloat(e.target.value) }))} />
+                                <div style={{ textAlign: "center", fontWeight: 700, fontSize: 14, color: T.text }}>{whatIf
+                                        .fxRate}%</div>
+                            </div>
+                            <div style={card({ padding: 14 })}>
+                                <label style={lbl({ fontSize: 9 })}>Simulation Years</label>
+                                <input type="range" className="whatif-slider" min="1" max="10" step="1"
+                                    value={whatIf.simulationYears}
+                                    onChange={e => setWhatIf(w => ({ ...w, simulationYears: parseInt(e.target.value) }))} />
+                                <div style={{ textAlign: "center", fontWeight: 700, fontSize: 14, color: T.text }}>{whatIf
+                                        .simulationYears} yrs</div>
+                            </div>
+                        </div>
+
+                        {/* Holdings Adjustments */}
+                        <div style={card({ padding: 14 })}>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: T.text, marginBottom: 8 }}>Modify Your
+                                Portfolio</div>
+                            <div className="whatif-holdings" style={{ display: "grid", gridTemplateColumns: isMob ?
+                                    "1fr" : "1fr 1fr", gap: 8 }}>
+                                {holdings.map(h => {
+                                    const factor = whatIf.adjustments[h.ticker] || 1.0;
+                                    const adjVal = h.currentValue * factor;
+                                    const diff = adjVal - h.currentValue;
+                                    const isPositive = diff >= 0;
+                                    return (
+                                        <div key={h.ticker} style={{ background: T.bg4, borderRadius: 8,
+                                                padding: "10px 12px", border: `1px solid ${T.border}` }}>
+                                            <div style={{ display: "flex", justifyContent: "space-between",
+                                                    alignItems: "center", marginBottom: 4 }}>
+                                                <span style={{ fontWeight: 700, fontSize: 12, color: T.text }}>{h
+                                                    .ticker}</span>
+                                                <span style={{ fontSize: 11, color: T.text2 }}>{FC(h.currentValue,
+                                                    true)}</span>
+                                            </div>
+                                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                                <button onClick={() => setWhatIf(w => ({ ...w, adjustments: { ...
+                                                            w.adjustments, [h.ticker]: Math.max(0.5, factor -
+                                                            0.05) } })} style={{ background: T.bg2, border: `1px solid ${T.border}`,
+                                                        borderRadius: 6, width: 24, height: 24, display: "flex",
+                                                        alignItems: "center", justifyContent: "center", color: T
+                                                            .text }}>-</button>
+                                                <input type="range" className="whatif-slider" min="50" max="150"
+                                                    step="5" value={Math.round(factor * 100)}
+                                                    onChange={e => setWhatIf(w => ({ ...w, adjustments: { ...
+                                                                w.adjustments, [h.ticker]: parseFloat(e
+                                                                .target.value) / 100 } }))} />
+                                                <button onClick={() => setWhatIf(w => ({ ...w, adjustments: { ...
+                                                            w.adjustments, [h.ticker]: Math.min(1.5, factor +
+                                                            0.05) } })} style={{ background: T.bg2, border: `1px solid ${T.border}`,
+                                                        borderRadius: 6, width: 24, height: 24, display: "flex",
+                                                        alignItems: "center", justifyContent: "center", color: T
+                                                            .text }}>+</button>
+                                            </div>
+                                            <div style={{ display: "flex", justifyContent: "space-between",
+                                                    marginTop: 4, fontSize: 10 }}>
+                                                <span style={{ color: T.text3 }}>{Math.round(factor * 100)}%</span>
+                                                <span style={{ color: isPositive ? T.green : T.red }}>{isPositive ?
+                                                        "+" : ""}{FC(diff, true)}</span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                                <button onClick={() => setWhatIf(w => ({ ...w, adjustments: {} }))} style={bO(T
+                                    .text2, { fontSize: 11, padding: "4px 12px" })}>Reset Changes</button>
+                            </div>
+                        </div>
+
+                        {/* KPIs */}
+                        <div style={{ display: "grid", gridTemplateColumns: isMob ? "1fr 1fr" : "1fr 1fr 1fr 1fr",
+                                gap: 10 }}>
+                            <div style={card({ padding: 14, textAlign: "center" })}>
+                                <div style={{ fontSize: 9, color: T.text3, letterSpacing: 1, textTransform: "uppercase",
+                                        fontWeight: 600 }}>Projected Annual Div</div>
+                                <div style={{ fontSize: 18, fontWeight: 700, color: T.text, fontFamily: "'Space Mono',monospace",
+                                        marginTop: 2 }}>{FC(adjustedDivs, true)}</div>
+                                <div style={{ fontSize: 9, color: T.text3 }}>→ {FC(finalDiv, true)} in {whatIf
+                                        .simulationYears}y</div>
+                            </div>
+                            <div style={card({ padding: 14, textAlign: "center" })}>
+                                <div style={{ fontSize: 9, color: T.text3, letterSpacing: 1, textTransform: "uppercase",
+                                        fontWeight: 600 }}>Portfolio Yield</div>
+                                <div style={{ fontSize: 18, fontWeight: 700, color: T.text, fontFamily: "'Space Mono',monospace",
+                                        marginTop: 2 }}>{currentYield.toFixed(2)}%</div>
+                                <div style={{ fontSize: 9, color: T.text3 }}>{whatIf.reinvestRatio}% reinvested</div>
+                            </div>
+                            <div style={card({ padding: 14, textAlign: "center" })}>
+                                <div style={{ fontSize: 9, color: T.text3, letterSpacing: 1, textTransform: "uppercase",
+                                        fontWeight: 600 }}>Reinvested Income</div>
+                                <div style={{ fontSize: 18, fontWeight: 700, color: T.teal, fontFamily: "'Space Mono',monospace",
+                                        marginTop: 2 }}>{FC(projectedReinvested.reduce((a, b) => a + b, 0) /
+                                        whatIf.simulationYears, true)}</div>
+                                <div style={{ fontSize: 9, color: T.text3 }}>avg per year</div>
+                            </div>
+                            <div style={card({ padding: 14, textAlign: "center" })}>
+                                <div style={{ fontSize: 9, color: T.text3, letterSpacing: 1, textTransform: "uppercase",
+                                        fontWeight: 600 }}>Risk Concentration</div>
+                                <div style={{ fontSize: 18, fontWeight: 700, color: riskConcentration > 30 ? T.red :
+                                        riskConcentration > 20 ? T.amber : T.green, fontFamily: "'Space Mono',monospace",
+                                        marginTop: 2 }}>{riskConcentration.toFixed(1)}%</div>
+                                <div style={{ fontSize: 9, color: T.text3 }}>top holding</div>
+                            </div>
+                        </div>
+
+                        {/* Charts */}
+                        <div className="chart-row" style={{ display: "flex", gap: 12, flexWrap: isMob ? "wrap" :
+                                "nowrap" }}>
+                            <div style={{ flex: "2 1 280px", ...card({ padding: 14 }) }}>
+                                <div style={{ fontSize: 12, fontWeight: 600, color: T.text, marginBottom: 2 }}>Dividend
+                                    Income Projection</div>
+                                <div style={{ fontSize: 10, color: T.text3, marginBottom: 8 }}>Current vs Adjusted · {displayCur}
+                                </div>
+                                <ChartLine labels={chartLabels} datasets={divDatasets} T={T} yFmt={yFmtD}
+                                    height={isMob ? 170 : 230} />
+                            </div>
+                            <div style={{ flex: "1 1 180px", ...card({ padding: 14 }) }}>
+                                <div style={{ fontSize: 12, fontWeight: 600, color: T.text, marginBottom: 2 }}>Portfolio
+                                    Allocation</div>
+                                <div style={{ fontSize: 10, color: T.text3, marginBottom: 8 }}>Adjusted weights</div>
+                                <ChartDoughnut labels={allocLabels} data={allocData} colors={colors} T={T}
+                                    height={isMob ? 160 : 200} />
+                            </div>
+                        </div>
+
+                        {/* Scenarios */}
+                        <div style={card({ padding: 14 })}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
+                                    marginBottom: 8, flexWrap: "wrap", gap: 6 }}>
+                                <div>
+                                    <div style={{ fontSize: 12, fontWeight: 600, color: T.text }}>📊 Scenarios</div>
+                                    <div style={{ fontSize: 10, color: T.text3 }}>Save and compare different what-if
+                                        scenarios</div>
+                                </div>
+                                <div style={{ display: "flex", gap: 6 }}>
+                                    <input style={inp()} placeholder="Scenario name" value={whatIf.scenarioName || ""}
+                                        onChange={e => setWhatIf(w => ({ ...w, scenarioName: e.target.value }))} />
+                                    <button onClick={() => {
+                                            if (!whatIf.scenarioName) return;
+                                            const newScenario = {
+                                                id: Date.now(),
+                                                name: whatIf.scenarioName,
+                                                growthRate: whatIf.growthRate,
+                                                reinvestRatio: whatIf.reinvestRatio,
+                                                fxRate: whatIf.fxRate,
+                                                adjustments: whatIf.adjustments,
+                                                simulationYears: whatIf.simulationYears,
+                                                result: simulationResult,
+                                            };
+                                            setWhatIf(w => ({ ...w, scenarios: [...w.scenarios, newScenario],
+                                                scenarioName: "" }));
+                                        }} style={bS(T.greenBtn, "#fff", { fontSize: 11, padding: "6px 14px" })}>Save
+                                        Scenario</button>
+                                </div>
+                            </div>
+                            {whatIf.scenarios.length > 0 && (
+                                <div style={{ display: "grid", gridTemplateColumns: isMob ? "1fr" : "1fr 1fr 1fr",
+                                        gap: 8, marginTop: 8 }}>
+                                    {whatIf.scenarios.slice().reverse().map(s => (
+                                        <div key={s.id} className="scenario-card" style={{ border: `1px solid ${T.border}`,
+                                                borderRadius: 8, padding: "10px 12px", background: T.bg3 }}>
+                                            <div style={{ display: "flex", justifyContent: "space-between",
+                                                    alignItems: "center" }}>
+                                                <span style={{ fontWeight: 700, fontSize: 12, color: T.text }}>{s
+                                                    .name}</span>
+                                                <button onClick={() => {
+                                                        setWhatIf(w => ({ ...w, scenarios: w.scenarios
+                                                                .filter(sc => sc.id !== s.id) }));
+                                                    }} style={{ background: "transparent", border: "none",
+                                                        color: T.red, cursor: "pointer", fontSize: 11 }}>✕</button>
+                                            </div>
+                                            <div style={{ fontSize: 9, color: T.text3, marginTop: 4 }}>
+                                                Yield: {s.result.currentYield.toFixed(1)}% · CAGR: {s.result.cagr
+                                                    .toFixed(1)}% · Risk: {s.result.riskConcentration.toFixed(0)}%
+                                            </div>
+                                            <button onClick={() => {
+                                                    setWhatIf(w => ({
+                                                        ...w,
+                                                        growthRate: s.growthRate,
+                                                        reinvestRatio: s.reinvestRatio,
+                                                        fxRate: s.fxRate,
+                                                        adjustments: s.adjustments,
+                                                        simulationYears: s.simulationYears,
+                                                        activeScenario: s.id,
+                                                    }));
+                                                }} style={bO(T.teal, { fontSize: 10, padding: "3px 10px",
+                                                    marginTop: 6 })}>Load</button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            };
+
             const renderImportModal = () => {
                 const IS = importSt;
                 const valid = IS.parsed.filter(r => !r._errors.length);
@@ -3299,7 +3718,8 @@
                                     {[
                                         ["treemap", "Map"],
                                         ["table", "Table"],
-                                        ["chart", "Charts"]
+                                        ["chart", "Charts"],
+                                        ["whatif", "💡 What-If"]
                                     ].map(([v, l]) => (
                                         <button key={v} onClick={() => setView(v)} style={{ padding: "3px 8px",
                                                 borderRadius: 14, border: "none", background: view === v ?
@@ -3566,9 +3986,10 @@
                                 </div>
                             )}
                             {view === "table" && (
-                                <div style={{ overflowX: "auto", ...card() }}>
+                                <div className="table-container" style={{ overflow: "auto", maxHeight: 600,
+                                        borderRadius: 12, border: `1px solid ${T.border}` }}>
                                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
-                                        <thead>
+                                        <thead style={{ position: "sticky", top: 0, zIndex: 10, background: T.bg2 }}>
                                             <tr>{["Ticker", "Type", "CCY", "Units", "Avg Cost", "Current",
                                                 "Day G/L", "Mkt Value", "Unrealzd", "Realzd",
                                                 "Div/Coupon", "Div Yld", "ROI", "Total G/L", "G/L%",
@@ -3579,7 +4000,11 @@
                                                         letterSpacing: 1.2, color: T.text3,
                                                         textTransform: "uppercase", background: T
                                                             .bg2, borderBottom: `2px solid ${T.border}`,
-                                                        whiteSpace: "nowrap", fontWeight: 600 }}>{c}</th>
+                                                        whiteSpace: "nowrap", fontWeight: 600,
+                                                        zIndex: c === "Ticker" ? 15 : 10,
+                                                        position: c === "Ticker" ? "sticky" : "sticky",
+                                                        left: c === "Ticker" ? 0 : "auto",
+                                                        top: 0 }}>{c}</th>
                                             ))}</tr>
                                         </thead>
                                         <tbody>
@@ -3599,12 +4024,14 @@
                                                                 fontWeight: 700, color: T
                                                                     .text, fontSize: 12,
                                                                 borderBottom: `1px solid ${T.border}`,
-                                                                whiteSpace: "nowrap" }}>{h
-                                                                .ticker}{h.isBondPct && <span
-                                                                    style={{ fontSize: 8,
-                                                                        color: T.teal,
-                                                                        marginLeft: 4,
-                                                                        fontWeight: 500 }}>BOND</span>}</td>
+                                                                whiteSpace: "nowrap",
+                                                                position: "sticky", left: 0,
+                                                                zIndex: 5,
+                                                            background: bg }}>{h.ticker}{h.isBondPct &&
+                                                            <span style={{ fontSize: 8,
+                                                                    color: T.teal,
+                                                                    marginLeft: 4,
+                                                                fontWeight: 500 }}>BOND</span>}</td>
                                                         <td style={{ padding: "10px 12px",
                                                                 color: T.text3, maxWidth: 90,
                                                                 overflow: "hidden",
@@ -4382,6 +4809,7 @@
                                     </div>
                                 </div>
                             )}
+                            {view === "whatif" && renderWhatIf()}
                         </main>
 
                         {/* Modals (same as before, trimmed for brevity) */}
