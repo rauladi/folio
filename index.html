@@ -477,11 +477,10 @@
         }
 
         // ─── Colors ──────────────────────────────────────────────────────────────────
-        // Google-style performance color: green for positive, red for negative
         function getPerformanceColor(pct, dark) {
             const maxAbs = 10;
             const clamped = Math.max(-maxAbs, Math.min(maxAbs, pct));
-            const ratio = clamped / maxAbs; // -1 to 1
+            const ratio = clamped / maxAbs;
             if (Math.abs(pct) < 0.05) {
                 return {
                     bg: dark ? "#3d3d3d" : "#e8eaed",
@@ -489,9 +488,7 @@
                     border: dark ? "#555555" : "#bdc1c6",
                 };
             }
-            // ratio -1 -> red (hue 0), ratio 0 -> grey (we handle separately), ratio 1 -> green (hue 120)
-            // Map ratio from [-1,1] to [0,120] for hue
-            const hue = ((ratio + 1) / 2) * 120; // -1->0 (red), 1->120 (green)
+            const hue = ((ratio + 1) / 2) * 120;
             const sat = 75;
             const light = dark ? 32 : 45;
             const bg = `hsl(${hue}, ${sat}%, ${light}%)`;
@@ -501,12 +498,10 @@
             return { bg, text, border };
         }
 
-        // Happy colors for dividend mode (warm golds, oranges, yellows)
         function getDividendColor(yieldPct, dark) {
-            // Map yield from 0 to 8% to warm colors
             const maxYield = 8;
             const clamped = Math.max(0, Math.min(maxYield, yieldPct));
-            const ratio = clamped / maxYield; // 0 to 1
+            const ratio = clamped / maxYield;
             if (yieldPct <= 0.01) {
                 return {
                     bg: dark ? "#3d3d3d" : "#e8eaed",
@@ -514,9 +509,7 @@
                     border: dark ? "#555555" : "#bdc1c6",
                 };
             }
-            // Start with warm yellow-gold at low yield, move to orange-gold at high yield
-            // Hue from 50 (yellow) to 30 (orange)
-            const hue = 50 - ratio * 20; // 50 -> 30
+            const hue = 50 - ratio * 20;
             const sat = 85;
             const light = dark ? 38 : 52;
             const bg = `hsl(${hue}, ${sat}%, ${light}%)`;
@@ -526,7 +519,6 @@
             return { bg, text, border };
         }
 
-        // Legacy functions kept for compatibility
         const gainColor = (p, d) => getPerformanceColor(p, d);
         const dayColor = (p, d) => getPerformanceColor(p, d);
         const divColor = (y, d) => getDividendColor(y, d);
@@ -1782,13 +1774,11 @@
             if (returns.length < 2) {
                 return { volatility: null, maxDrawdown: null, bestMonth: null, worstMonth: null };
             }
-            // Volatility: annualized standard deviation of monthly returns
             const meanRet = returns.reduce((s, r) => s + r, 0) / returns.length;
             const variance = returns.reduce((s, r) => s + (r - meanRet) ** 2, 0) / returns.length;
             const monthlyStd = Math.sqrt(variance);
             const volatility = monthlyStd * Math.sqrt(12);
 
-            // Max drawdown
             let peak = values[0];
             let maxDrawdown = 0;
             for (const v of values) {
@@ -1797,7 +1787,6 @@
                 if (dd > maxDrawdown) maxDrawdown = dd;
             }
 
-            // Best and worst month
             const monthlyRet = [];
             const sortedDates = sorted.map(d => d.date);
             for (let i = 1; i < values.length; i++) {
@@ -1830,7 +1819,6 @@
                     const divData = annotationData.dividends || [];
                     const events = annotationData.events || [];
 
-                    // Draw buy markers (green triangles)
                     buyData.forEach(item => {
                         const idx = labels.indexOf(item.date);
                         if (idx === -1) return;
@@ -1855,7 +1843,6 @@
                         ctx.restore();
                     });
 
-                    // Draw dividend markers (gold stars)
                     divData.forEach(item => {
                         const idx = labels.indexOf(item.date);
                         if (idx === -1) return;
@@ -1878,7 +1865,6 @@
                         ctx.restore();
                     });
 
-                    // Draw event markers (vertical dashed lines with labels)
                     events.forEach(event => {
                         const idx = labels.indexOf(event.date);
                         if (idx === -1) return;
@@ -2411,7 +2397,6 @@
                 const buys = [];
                 const dividends = [];
                 const events = [];
-                // Collect buy and dividend transactions from portfolio
                 for (const h of portfolio) {
                     for (const tx of h.transactions) {
                         if (tx.type === "buy") {
@@ -2421,7 +2406,6 @@
                         }
                     }
                 }
-                // Deduplicate by date (keep first occurrence for buys, sum for dividends)
                 const buyMap = {};
                 for (const b of buys) {
                     if (!buyMap[b.date]) buyMap[b.date] = b;
@@ -2430,7 +2414,6 @@
                 for (const d of dividends) {
                     if (!divMap[d.date]) divMap[d.date] = d;
                 }
-                // Market events: detect large drops or spikes from history
                 const sortedHist = [...history].sort((a, b) => new Date(a.date) - new Date(b.date));
                 for (let i = 1; i < sortedHist.length; i++) {
                     const prev = sortedHist[i - 1].totalValueAUD;
@@ -2444,10 +2427,6 @@
                         }
                     }
                 }
-                // FX spike detection: look at rates changes (if available)
-                // For now, we'll skip FX spikes as rates data is not in history
-
-                // Only keep last 10 events to avoid clutter
                 const sortedEvents = events.sort((a, b) => new Date(a.date) - new Date(b.date));
                 const recentEvents = sortedEvents.slice(-8);
 
@@ -3096,7 +3075,7 @@
                                             TRACKER</text>
                                     </svg>
                                 </div>
-                                <div className="header-kpis" style={{ display: "flex", gap: { isMob ? 12 : 24 },
+                                <div className="header-kpis" style={{ display: "flex", gap: isMob ? 12 : 24,
                                         alignItems: "baseline", flexWrap: "wrap" }}>
                                     {[
                                         { label: "Current Value", value: FC(totVal, true), color: T.text,
