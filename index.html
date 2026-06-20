@@ -114,6 +114,16 @@
                 width: 100%;
                 justify-content: space-between;
             }
+            .header-kpis {
+                flex-wrap: wrap !important;
+                gap: 12px !important;
+            }
+            .header-kpi {
+                min-width: 60px !important;
+            }
+            .risk-grid {
+                grid-template-columns: 1fr 1fr !important;
+            }
         }
         @media(min-width:769px) {
             .hdr-mobile {
@@ -148,18 +158,108 @@
         .export-btn:hover {
             background: #4ade8022 !important;
         }
-        /* Fix for modal scrolling */
-        .modal-scroll {
-            max-height: 92vh;
-            overflow-y: auto;
+        .header-kpis {
+            display: flex;
+            gap: 24px;
+            align-items: baseline;
+            flex-wrap: wrap;
         }
-        /* Table cell ellipsis */
-        .ellipsis {
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+        .header-kpi {
+            display: flex;
+            flex-direction: column;
         }
-        /* Treemap legend gradient bar */
+        .header-kpi .label {
+            font-size: 9px;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            font-weight: 600;
+            color: var(--kpi-label, #9aa0a6);
+        }
+        .header-kpi .value {
+            font-size: 18px;
+            font-weight: 700;
+            font-family: 'Space Mono', monospace;
+            letter-spacing: -0.5px;
+            line-height: 1.2;
+        }
+        .header-kpi .sub {
+            font-size: 11px;
+            font-weight: 500;
+            opacity: .7;
+        }
+        .header-sysinfo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            font-size: 10px;
+            color: var(--sysinfo-color, #9aa0a6);
+            padding: 4px 0;
+        }
+        .header-sysinfo .sep {
+            color: var(--border-color, #3d3d3d);
+        }
+        .header-sysinfo .icon-btn {
+            background: transparent;
+            border: none;
+            font-size: 14px;
+            padding: 4px 6px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background .15s;
+            color: var(--text2, #bdc1c6);
+        }
+        .header-sysinfo .icon-btn:hover {
+            background: var(--bg4, #333);
+        }
+        .risk-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 10px;
+            margin-top: 6px;
+        }
+        .risk-card {
+            border-radius: 10px;
+            padding: 12px 14px;
+            background: var(--card-bg, #252525);
+            border: 1px solid var(--border, #3d3d3d);
+            text-align: center;
+        }
+        .risk-card .label {
+            font-size: 9px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-weight: 600;
+            color: var(--text3, #9aa0a6);
+        }
+        .risk-card .value {
+            font-size: 16px;
+            font-weight: 700;
+            font-family: 'Space Mono', monospace;
+            margin-top: 2px;
+        }
+        .risk-card .sub {
+            font-size: 10px;
+            color: var(--text3, #9aa0a6);
+            margin-top: 1px;
+            font-weight: 400;
+        }
+        .chart-annotation-legend {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 6px;
+            font-size: 10px;
+            color: var(--text3, #9aa0a6);
+        }
+        .chart-annotation-legend .dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 4px;
+            vertical-align: middle;
+        }
         .gradient-bar {
             width: 120px;
             height: 6px;
@@ -277,7 +377,6 @@
         ]);
 
         // ─── Themes ───────────────────────────────────────────────────────────────
-        // Google-inspired clean palette
         const DARK = {
             bg: "#121212",
             bg2: "#1e1e1e",
@@ -303,6 +402,10 @@
             chartTick: "#9aa0a6",
             cardBg: "#252525",
             hoverBg: "#333333",
+            kpiLabel: "#9aa0a6",
+            sysinfoColor: "#9aa0a6",
+            borderColor: "#3d3d3d",
+            dividendHappy: ["#f9a825", "#fbc02d", "#fdd835", "#ffeb3b", "#fff176", "#ffcc02", "#f9a825", "#f57f17"],
         };
         const LIGHT = {
             bg: "#f1f3f4",
@@ -329,6 +432,10 @@
             chartTick: "#5f6368",
             cardBg: "#ffffff",
             hoverBg: "#f1f3f4",
+            kpiLabel: "#5f6368",
+            sysinfoColor: "#5f6368",
+            borderColor: "#dadce0",
+            dividendHappy: ["#f9a825", "#fbc02d", "#fdd835", "#ffeb3b", "#fff176", "#ffcc02", "#f9a825", "#f57f17"],
         };
 
         // ─── Treemap ──────────────────────────────────────────────────────────────────
@@ -370,13 +477,11 @@
         }
 
         // ─── Colors ──────────────────────────────────────────────────────────────────
-        // Google-style performance color: continuous green-red gradient
+        // Google-style performance color: green for positive, red for negative
         function getPerformanceColor(pct, dark) {
-            // Clamp to +/- 10% for full saturation, but allow any value
             const maxAbs = 10;
             const clamped = Math.max(-maxAbs, Math.min(maxAbs, pct));
             const ratio = clamped / maxAbs; // -1 to 1
-            // Neutral grey for near-zero
             if (Math.abs(pct) < 0.05) {
                 return {
                     bg: dark ? "#3d3d3d" : "#e8eaed",
@@ -384,30 +489,47 @@
                     border: dark ? "#555555" : "#bdc1c6",
                 };
             }
-            // Map ratio: -1 -> red (hue 0), 0 -> grey (hue 60 but we'll treat as separate), 1 -> green (hue 120)
-            // Actually we want red at -1, green at 1, and a smooth transition through yellow.
-            // We'll use HSL: hue from 0 (red) to 120 (green)
-            const hue = 120 - ((ratio + 1) / 2) * 120; // ratio -1..1 -> hue 120..0
-            // Saturation and lightness based on dark/light mode
+            // ratio -1 -> red (hue 0), ratio 0 -> grey (we handle separately), ratio 1 -> green (hue 120)
+            // Map ratio from [-1,1] to [0,120] for hue
+            const hue = ((ratio + 1) / 2) * 120; // -1->0 (red), 1->120 (green)
             const sat = 75;
             const light = dark ? 32 : 45;
             const bg = `hsl(${hue}, ${sat}%, ${light}%)`;
-            // Text color: white always for better contrast
             const text = "#ffffff";
-            // Border: slightly darker/lighter
             const borderLight = dark ? 22 : 35;
             const border = `hsl(${hue}, ${sat}%, ${borderLight}%)`;
             return { bg, text, border };
         }
 
-        // For day and dividend we use same function but with different max ranges
-        // We'll reuse getPerformanceColor and pass the appropriate pct
-        // The treemap will call it with the relevant metric.
+        // Happy colors for dividend mode (warm golds, oranges, yellows)
+        function getDividendColor(yieldPct, dark) {
+            // Map yield from 0 to 8% to warm colors
+            const maxYield = 8;
+            const clamped = Math.max(0, Math.min(maxYield, yieldPct));
+            const ratio = clamped / maxYield; // 0 to 1
+            if (yieldPct <= 0.01) {
+                return {
+                    bg: dark ? "#3d3d3d" : "#e8eaed",
+                    text: dark ? "#bdc1c6" : "#3c4043",
+                    border: dark ? "#555555" : "#bdc1c6",
+                };
+            }
+            // Start with warm yellow-gold at low yield, move to orange-gold at high yield
+            // Hue from 50 (yellow) to 30 (orange)
+            const hue = 50 - ratio * 20; // 50 -> 30
+            const sat = 85;
+            const light = dark ? 38 : 52;
+            const bg = `hsl(${hue}, ${sat}%, ${light}%)`;
+            const text = "#ffffff";
+            const borderLight = dark ? 25 : 40;
+            const border = `hsl(${hue}, ${sat}%, ${borderLight}%)`;
+            return { bg, text, border };
+        }
 
-        // Legacy functions kept for compatibility but we'll override usage
+        // Legacy functions kept for compatibility
         const gainColor = (p, d) => getPerformanceColor(p, d);
         const dayColor = (p, d) => getPerformanceColor(p, d);
-        const divColor = (y, d) => getPerformanceColor(y, d);
+        const divColor = (y, d) => getDividendColor(y, d);
 
         // ─── Currency helpers ────────────────────────────────────────────────────────
         const toAUD = (a, cur, R) => { if (cur === "IDR") return a / R.AUD_IDR; if (cur === "USD") return a / R.AUD_USD;
@@ -1110,7 +1232,7 @@
         }
 
         // ─── Chart Components ─────────────────────────────────────────────────────────
-        function ChartLine({ labels, datasets, T, yFmt, y2Fmt, height = 220, spanGaps = false }) {
+        function ChartLine({ labels, datasets, T, yFmt, y2Fmt, height = 220, spanGaps = false, plugins = [] }) {
             const ref = useRef(null);
             const inst = useRef(null);
             useEffect(() => {
@@ -1132,6 +1254,7 @@
                         position: "right",
                     };
                 }
+                const allPlugins = [...plugins];
                 inst.current = new Chart(ref.current, { type: "line", data: { labels, datasets }, options: { spanGaps: spanGaps,
                         responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: T.text2,
                                     font: { family: "Roboto", size: 11, weight: "500" }, boxWidth: 10, padding: 12 } },
@@ -1139,9 +1262,10 @@
                                 titleColor: T.text, bodyColor: T.text2, padding: 10, cornerRadius: 8,
                                 callbacks: { label: (ctx) => { const fmt = ctx.dataset.yAxisID === "y2" &&
                                         y2Fmt ? y2Fmt : yFmt || (v => `${v}`); return ` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)}`; } } } },
-                    scales: scales, elements: { line: { tension: 0.4 }, point: { radius: 2, hoverRadius: 5 } } } });
+                    scales: scales, elements: { line: { tension: 0.4 }, point: { radius: 2, hoverRadius: 5 } },
+                    plugins: allPlugins } });
                 return () => { if (inst.current) inst.current.destroy(); };
-            }, [labels, datasets, T, yFmt, y2Fmt]);
+            }, [labels, datasets, T, yFmt, y2Fmt, plugins]);
             return <div style={{ height, position: "relative" }}><canvas ref={ref} /></div>;
         }
 
@@ -1642,6 +1766,147 @@
             URL.revokeObjectURL(a.href);
         }
 
+        // ─── Risk Metrics ─────────────────────────────────────────────────────────────
+        function computeRiskMetrics(historyData) {
+            if (!historyData || historyData.length < 3) {
+                return { volatility: null, maxDrawdown: null, bestMonth: null, worstMonth: null };
+            }
+            const sorted = [...historyData].sort((a, b) => new Date(a.date) - new Date(b.date));
+            const values = sorted.map(d => d.totalValueAUD);
+            const returns = [];
+            for (let i = 1; i < values.length; i++) {
+                if (values[i - 1] > 0) {
+                    returns.push((values[i] - values[i - 1]) / values[i - 1]);
+                }
+            }
+            if (returns.length < 2) {
+                return { volatility: null, maxDrawdown: null, bestMonth: null, worstMonth: null };
+            }
+            // Volatility: annualized standard deviation of monthly returns
+            const meanRet = returns.reduce((s, r) => s + r, 0) / returns.length;
+            const variance = returns.reduce((s, r) => s + (r - meanRet) ** 2, 0) / returns.length;
+            const monthlyStd = Math.sqrt(variance);
+            const volatility = monthlyStd * Math.sqrt(12);
+
+            // Max drawdown
+            let peak = values[0];
+            let maxDrawdown = 0;
+            for (const v of values) {
+                if (v > peak) peak = v;
+                const dd = peak > 0 ? (peak - v) / peak : 0;
+                if (dd > maxDrawdown) maxDrawdown = dd;
+            }
+
+            // Best and worst month
+            const monthlyRet = [];
+            const sortedDates = sorted.map(d => d.date);
+            for (let i = 1; i < values.length; i++) {
+                const ret = values[i - 1] > 0 ? (values[i] - values[i - 1]) / values[i - 1] : 0;
+                monthlyRet.push({ date: sortedDates[i], ret });
+            }
+            const best = monthlyRet.reduce((a, b) => a.ret > b.ret ? a : b, { ret: -Infinity });
+            const worst = monthlyRet.reduce((a, b) => a.ret < b.ret ? a : b, { ret: Infinity });
+
+            return {
+                volatility: volatility * 100,
+                maxDrawdown: maxDrawdown * 100,
+                bestMonth: best.ret !== -Infinity ? { date: best.date, ret: best.ret * 100 } : null,
+                worstMonth: worst.ret !== Infinity ? { date: worst.date, ret: worst.ret * 100 } : null,
+            };
+        }
+
+        // ─── Chart Annotations Plugin ─────────────────────────────────────────────────
+        function createAnnotationPlugin(annotationData, T) {
+            return {
+                id: 'customAnnotations',
+                afterDraw(chart) {
+                    const ctx = chart.ctx;
+                    const xAxis = chart.scales.x;
+                    const yAxis = chart.scales.y;
+                    if (!xAxis || !yAxis) return;
+
+                    const labels = chart.data.labels;
+                    const buyData = annotationData.buys || [];
+                    const divData = annotationData.dividends || [];
+                    const events = annotationData.events || [];
+
+                    // Draw buy markers (green triangles)
+                    buyData.forEach(item => {
+                        const idx = labels.indexOf(item.date);
+                        if (idx === -1) return;
+                        const x = xAxis.getPixelForValue(idx);
+                        const y = yAxis.getPixelForValue(item.value);
+                        if (!x || !y) return;
+                        ctx.save();
+                        ctx.fillStyle = '#34a853';
+                        ctx.shadowColor = 'rgba(52,168,83,0.4)';
+                        ctx.shadowBlur = 8;
+                        ctx.beginPath();
+                        ctx.moveTo(x, y - 8);
+                        ctx.lineTo(x - 6, y + 4);
+                        ctx.lineTo(x + 6, y + 4);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.shadowBlur = 0;
+                        ctx.fillStyle = '#ffffff';
+                        ctx.font = '6px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('B', x, y + 2);
+                        ctx.restore();
+                    });
+
+                    // Draw dividend markers (gold stars)
+                    divData.forEach(item => {
+                        const idx = labels.indexOf(item.date);
+                        if (idx === -1) return;
+                        const x = xAxis.getPixelForValue(idx);
+                        const y = yAxis.getPixelForValue(item.value);
+                        if (!x || !y) return;
+                        ctx.save();
+                        ctx.fillStyle = '#f9a825';
+                        ctx.shadowColor = 'rgba(249,168,37,0.4)';
+                        ctx.shadowBlur = 8;
+                        const size = 7;
+                        ctx.beginPath();
+                        ctx.arc(x, y - size, size * 0.5, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.shadowBlur = 0;
+                        ctx.fillStyle = '#ffffff';
+                        ctx.font = '5px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('D', x, y - size + 2);
+                        ctx.restore();
+                    });
+
+                    // Draw event markers (vertical dashed lines with labels)
+                    events.forEach(event => {
+                        const idx = labels.indexOf(event.date);
+                        if (idx === -1) return;
+                        const x = xAxis.getPixelForValue(idx);
+                        const yMin = yAxis.top;
+                        const yMax = yAxis.bottom;
+                        if (!x) return;
+                        ctx.save();
+                        ctx.setLineDash([3, 4]);
+                        ctx.strokeStyle = event.color || '#fdd663';
+                        ctx.lineWidth = 1.5;
+                        ctx.globalAlpha = 0.6;
+                        ctx.beginPath();
+                        ctx.moveTo(x, yMin);
+                        ctx.lineTo(x, yMax);
+                        ctx.stroke();
+                        ctx.globalAlpha = 1;
+                        ctx.setLineDash([]);
+                        ctx.fillStyle = event.color || '#fdd663';
+                        ctx.font = '7px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(event.label, x, yMin + 12);
+                        ctx.restore();
+                    });
+                }
+            };
+        }
+
         // ─── App ──────────────────────────────────────────────────────────────────────
         function App() {
             const ld = (k, d) => { try { const s = localStorage.getItem(k); return s ? JSON.parse(s) : d; } catch { return d; } };
@@ -1862,7 +2127,7 @@
                 return (totalDividendsDiv / totalInvestedDiv) * 100;
             }, [holdings]);
 
-            function computeDividendCAGR(portfolio, rates) {
+            const divCAGR = useMemo(() => {
                 const yearTotals = new Map();
                 for (const h of portfolio) {
                     for (const tx of h.transactions) {
@@ -1884,10 +2149,9 @@
                 if (numYears <= 0) return null;
                 const cagr = (Math.pow(lastVal / firstVal, 1 / numYears) - 1) * 100;
                 return { cagr, firstYear, lastYear };
-            }
-            const divCAGR = useMemo(() => computeDividendCAGR(portfolio, rates), [portfolio, rates]);
+            }, [portfolio, rates]);
 
-            function computeMonthlyDividendsToDate(portfolio, rates) {
+            const monthlyDivsAUD = useMemo(() => {
                 const now = new Date();
                 const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
                 let totalAUD = 0;
@@ -1899,10 +2163,9 @@
                     }
                 }
                 return totalAUD;
-            }
-            const monthlyDivsAUD = useMemo(() => computeMonthlyDividendsToDate(portfolio, rates), [portfolio, rates]);
+            }, [portfolio, rates]);
 
-            function computeSuperFundsValue(holdings) {
+            const superFundsValueAUD = useMemo(() => {
                 let totalAUD = 0;
                 for (const h of holdings) {
                     if (h.ticker === "NUL5339AU" || h.ticker === "NUL7270AU") {
@@ -1910,8 +2173,7 @@
                     }
                 }
                 return totalAUD;
-            }
-            const superFundsValueAUD = useMemo(() => computeSuperFundsValue(holdings), [holdings]);
+            }, [holdings]);
 
             const monthlyPassiveNumerator = useMemo(() => {
                 const superMonthly = (superFundsValueAUD * (superDrawRate / 100)) / 12;
@@ -1936,6 +2198,8 @@
             const FC = (a, compact = false) => valuesHidden ? "••••••" : fmtCur(a, displayCur, rates, compact);
             const FG = (a) => valuesHidden ? "••••••" : fmtGain(a, displayCur, rates);
             const pColor = n => n >= 0 ? T.green : T.red;
+
+            const riskMetrics = useMemo(() => computeRiskMetrics(history), [history]);
 
             const perfRects = useMemo(() => { const it = holdings.map(h => ({ ...h, value: h.currentValue })).sort((a,
                     b) => b.value - a.value); return it.length ? squarify(it, 0, 0, tmSize.w, tmSize.h) : []; }, [
@@ -2142,6 +2406,58 @@
                 });
             }, [portfolio, prices, prevPrices, rates]);
 
+            // ─── Chart annotation data ────────────────────────────────────────────────
+            const annotationData = useMemo(() => {
+                const buys = [];
+                const dividends = [];
+                const events = [];
+                // Collect buy and dividend transactions from portfolio
+                for (const h of portfolio) {
+                    for (const tx of h.transactions) {
+                        if (tx.type === "buy") {
+                            buys.push({ date: tx.date, value: tx.price || 0, ticker: h.ticker });
+                        } else if (tx.type === "dividend" && tx.date) {
+                            dividends.push({ date: tx.date, value: tx.totalAmount || 0, ticker: h.ticker });
+                        }
+                    }
+                }
+                // Deduplicate by date (keep first occurrence for buys, sum for dividends)
+                const buyMap = {};
+                for (const b of buys) {
+                    if (!buyMap[b.date]) buyMap[b.date] = b;
+                }
+                const divMap = {};
+                for (const d of dividends) {
+                    if (!divMap[d.date]) divMap[d.date] = d;
+                }
+                // Market events: detect large drops or spikes from history
+                const sortedHist = [...history].sort((a, b) => new Date(a.date) - new Date(b.date));
+                for (let i = 1; i < sortedHist.length; i++) {
+                    const prev = sortedHist[i - 1].totalValueAUD;
+                    const curr = sortedHist[i].totalValueAUD;
+                    if (prev > 0) {
+                        const pct = (curr - prev) / prev * 100;
+                        if (pct < -5) {
+                            events.push({ date: sortedHist[i].date, label: `▼${pct.toFixed(1)}%`, color: '#ea4335' });
+                        } else if (pct > 5) {
+                            events.push({ date: sortedHist[i].date, label: `▲${pct.toFixed(1)}%`, color: '#34a853' });
+                        }
+                    }
+                }
+                // FX spike detection: look at rates changes (if available)
+                // For now, we'll skip FX spikes as rates data is not in history
+
+                // Only keep last 10 events to avoid clutter
+                const sortedEvents = events.sort((a, b) => new Date(a.date) - new Date(b.date));
+                const recentEvents = sortedEvents.slice(-8);
+
+                return {
+                    buys: Object.values(buyMap).slice(0, 15),
+                    dividends: Object.values(divMap).slice(0, 15),
+                    events: recentEvents,
+                };
+            }, [portfolio, history]);
+
             const chartData = useMemo(() => {
                 const cutoff = periodCutoff(chartPeriod);
                 const allSorted = [...history].sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -2315,7 +2631,7 @@
                     });
                 });
                 const divYears = Object.keys(divByYear).sort();
-                let divCAGR = null,
+                let divCAGR_ = null,
                     divCAGRYears = 0;
                 if (divYears.length >= 2) {
                     const firstY = divYears[0],
@@ -2324,7 +2640,7 @@
                         lastVal = divByYear[lastY];
                     divCAGRYears = parseInt(lastY) - parseInt(firstY);
                     if (divCAGRYears > 0 && firstVal > 0 && lastVal > 0) {
-                        divCAGR = (Math.pow(lastVal / firstVal, 1 / divCAGRYears) - 1) * 100;
+                        divCAGR_ = (Math.pow(lastVal / firstVal, 1 / divCAGRYears) - 1) * 100;
                     }
                 }
                 return {
@@ -2334,7 +2650,7 @@
                     mLabels: mKeys.map(fmtMon),
                     mVals: mKeys.map(k => monthly[k]),
                     mDatasets,
-                    divCAGR,
+                    divCAGR: divCAGR_,
                     divCAGRYears,
                     tLabels: Object.keys(byType),
                     tVals: Object.values(byType),
@@ -2508,14 +2824,12 @@
                 closeModal();
             };
 
-            // ─── REPAIR BUTTON ────────────────────────────────────────────────────────────
             const repairNow = () => {
                 setPortfolioRepaired(portfolio);
                 setSyncMsg("🔧 Repaired portfolio data ✓");
                 setTimeout(() => setSyncMsg(""), 3000);
             };
 
-            // ─── EXPORT ───────────────────────────────────────────────────────────────────
             const handleExport = () => {
                 exportTransactionsCSV(portfolio);
             };
@@ -2539,7 +2853,6 @@
             const fetchBarColor = fetchSt.loading ? T.amber : Object.keys(fetchSt.errors).length > 0 ? T.amber : fetchSt
                 .lastUpdate ? T.green : T.text3;
 
-            // ─── Render import modal as a function ──────────────────────────
             const renderImportModal = () => {
                 const IS = importSt;
                 const valid = IS.parsed.filter(r => !r._errors.length);
@@ -2740,291 +3053,222 @@
                 );
             };
 
-            // JSX
+            // ─── JSX ────────────────────────────────────────────────────────────────────
             return (
                 <ErrorBoundary>
                     <div style={{ minHeight: "100vh", background: T.bg, color: T.text }}>
-                        {/* Header */}
+                        {/* Header - Two rows */}
                         <header style={{ background: T.bg2, borderBottom: `1px solid ${T.border}`, position: "sticky",
                                 top: 0, zIndex: 20, boxShadow: T.shadow, padding: "8px 14px" }}>
-                            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                                <div className="header-main-row" style={{ display: "flex", alignItems: "center",
-                                        justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-                                    <div className="logo-area" style={{ display: "flex", alignItems: "center",
-                                            flexShrink: 0 }}>
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 56" width={isMob ? 160 :
-                                                210} height={isMob ? 44 : 56} style={{ display: "block" }}>
-                                            <defs><linearGradient id="hbg" x1="0%" y1="100%" x2="100%" y2="0%"><stop
-                                                        offset="0%" stopColor="#34a853" /><stop offset="55%"
-                                                        stopColor="#1a73e8" /><stop offset="100%"
-                                                        stopColor="#8ab4f8" /></linearGradient>
-                                                <linearGradient id="htg" x1="0%" y1="0%" x2="100%" y2="0%"><stop
-                                                        offset="0%" stopColor={T.text} /><stop offset="100%"
-                                                        stopColor="#a5f3c0" /></linearGradient>
-                                                <filter id="hgl"><feGaussianBlur in="SourceGraphic"
-                                                        stdDeviation="1.5" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode
-                                                            in="SourceGraphic" /></feMerge></filter></defs>
-                                            <rect x="1" y="4" width="48" height="48" rx="9" fill={T.bg3} stroke="url(#hbg)"
-                                                strokeWidth="1" />
-                                            <rect x="8" y="36" width="6" height="10" rx="1.5" fill="#34a853"
-                                                opacity="0.7" />
-                                            <rect x="17" y="29" width="6" height="17" rx="1.5" fill="#34a853"
-                                                opacity="0.85" />
-                                            <rect x="26" y="21" width="6" height="25" rx="1.5" fill="#1a73e8" />
-                                            <rect x="35" y="13" width="6" height="33" rx="1.5" fill="#8ab4f8"
-                                                filter="url(#hgl)" />
-                                            <polyline points="11,34 20,27 29,19 38,11" fill="none" stroke="url(#hbg)"
-                                                strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
-                                                opacity="0.9" />
-                                            <circle cx="11" cy="34" r="1.8" fill="#34a853" />
-                                            <circle cx="20" cy="27" r="1.8" fill="#1a73e8" />
-                                            <circle cx="29" cy="19" r="1.8" fill="#0dd6c0" />
-                                            <circle cx="38" cy="11" r="3.5" fill="#8ab4f8" filter="url(#hgl)" />
-                                            <circle cx="38" cy="11" r="1.8" fill="#e0f9ff" />
-                                            <text x="58" y="34" fontFamily="'Space Mono',monospace" fontWeight="700"
-                                                fontSize="22" letterSpacing="3" fill="url(#htg)">FOLIO</text>
-                                            <text x="59" y="46" fontFamily="'Roboto',sans-serif" fontWeight="500"
-                                                fontSize="7" letterSpacing="2.5" fill="#4dd08a" opacity="0.75">PORTFOLIO
-                                                TRACKER</text>
-                                        </svg>
-                                    </div>
-                                    <div className="hdr-desktop" style={{ display: "flex", alignItems: "stretch",
-                                            flex: 1, flexWrap: "wrap", gap: "6px 12px", overflow: "hidden" }}>
-                                        {[
-                                            ["VALUE", FC(totVal, true), T.text],
-                                            ["TOTAL G/L", `${FG(totGain)} (${fmtPct(totPct)})`, pColor(totGain)],
-                                            ["DAY G/L", `${FG(totDayGain)} (${fmtPct(totDayPct)})`, pColor(totDayGain)],
-                                            ["DIV YLD (div only)", fmtPct(divYieldOnly), T.teal],
-                                            ["DIV CAGR", divCAGR ? `${divCAGR.cagr>=0?"+":""}${divCAGR.cagr.toFixed(1)}%` :
-                                                "—", T.teal
-                                            ],
-                                            ["PASSIVE", monthlyPassivePercent !== null ?
-                                                `${monthlyPassivePercent.toFixed(1)}% of ${targetDisplay}` :
-                                                "Set target", monthlyPassivePercent !== null && monthlyPassivePercent >=
-                                                100 ? T.green : T.amber
-                                            ],
-                                            ["SUPER BENCH", superBenchmarkPercent !== null ?
-                                                `${superBenchmarkPercent.toFixed(0)}% of avg` : "Set avg",
-                                                superBenchmarkPercent !== null && superBenchmarkPercent >= 100 ? T
-                                                .green : T.amber
-                                            ],
-                                            ["HOLDINGS", String(holdings.length), T.text2]
-                                        ].map(([l, v, c, i]) => (
-                                            <div key={l} style={{ display: "flex", flexDirection: "column",
-                                                    padding: "0 8px 0 0", borderLeft: i > 0 ?
-                                                        `1px solid ${T.border}` : "none", minWidth: 0 }}>
-                                                <span style={{ fontSize: 8, letterSpacing: 1.2, color: T.text3,
-                                                        textTransform: "uppercase", marginBottom: 2,
-                                                        whiteSpace: "nowrap", fontWeight: 600 }}>{l}</span>
-                                                <span style={{ fontSize: 12, fontFamily: "'Space Mono',monospace",
-                                                        fontWeight: 700, color: c, whiteSpace: "nowrap",
-                                                        overflow: "hidden", textOverflow: "ellipsis" }}>{v}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div className="hdr-mobile stats-mobile-wrap" style={{ display: "none", gap: 8,
-                                            flex: 1, justifyContent: "center", flexWrap: "wrap" }}>
-                                        {[
-                                            ["VALUE", FC(totVal, true), T.text],
-                                            ["G/L", fmtPct(totPct), pColor(totGain)],
-                                            ["DAY", fmtPct(totDayPct), pColor(totDayGain)],
-                                            ["DIV YLD", fmtPct(divYieldOnly), T.teal],
-                                            ["PASSIVE", monthlyPassivePercent !== null ?
-                                                `${monthlyPassivePercent.toFixed(0)}%` : "Set",
-                                                monthlyPassivePercent !== null && monthlyPassivePercent >= 100 ? T
-                                                .green : T.amber
-                                            ],
-                                            ["SUPER", superBenchmarkPercent !== null ?
-                                                `${superBenchmarkPercent.toFixed(0)}%` : "Set avg",
-                                                superBenchmarkPercent !== null && superBenchmarkPercent >= 100 ? T
-                                                .green : T.amber
-                                            ],
-                                        ].map(([l, v, c]) => (
-                                            <div key={l} style={{ textAlign: "center" }}><div style={{ fontSize: 7,
-                                                        color: T.text3, letterSpacing: 1,
-                                                        textTransform: "uppercase", fontWeight: 600 }}>{l}</div><div
-                                                    style={{ fontFamily: "'Space Mono',monospace", fontSize: 11,
-                                                        fontWeight: 700, color: c }}>{v}</div></div>
-                                        ))}
-                                    </div>
+                            {/* Row 1: Logo + KPIs */}
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
+                                    flexWrap: "wrap", gap: 8, marginBottom: 4 }}>
+                                <div className="logo-area" style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 56" width={isMob ? 140 : 190}
+                                        height={isMob ? 38 : 48} style={{ display: "block" }}>
+                                        <defs><linearGradient id="hbg2" x1="0%" y1="100%" x2="100%" y2="0%"><stop
+                                                    offset="0%" stopColor="#34a853" /><stop offset="55%"
+                                                    stopColor="#1a73e8" /><stop offset="100%"
+                                                    stopColor="#8ab4f8" /></linearGradient>
+                                            <linearGradient id="htg2" x1="0%" y1="0%" x2="100%" y2="0%"><stop
+                                                    offset="0%" stopColor={T.text} /><stop offset="100%"
+                                                    stopColor="#a5f3c0" /></linearGradient>
+                                            <filter id="hgl2"><feGaussianBlur in="SourceGraphic" stdDeviation="1.2"
+                                                    result="b" /><feMerge><feMergeNode in="b" /><feMergeNode
+                                                        in="SourceGraphic" /></feMerge></filter></defs>
+                                        <rect x="1" y="4" width="40" height="40" rx="8" fill={T.bg3} stroke="url(#hbg2)"
+                                            strokeWidth="1" />
+                                        <rect x="7" y="30" width="5" height="9" rx="1.5" fill="#34a853" opacity="0.7" />
+                                        <rect x="15" y="24" width="5" height="15" rx="1.5" fill="#34a853" opacity="0.85" />
+                                        <rect x="23" y="18" width="5" height="21" rx="1.5" fill="#1a73e8" />
+                                        <rect x="31" y="11" width="5" height="28" rx="1.5" fill="#8ab4f8" filter="url(#hgl2)" />
+                                        <polyline points="9,29 17,23 25,16 33,10" fill="none" stroke="url(#hbg2)"
+                                            strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" />
+                                        <circle cx="9" cy="29" r="1.5" fill="#34a853" />
+                                        <circle cx="17" cy="23" r="1.5" fill="#1a73e8" />
+                                        <circle cx="25" cy="16" r="1.5" fill="#0dd6c0" />
+                                        <circle cx="33" cy="10" r="3" fill="#8ab4f8" filter="url(#hgl2)" />
+                                        <circle cx="33" cy="10" r="1.5" fill="#e0f9ff" />
+                                        <text x="50" y="29" fontFamily="'Space Mono',monospace" fontWeight="700"
+                                            fontSize="18" letterSpacing="2.5" fill="url(#htg2)">FOLIO</text>
+                                        <text x="51" y="40" fontFamily="'Roboto',sans-serif" fontWeight="500"
+                                            fontSize="6" letterSpacing="2" fill="#4dd08a" opacity="0.7">PORTFOLIO
+                                            TRACKER</text>
+                                    </svg>
                                 </div>
-                                <div className="header-controls-row" style={{ display: "flex", gap: 4,
-                                        alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap" }}>
-                                    <div style={{ display: "flex", background: T.bg4, borderRadius: 20, padding: 2,
+                                <div className="header-kpis" style={{ display: "flex", gap: { isMob ? 12 : 24 },
+                                        alignItems: "baseline", flexWrap: "wrap" }}>
+                                    {[
+                                        { label: "Current Value", value: FC(totVal, true), color: T.text,
+                                        sub: totInv > 0 ? `invested ${FC(totInv, true)}` : "" },
+                                        { label: "Total Gain/Loss", value: `${FG(totGain)} (${fmtPct(totPct)})`,
+                                            color: pColor(totGain), sub: "" },
+                                        { label: "Total ROI", value: fmtPct(totPct), color: pColor(totGain),
+                                        sub: "" },
+                                        { label: "Total Income", value: `${FC(totDivs)} (${fmtPct(divYieldOnly)} yld)`,
+                                            color: T.teal, sub: "" },
+                                    ].map((k, i) => (
+                                        <div key={i} className="header-kpi" style={{ minWidth: "80px" }}>
+                                            <span className="label" style={{ color: T.kpiLabel }}>{k.label}</span>
+                                            <span className="value" style={{ color: k.color }}>{k.value}</span>
+                                            {k.sub && <span className="sub" style={{ color: T.text3 }}>{k.sub}</span>}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Row 2: System info + icons */}
+                            <div className="header-sysinfo" style={{ display: "flex", alignItems: "center",
+                                    justifyContent: "space-between", flexWrap: "wrap", gap: 6, paddingTop: 2 }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
+                                        fontSize: 10, color: T.sysinfoColor }}>
+                                    <span>1 AUD = {rates.AUD_IDR.toLocaleString("en-AU")} IDR</span>
+                                    <span className="sep" style={{ color: T.borderColor }}>·</span>
+                                    <span>1 AUD = {rates.AUD_USD.toFixed(4)} USD</span>
+                                    <span className="sep" style={{ color: T.borderColor }}>·</span>
+                                    <span style={{ color: fetchBarColor }}>
+                                        {fetchSt.loading && <span className="pulse">⟳ Fetching… {fetchSt.fetched >
+                                                0 ? `${fetchSt.fetched}/${fetchSt.total}` : ""}</span>}
+                                        {!fetchSt.loading && fetchSt.lastUpdate &&
+                                            <span>✓ {fmtTime(fetchSt.lastUpdate)} · {fetchSt.successes}/{fetchSt.total}
+                                            auto-fetched{fetchSt.rateOk ? " · FX live" : ""}</span>}
+                                        {!fetchSt.loading && !fetchSt.lastUpdate && <span>Click 🔄 to fetch prices</span>}
+                                    </span>
+                                    {Object.keys(fetchSt.errors).length > 0 && (() => {
+                                        const truly = Object.keys(fetchSt.errors).filter(t => !(prices[t] > 0));
+                                        const stale = Object.keys(fetchSt.errors).filter(t => prices[t] > 0);
+                                        return (<>
+                                            {truly.length > 0 && <span style={{ color: T.red }}>⚠️ {truly.join(", ")}
+                                                <span onClick={openManualPrice} style={{ textDecoration: "underline",
+                                                    cursor: "pointer" }}>✏️</span></span>}
+                                            {stale.length > 0 && <span style={{ color: T.amber }}>↻ {stale.join(
+                                                ", ")}</span>}
+                                        </>);
+                                    })()}
+                                    <span className="sep" style={{ color: T.borderColor }}>·</span>
+                                    <span>{holdings.length} holdings</span>
+                                </div>
+                                <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                                    <div style={{ display: "flex", background: T.bg4, borderRadius: 16, padding: 2,
                                             border: `1px solid ${T.border}` }}>
                                         {CURRENCIES.map(c => <button key={c} onClick={() => setDisplayCur(c)}
-                                            style={{ padding: "4px 10px", borderRadius: 18, border: "none",
+                                            style={{ padding: "3px 8px", borderRadius: 14, border: "none",
                                                 background: displayCur === c ? T.bg2 : "transparent",
-                                                color: displayCur === c ? T.text : T.text3, fontSize: 10,
+                                                color: displayCur === c ? T.text : T.text3, fontSize: 9,
                                                 fontWeight: displayCur === c ? 600 : 400,
                                                 fontFamily: "'Space Mono',monospace" }}>{c}</button>)}
                                     </div>
                                     <button onClick={() => setValuesHidden(v => !v)} title={valuesHidden ?
-                                            "Show values" : "Hide values"} style={{ ...bO(T.text2, { padding: "5px 10px",
-                                                fontSize: 14, lineHeight: 1, borderRadius: 20 }) }}>{valuesHidden ?
+                                            "Show values" : "Hide values"}
+                                        style={{ background: "transparent", border: "none", fontSize: 13, padding: "3px 6px",
+                                            borderRadius: 6, color: T.text2, cursor: "pointer" }}>{valuesHidden ?
                                         "🙈" : "👁️"}</button>
-                                    <button onClick={() => setShowPassiveModal(true)} title="Passive income target & super rate & average super balance"
-                                        style={{ ...bO(T.text2, { padding: "5px 10px", fontSize: 14, lineHeight: 1,
-                                                borderRadius: 20 }) }}>⚙️</button>
-                                    <button onClick={() => setDark(d => !d)} style={{ ...bO(T.text2, { padding: "5px 10px",
-                                                fontSize: 14, lineHeight: 1, borderRadius: 20 }) }}>{dark ? "☀️" :
-                                        "🌙"}</button>
-                                    <button onClick={autoRefresh} disabled={fetchSt.loading} style={{ ...bO(
-                                            fetchBarColor, { padding: "5px 12px", fontSize: 11,
-                                                borderColor: fetchBarColor + "66", opacity: fetchSt.loading ? .7 :
-                                                1 }) }}>
-                                        <span className={fetchSt.loading ? "spin" : ""} style={{ marginRight: 4,
-                                                fontSize: 12 }}>{fetchSt.loading ? "⟳" : "🔄"}</span>
-                                        {isMob ? "" : "Live Prices"}
+                                    <button onClick={() => setShowPassiveModal(true)} style={{ background: "transparent",
+                                            border: "none", fontSize: 13, padding: "3px 6px", borderRadius: 6,
+                                            color: T.text2, cursor: "pointer" }}>⚙️</button>
+                                    <button onClick={() => setDark(d => !d)} style={{ background: "transparent",
+                                            border: "none", fontSize: 13, padding: "3px 6px", borderRadius: 6,
+                                            color: T.text2, cursor: "pointer" }}>{dark ? "☀️" : "🌙"}</button>
+                                    <button onClick={autoRefresh} disabled={fetchSt.loading}
+                                        style={{ background: "transparent", border: "none", fontSize: 12,
+                                            padding: "3px 6px", borderRadius: 6, color: fetchBarColor,
+                                            cursor: "pointer" }}>
+                                        <span className={fetchSt.loading ? "spin" : ""}>{fetchSt.loading ? "⟳" :
+                                        "🔄"}</span>
                                     </button>
-                                    <button onClick={openManualPrice} style={{ ...bO(T.text2, { fontSize: 11,
-                                                padding: "5px 12px" }) }}>✏️</button>
-                                    <button onClick={openImport} style={{ ...bO(T.text2, { fontSize: 11,
-                                                padding: "5px 12px" }) }}>📥</button>
-                                    <button onClick={handleExport} className="export-btn" title="Export all transactions as CSV"
-                                        style={{ ...bO("#4ade80", { fontSize: 11, padding: "5px 12px" }) }}>📥 Export</button>
-                                    <button onClick={repairNow} className="repair-btn" title="Repair portfolio data — fixes shared transaction references (GOTO/SMSM)"
-                                        style={{ ...bO("#f59e0b", { fontSize: 11, padding: "5px 12px" }) }}>🔧</button>
+                                    <button onClick={openManualPrice} style={{ background: "transparent", border: "none",
+                                            fontSize: 12, padding: "3px 6px", borderRadius: 6, color: T.text2,
+                                        cursor: "pointer" }}>✏️</button>
+                                    <button onClick={openImport} style={{ background: "transparent", border: "none",
+                                            fontSize: 12, padding: "3px 6px", borderRadius: 6, color: T.text2,
+                                        cursor: "pointer" }}>📥</button>
+                                    <button onClick={handleExport} style={{ background: "transparent", border: "none",
+                                            fontSize: 12, padding: "3px 6px", borderRadius: 6, color: "#4ade80",
+                                        cursor: "pointer" }}>📤</button>
+                                    <button onClick={repairNow} style={{ background: "transparent", border: "none",
+                                            fontSize: 12, padding: "3px 6px", borderRadius: 6, color: "#f59e0b",
+                                        cursor: "pointer" }}>🔧</button>
                                     {FB_CONFIGURED ? (
                                         fbUser ? (
-                                            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                                                <div style={{ display: "flex", background: T.bg4, borderRadius: 20,
-                                                        border: `1px solid ${T.border}`, overflow: "hidden" }}>
-                                                    <button onClick={() => cloudLoadAll()} disabled={syncSt ===
-                                                            "loading" || syncSt === "saving"}
-                                                        title="Pull latest data from cloud" style={{ padding: "5px 10px",
-                                                            fontSize: 11, border: "none", background: "transparent",
-                                                            color: syncSt === "loading" ? T.amber : T.teal,
-                                                            cursor: "pointer" }}>{syncSt === "loading" ? "⟳" :
-                                                        "⬇️"}</button>
-                                                    <button onClick={() => cloudSaveAll()} disabled={syncSt ===
-                                                            "loading" || syncSt === "saving"}
-                                                        title="Push local data to cloud" style={{ padding: "5px 10px",
-                                                            fontSize: 11, border: "none", background: "transparent",
-                                                            color: syncSt === "saving" ? T.amber : syncSt ===
-                                                            "ok" ? T.green : syncSt === "error" ? T.red : T
-                                                                .teal, cursor: "pointer" }}>{syncSt === "saving" ?
-                                                        "⟳" : "⬆️"}</button>
-                                                    <button onClick={handleSignOut} title={"Signed in: " + fbUser
-                                                            .displayName + "\nClick to sign out"}
-                                                        style={{ padding: "5px 10px", fontSize: 11, border: "none",
-                                                            background: "transparent", color: T.text3,
-                                                            cursor: "pointer" }}>{fbUser.photoURL ? <img
-                                                                src={fbUser.photoURL} style={{ width: 18,
-                                                                    height: 18, borderRadius: "50%",
-                                                                    verticalAlign: "middle" }} alt="" /> :
-                                                        "👤"}</button>
-                                                </div>
-                                                {syncMsg && !isMob && <span style={{ fontSize: 9, color: syncSt ===
+                                            <>
+                                                <button onClick={() => cloudLoadAll()} disabled={syncSt === "loading" ||
+                                                        syncSt === "saving"}
+                                                    style={{ background: "transparent", border: "none", fontSize: 11,
+                                                        padding: "3px 6px", borderRadius: 6, color: syncSt ===
+                                                        "loading" ? T.amber : T.teal, cursor: "pointer" }}>{syncSt ===
+                                                        "loading" ? "⟳" : "⬇️"}</button>
+                                                <button onClick={() => cloudSaveAll()} disabled={syncSt === "loading" ||
+                                                        syncSt === "saving"}
+                                                    style={{ background: "transparent", border: "none", fontSize: 11,
+                                                        padding: "3px 6px", borderRadius: 6, color: syncSt ===
+                                                        "saving" ? T.amber : syncSt === "ok" ? T.green : syncSt ===
+                                                        "error" ? T.red : T.teal, cursor: "pointer" }}>{syncSt ===
+                                                        "saving" ? "⟳" : "⬆️"}</button>
+                                                <button onClick={handleSignOut} title={fbUser.displayName}
+                                                    style={{ background: "transparent", border: "none", fontSize: 11,
+                                                        padding: "3px 6px", borderRadius: 6, color: T.text2,
+                                                        cursor: "pointer" }}>{fbUser.photoURL ? <img
+                                                            src={fbUser.photoURL} style={{ width: 16, height: 16,
+                                                                borderRadius: "50%", verticalAlign: "middle" }}
+                                                            alt="" /> : "👤"}</button>
+                                                {syncMsg && !isMob && <span style={{ fontSize: 8, color: syncSt ===
                                                             "error" ? T.red : syncSt === "ok" ? T.green : T
-                                                            .amber, maxWidth: 120, overflow: "hidden",
+                                                            .amber, maxWidth: 100, overflow: "hidden",
                                                         textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{syncMsg}</span>}
-                                            </div>
-                        ) : (
-                                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                                <button onClick={handleSignIn} style={{ ...bO(T.teal, { fontSize: 11,
-                                                            padding: "5px 12px", display: "flex", alignItems: "center",
-                                                            gap: 5 }) }}>☁️ {isMob ? "" : "Sync"}</button>
-                                                {syncMsg && <span style={{ fontSize: 9, color: T.red, maxWidth: 180,
-                                                            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                                                        title={syncMsg}>{syncMsg}</span>}
-                                            </div>
+                                            </>
+                                        ) : (
+                                            <button onClick={handleSignIn} style={{ background: "transparent",
+                                                    border: "none", fontSize: 11, padding: "3px 8px", borderRadius: 6,
+                                                    color: T.teal, cursor: "pointer" }}>☁️ {isMob ? "" : "Sync"}</button>
                                         )
                                     ) : (
-                                        <button onClick={() => setModal({ mode: "firebaseSetup" })} style={{ ...bO(
-                                                T.text3, { fontSize: 11, padding: "5px 12px" }) }}>☁️ {isMob ? "" :
-                                            "Setup Sync"}</button>
+                                        <button onClick={() => setModal({ mode: "firebaseSetup" })} style={{
+                                                background: "transparent", border: "none", fontSize: 11,
+                                                padding: "3px 8px", borderRadius: 6, color: T.text3,
+                                            cursor: "pointer" }}>☁️ {isMob ? "" : "Setup"}</button>
                                     )}
-                                    <button onClick={openAdd} style={{ ...bS(T.greenBtn, "#fff", { padding: "6px 14px",
-                                                fontSize: 11 }) }}>+ Add</button>
+                                    <button onClick={openAdd} style={{ background: T.greenBtn, color: "#fff",
+                                            border: "none", borderRadius: 16, padding: "4px 12px", fontSize: 11,
+                                            fontWeight: 600, cursor: "pointer" }}>+ Add</button>
                                 </div>
-                            </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 14px",
-                                    background: T.bg, borderTop: `1px solid ${T.border}`, fontSize: 10, color: T
-                                        .text3, flexWrap: "wrap", minHeight: 24 }}>
-                                <span>1 AUD = {rates.AUD_IDR.toLocaleString("en-AU")} IDR</span>
-                                <span style={{ color: T.border }}>·</span>
-                                <span>1 AUD = {rates.AUD_USD.toFixed(4)} USD</span>
-                                <span style={{ color: T.border }}>·</span>
-                                <span style={{ color: fetchBarColor }}>
-                                    {fetchSt.loading && <span className="pulse">⟳ Fetching prices… {fetchSt.fetched >
-                                            0 ? `${fetchSt.fetched}/${fetchSt.total}` : ""}</span>}
-                                    {!fetchSt.loading && fetchSt.lastUpdate && <span style={{ display: "flex",
-                                            alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                                        <span style={{ color: T.green }}>✓ Prices updated {fmtTime(fetchSt
-                                                .lastUpdate)}</span>
-                                        <span style={{ color: T.border }}>·</span>
-                                        <span>{fetchSt.successes}/{fetchSt.total} auto-fetched</span>
-                                        {fetchSt.rateOk && <><span style={{ color: T.border }}>·</span><span
-                                                style={{ color: T.teal }}>FX live</span></>}
-                                        {fetchSt.bmStatus && <><span style={{ color: T.border }}>·</span><span
-                                                style={{ color: fetchSt.bmStatus.includes("failed") || fetchSt
-                                                        .bmStatus.includes("error") ? T.amber : T.teal }}>Benchmarks: {fetchSt
-                                                    .bmStatus}</span></>}
-                                        {Object.keys(fetchSt.errors).length > 0 && (() => {
-                                            const truly = Object.keys(fetchSt.errors).filter(t => !(prices[
-                                            t] > 0));
-                                            const stale = Object.keys(fetchSt.errors).filter(t => prices[t] >
-                                            0);
-                                            return (<>
-                                                {truly.length > 0 && <><span style={{ color: T.border }}>·</span><span
-                                                        style={{ color: T.red }}>⚠️ No price: {truly.join(
-                                                            ", ")} — <span onClick={openManualPrice}
-                                                            style={{ textDecoration: "underline",
-                                                                cursor: "pointer" }}>enter manually ✏️</span></span></>}
-                                                {stale.length > 0 && <><span style={{ color: T.border }}>·</span><span
-                                                        style={{ color: T.amber }}>↻ Fetch failed (using last known): {stale
-                                                            .join(", ")}</span></>}
-                                            </>);
-                                        })()}
-                                    </span>}
-                                    {!fetchSt.loading && !fetchSt.lastUpdate && <span>Click 🔄 to fetch live prices &amp;
-                                        benchmarks</span>}
-                                </span>
-                                <span style={{ color: T.border }}>·</span>
-                                <span>Display: <b style={{ color: T.text2, fontWeight: 600 }}>{displayCur}</b></span>
-                                <span style={{ color: T.border }}>·</span>
-                                <span>{holdings.length} holdings</span>
                             </div>
                         </header>
 
                         {/* View switcher */}
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
-                                padding: "8px 14px", borderBottom: `1px solid ${T.border}`, background: T.bg2,
-                                flexWrap: "wrap", gap: 6 }}>
+                                padding: "6px 14px", borderBottom: `1px solid ${T.border}`, background: T.bg2,
+                                flexWrap: "wrap", gap: 4 }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                                 {view === "treemap" && tmMode === "performance" && <>
-                                    <span style={{ fontSize: 9, color: T.text3, letterSpacing: 1,
-                                            textTransform: "uppercase", marginRight: 2, fontWeight: 500 }}>G/L to
-                                        date:</span>
-                                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                                        <span style={{ fontSize: 9, color: T.text3, fontWeight: 400 }}>⏤</span>
+                                    <span style={{ fontSize: 8, color: T.text3, letterSpacing: 1,
+                                            textTransform: "uppercase", marginRight: 2, fontWeight: 500 }}>G/L:</span>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                                        <span style={{ fontSize: 8, color: T.text3, fontWeight: 400 }}>−</span>
                                         <div className="gradient-bar" style={{ background: dark ?
                                                 "linear-gradient(to right, #ea4335, #3d3d3d, #34a853)" :
                                                 "linear-gradient(to right, #ea4335, #e8eaed, #34a853)" }} />
-                                        <span style={{ fontSize: 9, color: T.text3, fontWeight: 400 }}>+</span>
+                                        <span style={{ fontSize: 8, color: T.text3, fontWeight: 400 }}>+</span>
                                     </div>
-                                    <span style={{ fontSize: 9, color: T.text4, marginLeft: 4, fontWeight: 400 }}>·
-                                        Box size = current market value · Colour = total return %</span>
+                                    <span style={{ fontSize: 8, color: T.text4, fontWeight: 400 }}>· Box size =
+                                        value</span>
                                 </>}
                                 {view === "treemap" && tmMode === "day" && <>
-                                    <span style={{ fontSize: 9, color: T.text3, letterSpacing: 1,
-                                            textTransform: "uppercase", marginRight: 2, fontWeight: 500 }}>Day G/L
-                                        %:</span>
-                                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                                        <span style={{ fontSize: 9, color: T.text3, fontWeight: 400 }}>⏤</span>
+                                    <span style={{ fontSize: 8, color: T.text3, letterSpacing: 1,
+                                            textTransform: "uppercase", marginRight: 2, fontWeight: 500 }}>Day:</span>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                                        <span style={{ fontSize: 8, color: T.text3, fontWeight: 400 }}>−</span>
                                         <div className="gradient-bar" style={{ background: dark ?
                                                 "linear-gradient(to right, #ea4335, #3d3d3d, #34a853)" :
                                                 "linear-gradient(to right, #ea4335, #e8eaed, #34a853)" }} />
-                                        <span style={{ fontSize: 9, color: T.text3, fontWeight: 400 }}>+</span>
+                                        <span style={{ fontSize: 8, color: T.text3, fontWeight: 400 }}>+</span>
                                     </div>
-                                    <span style={{ fontSize: 9, color: T.text4, marginLeft: 4, fontWeight: 400 }}>·
-                                        Box size = current market value · Colour = day return %</span>
+                                    <span style={{ fontSize: 8, color: T.text4, fontWeight: 400 }}>· Box size =
+                                        value</span>
                                 </>}
                                 {view === "treemap" && tmMode === "dividend" && <>
-                                    <span style={{ fontSize: 9, color: T.text3, letterSpacing: 1,
+                                    <span style={{ fontSize: 8, color: T.text3, letterSpacing: 1,
                                             textTransform: "uppercase", marginRight: 2, fontWeight: 500 }}>Div
-                                        yld/cost:</span>
+                                        yld:</span>
                                     {[
                                         [-1, "0%"],
                                         [0.5, ">0%"],
@@ -3033,17 +3277,17 @@
                                         [6, "+6%+"]
                                     ].map(([y, l]) => { const c = divColor(y, dark); return (<div key={l}
                                             style={{ display: "flex", alignItems: "center", gap: 3 }}><div
-                                                style={{ width: 11, height: 11, borderRadius: 2,
+                                                style={{ width: 10, height: 10, borderRadius: 2,
                                                     background: c.bg, border: `1px solid ${c.border}` }} /><span
-                                                style={{ fontSize: 9, color: T.text3 }}>{l}</span></div>); })}
-                                    <span style={{ fontSize: 9, color: T.text4, marginLeft: 6, fontWeight: 400 }}>·
-                                        Box size = total dividends received · Colour = yield on cost %</span>
+                                                style={{ fontSize: 8, color: T.text3 }}>{l}</span></div>); })}
+                                    <span style={{ fontSize: 8, color: T.text4, fontWeight: 400 }}>· Box size =
+                                        dividends</span>
                                 </>}
                             </div>
-                            <div style={{ display: "flex", gap: 4 }}>
+                            <div style={{ display: "flex", gap: 3 }}>
                                 {view === "treemap" && (
-                                    <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-                                        <div style={{ display: "flex", background: T.bg4, borderRadius: 20,
+                                    <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
+                                        <div style={{ display: "flex", background: T.bg4, borderRadius: 16,
                                                 padding: 2, border: `1px solid ${T.border}` }}>
                                             {[
                                                 ["performance", "📈 Perf"],
@@ -3051,44 +3295,44 @@
                                                 ["dividend", "💰 Div"]
                                             ].map(([v, l]) => (
                                                 <button key={v} onClick={() => setTmMode(v)}
-                                                    style={{ padding: "4px 10px", borderRadius: 18,
+                                                    style={{ padding: "3px 8px", borderRadius: 14,
                                                         border: "none", background: tmMode === v ? T
                                                             .bg2 : "transparent", color: tmMode === v ?
-                                                            T.text : T.text3, fontSize: 10,
+                                                            T.text : T.text3, fontSize: 9,
                                                         fontWeight: tmMode === v ? 600 : 400,
                                                         transition: "all .15s" }}>{l}</button>
                                             ))}
                                         </div>
                                         {(tmMode === "day" || tmMode === "dividend") && (
                                             <button onClick={() => setTmShowVal(v => !v)} title={tmShowVal ?
-                                                    "Show % only" : "Show % and value"}
-                                                style={{ padding: "4px 10px", borderRadius: 18,
+                                                    "Show % only" : "Show % + value"}
+                                                style={{ padding: "2px 8px", borderRadius: 14,
                                                     border: `1px solid ${T.border}`, background: !
                                                     tmShowVal ? T.teal : T.bg4, color: !tmShowVal ?
-                                                    "#fff" : T.text3, fontSize: 10, fontWeight: 600,
+                                                    "#fff" : T.text3, fontSize: 9, fontWeight: 600,
                                                     transition: "all .15s", whiteSpace: "nowrap" }}>{tmShowVal ?
-                                                    "% only" : "% + val"}</button>
+                                                    "%" : "%+val"}</button>
                                         )}
                                     </div>
                                 )}
-                                <div style={{ display: "flex", background: T.bg4, borderRadius: 20, padding: 2,
+                                <div style={{ display: "flex", background: T.bg4, borderRadius: 16, padding: 2,
                                         border: `1px solid ${T.border}` }}>
                                     {[
                                         ["treemap", "Map"],
                                         ["table", "Table"],
                                         ["chart", "Charts"]
                                     ].map(([v, l]) => (
-                                        <button key={v} onClick={() => setView(v)} style={{ padding: "4px 10px",
-                                                borderRadius: 18, border: "none", background: view === v ?
+                                        <button key={v} onClick={() => setView(v)} style={{ padding: "3px 8px",
+                                                borderRadius: 14, border: "none", background: view === v ?
                                                 T.bg2 : "transparent", color: view === v ? T.text : T
-                                                .text3, fontSize: 10, fontWeight: view === v ? 600 : 400,
+                                                .text3, fontSize: 9, fontWeight: view === v ? 600 : 400,
                                                 transition: "all .15s" }}>{l}</button>
                                     ))}
                                 </div>
                             </div>
                         </div>
 
-                        <main style={{ padding: "12px 14px" }}>
+                        <main style={{ padding: "10px 14px" }}>
                             {view === "treemap" && (
                                 <div className="tm-wrap" style={{ display: "flex", gap: 12, alignItems: "flex-start",
                                         flexWrap: isMob ? "wrap" : "nowrap" }}>
@@ -3101,12 +3345,14 @@
                                             overflow: "hidden", border: `1px solid ${T.border}`, background: T
                                                 .bg3, minWidth: 200 }}>
                                         {rects.map(r => {
-                                            // Use continuous color based on mode
                                             let pct = 0;
-                                            if (tmMode === "performance") pct = r.gainPct;
-                                            else if (tmMode === "day") pct = r.dayGainPct;
-                                            else pct = r.divYieldOnCost;
-                                            const c = getPerformanceColor(pct, dark);
+                                            let colorFn;
+                                            if (tmMode === "performance") { pct = r.gainPct;
+                                                colorFn = getPerformanceColor; } else if (tmMode === "day") { pct =
+                                                    r.dayGainPct;
+                                                colorFn = getPerformanceColor; } else { pct = r.divYieldOnCost;
+                                                colorFn = getDividendColor; }
+                                            const c = colorFn(pct, dark);
                                             const area = r.w * r.h;
                                             const minDim = Math.min(r.w, r.h);
                                             const baseFont = Math.max(8, Math.min(19, minDim / 7));
@@ -3547,88 +3793,96 @@
                                 </div>
                             )}
                             {view === "chart" && (
-                                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                                    {/* KPI summary cards */}
                                     <div style={{ display: "grid", gridTemplateColumns: isMob ? "1fr 1fr" :
-                                            "repeat(5,1fr)", gap: 10 }}>
+                                            "repeat(5,1fr)", gap: 8 }}>
                                         {(() => {
                                             const totROI = totInv > 0 ? ((totVal + totDivs - totInv) /
                                                 totInv) * 100 : 0;
                                             return [
-                                                ["Total Invested", FC(totInv), T.text2, "💰",
-                                                    false
-                                                ],
-                                                ["Current Value", FC(totVal), T.text, "📈",
-                                                    false
-                                                ],
+                                                ["Total Invested", FC(totInv), T.text2, "💰"],
+                                                ["Current Value", FC(totVal), T.text, "📈"],
                                                 ["Total Gain/Loss", `${FG(totGain)}  ${fmtPct(totPct)}`,
-                                                    pColor(totGain), "🏆", false
+                                                    pColor(totGain), "🏆"
                                                 ],
                                                 ["Total Income", `${FC(totDivs)}  ${fmtPct(divYieldOnly)} yld`,
-                                                    T.teal, "🌱", false
+                                                    T.teal, "🌱"
                                                 ],
-                                                ["Total ROI", fmtPct(totROI), pColor(totROI),
-                                                    "🎯", true
-                                                ],
-                                            ].map(([l, v, c, ic, fullRow]) => (
-                                                <div key={l} style={{ ...card({ padding: "14px 16px" }),
-                                                        gridColumn: fullRow && isMob ? "1 / -1" :
-                                                        "auto" }}>
+                                                ["Total ROI", fmtPct(totROI), pColor(totROI), "🎯"],
+                                            ].map(([l, v, c, ic]) => (
+                                                <div key={l} style={{ ...card({ padding: "10px 12px" }) }}>
                                                     <div style={{ display: "flex", alignItems: "center",
-                                                            gap: 6, marginBottom: 6 }}>
-                                                        <span style={{ fontSize: 16 }}>{ic}</span>
-                                                        <span style={{ fontSize: 10, color: T.text3,
+                                                            gap: 4, marginBottom: 4 }}>
+                                                        <span style={{ fontSize: 14 }}>{ic}</span>
+                                                        <span style={{ fontSize: 8, color: T.text3,
                                                                 letterSpacing: 1,
                                                                 textTransform: "uppercase",
-                                                                fontWeight: 600 }}>{l}</span>
+                                                            fontWeight: 600 }}>{l}</span>
                                                     </div>
                                                     <div style={{ fontFamily: "'Space Mono',monospace",
                                                             fontSize: 13, fontWeight: 700,
-                                                            color: c, whiteSpace: "pre-line",
-                                                        lineHeight: 1.6 }}>{v}</div>
+                                                            color: c, lineHeight: 1.4 }}>{v}</div>
                                                 </div>
                                             ));
                                         })()}
                                     </div>
-                                    <div style={{ display: "flex", alignItems: "center", gap: 8,
+
+                                    {/* Period selector */}
+                                    <div style={{ display: "flex", alignItems: "center", gap: 6,
                                             flexWrap: "wrap" }}>
-                                        <span style={{ fontSize: 11, color: T.text3,
+                                        <span style={{ fontSize: 10, color: T.text3,
                                             fontWeight: 500 }}>Time period:</span>
                                         <div style={{ display: "flex", gap: 3, background: T.bg3,
-                                                padding: 3, borderRadius: 20, border: `1px solid ${T.border}` }}>
+                                                padding: 3, borderRadius: 16, border: `1px solid ${T.border}` }}>
                                             {["1M", "3M", "6M", "YTD", "1Y", "5Y"].map(p => (
                                                 <button key={p} onClick={() => setChartPeriod(p)}
-                                                    style={{ padding: "4px 12px", borderRadius: 18,
+                                                    style={{ padding: "3px 10px", borderRadius: 13,
                                                         border: "none", background: chartPeriod ===
                                                         p ? `linear-gradient(135deg,#34a853,#1a73e8)` :
                                                         "transparent", color: chartPeriod === p ?
-                                                        "#fff" : T.text3, fontSize: 11,
+                                                        "#fff" : T.text3, fontSize: 10,
                                                         fontWeight: chartPeriod === p ? 600 : 500,
                                                         transition: "all .15s",
                                                     cursor: "pointer" }}>{p}</button>
                                             ))}
                                         </div>
-                                        <span style={{ fontSize: 10, color: T.text3,
-                                            marginLeft: 4, fontWeight: 500 }}>{chartData.labels.length} data
+                                        <span style={{ fontSize: 9, color: T.text3,
+                                            marginLeft: 2, fontWeight: 400 }}>{chartData.labels.length} data
                                             points</span>
+                                        <span style={{ fontSize: 9, color: T.text3, marginLeft: 4,
+                                                fontWeight: 400, opacity: .6 }}>
+                                            <span className="dot" style={{ background: "#34a853", width: 8,
+                                                    height: 8, borderRadius: "50%", display: "inline-block",
+                                                    marginRight: 2 }} />B
+                                            <span className="dot" style={{ background: "#f9a825", width: 8,
+                                                    height: 8, borderRadius: "50%", display: "inline-block",
+                                                    marginLeft: 6, marginRight: 2 }} />D
+                                            <span className="dot" style={{ background: "#fdd663", width: 8,
+                                                    height: 2, display: "inline-block", marginLeft: 6,
+                                                    marginRight: 2 }} />Event
+                                        </span>
                                     </div>
+
+                                    {/* Main chart with annotations */}
                                     <div className="chart-row" style={{ display: "flex", gap: 12,
                                             flexWrap: isMob ? "wrap" : "nowrap" }}>
-                                        <div style={{ flex: "2 1 280px", ...card({ padding: 16 }) }}>
+                                        <div style={{ flex: "2 1 280px", ...card({ padding: 14 }) }}>
                                             <div style={{ display: "flex", justifyContent: "space-between",
-                                                    alignItems: "flex-start", marginBottom: 12 }}>
+                                                    alignItems: "flex-start", marginBottom: 8 }}>
                                                 <div>
                                                     <div style={{ fontSize: 12, fontWeight: 600,
                                                             color: T.text,
-                                                        marginBottom: 2 }}>Portfolio Value Over Time</div>
-                                                    <div style={{ fontSize: 11, color: T
-                                                            .text3, fontWeight: 500 }}>{displayCur} · {chartPeriod} view</div>
+                                                        marginBottom: 1 }}>Portfolio Value Over Time</div>
+                                                    <div style={{ fontSize: 10, color: T
+                                                            .text3, fontWeight: 400 }}>{displayCur} · {chartPeriod} · {holdings.length} holdings</div>
                                                 </div>
                                                 {chartData.labels.length >= 2 && <div style={{
                                                         textAlign: "right" }}>
-                                                    <div style={{ fontSize: 10, color: T
-                                                            .text3, fontWeight: 500 }}>Period return</div>
+                                                    <div style={{ fontSize: 9, color: T
+                                                            .text3, fontWeight: 400 }}>Period return</div>
                                                     <div style={{ fontFamily: "'Space Mono',monospace",
-                                                            fontSize: 12, fontWeight: 700,
+                                                            fontSize: 13, fontWeight: 700,
                                                             color: pColor(chartData.endVal -
                                                                 chartData.startVal) }}>{fmtPct(
                                                             chartData.startVal > 0 ? (
@@ -3654,47 +3908,49 @@
                                                     borderDash: [5, 4], borderWidth: 1.5,
                                                     yAxisID: "y2" }
                                             ]} T={T} yFmt={yFmtD} y2Fmt={yFmtD} height={isMob ? 170 :
-                                                230} />
+                                                230} plugins={[createAnnotationPlugin(annotationData,
+                                                    T)]} />
                                         </div>
-                                        <div style={{ flex: "1 1 200px", ...card({ padding: 16 }) }}>
+                                        <div style={{ flex: "1 1 180px", ...card({ padding: 14 }) }}>
                                             <div style={{ fontSize: 12, fontWeight: 600, color: T
                                                         .text, marginBottom: 2 }}>Asset Allocation</div>
-                                            <div style={{ fontSize: 11, color: T.text3,
-                                                    marginBottom: 12, fontWeight: 500 }}>by type · {displayCur}</div>
+                                            <div style={{ fontSize: 10, color: T.text3,
+                                                    marginBottom: 8, fontWeight: 400 }}>by type · {displayCur}</div>
                                             <ChartDoughnut labels={chartData.tLabels} data={chartData
                                                     .tVals} colors={chartData.palette} T={T}
-                                                height={isMob ? 180 : 230} />
+                                                height={isMob ? 160 : 200} />
                                         </div>
                                     </div>
+
+                                    {/* Monthly income + currency split */}
                                     <div className="chart-row" style={{ display: "flex", gap: 12,
                                             flexWrap: isMob ? "wrap" : "nowrap" }}>
-                                        <div style={{ flex: "2 1 280px", ...card({ padding: 16 }) }}>
+                                        <div style={{ flex: "2 1 280px", ...card({ padding: 14 }) }}>
                                             <div style={{ display: "flex", justifyContent: "space-between",
-                                                    alignItems: "flex-start", marginBottom: 12 }}>
+                                                    alignItems: "flex-start", marginBottom: 8 }}>
                                                 <div>
                                                     <div style={{ fontSize: 12, fontWeight: 600,
                                                             color: T.text,
-                                                        marginBottom: 2 }}>Monthly Income — Div &amp;
+                                                        marginBottom: 1 }}>Monthly Income — Div &amp;
                                                         Coupons</div>
-                                                    <div style={{ fontSize: 11, color: T
-                                                            .text3, fontWeight: 500 }}>{chartData.mLabels.length} months
+                                                    <div style={{ fontSize: 10, color: T
+                                                            .text3, fontWeight: 400 }}>{chartData.mLabels.length} months
                                                         · {chartPeriod} · {displayCur}</div>
                                                 </div>
                                                 {chartData.divCAGR != null && <div style={{
                                                         textAlign: "right" }}>
-                                                    <div style={{ fontSize: 9, color: T.text3,
+                                                    <div style={{ fontSize: 8, color: T.text3,
                                                             letterSpacing: .5,
                                                             textTransform: "uppercase",
-                                                            fontWeight: 600 }}>Dividend
-                                                        CAGR</div>
+                                                            fontWeight: 600 }}>Dividend CAGR</div>
                                                     <div style={{ fontFamily: "'Space Mono',monospace",
-                                                            fontSize: 13, fontWeight: 700,
+                                                            fontSize: 14, fontWeight: 700,
                                                             color: chartData.divCAGR >= 0 ? T
                                                                 .green : T.red }}>{chartData
                                                             .divCAGR >= 0 ? "+" : ""}{chartData
                                                             .divCAGR.toFixed(1)}%</div>
-                                                    <div style={{ fontSize: 9, color: T
-                                                            .text3, fontWeight: 500 }}>{chartData.divCAGRYears}yr
+                                                    <div style={{ fontSize: 8, color: T
+                                                            .text3, fontWeight: 400 }}>{chartData.divCAGRYears}yr
                                                         growth</div>
                                                 </div>}
                                             </div>
@@ -3708,33 +3964,107 @@
                                                         borderColor: dark ? "#8ab4f8" :
                                                         "#1a73e8", borderWidth: 1,
                                                         borderRadius: 5
-                                                    }]} T={T} yFmt={yFmtD} height={isMob ? 160 :
-                                                210} stacked={!!(chartData.mDatasets && chartData
+                                                    }]} T={T} yFmt={yFmtD} height={isMob ? 150 :
+                                                190} stacked={!!(chartData.mDatasets && chartData
                                                     .mDatasets.length > 1)} />
                                         </div>
-                                        <div style={{ flex: "1 1 200px", ...card({ padding: 16 }) }}>
+                                        <div style={{ flex: "1 1 180px", ...card({ padding: 14 }) }}>
                                             <div style={{ fontSize: 12, fontWeight: 600, color: T
                                                         .text, marginBottom: 2 }}>Currency Split</div>
-                                            <div style={{ fontSize: 11, color: T.text3,
-                                                    marginBottom: 12, fontWeight: 500 }}>by holding currency · {displayCur}</div>
+                                            <div style={{ fontSize: 10, color: T.text3,
+                                                    marginBottom: 8, fontWeight: 400 }}>by holding currency · {displayCur}</div>
                                             <ChartDoughnut labels={chartData.byCurLabels} data={chartData
                                                     .byCurVals} colors={chartData.byCurColors} T={T}
-                                                height={isMob ? 160 : 210} />
+                                                height={isMob ? 150 : 190} />
                                         </div>
                                     </div>
-                                    <div style={{ ...card({ padding: 16 }) }}>
+
+                                    {/* Risk Exposure Section */}
+                                    <div style={{ ...card({ padding: 14 }) }}>
                                         <div style={{ display: "flex", justifyContent: "space-between",
-                                                alignItems: "flex-start", marginBottom: 12,
-                                                flexWrap: "wrap", gap: 8 }}>
+                                                alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 4 }}>
+                                            <div>
+                                                <div style={{ fontSize: 12, fontWeight: 600, color: T
+                                                        .text }}>📊 Risk Exposure</div>
+                                                <div style={{ fontSize: 10, color: T.text3,
+                                                    fontWeight: 400 }}>Based on {history.length} monthly snapshots</div>
+                                            </div>
+                                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap",
+                                                    fontSize: 9, color: T.text3 }}>
+                                                <span><span style={{ color: T.green }}>●</span> Volatility (annualized)</span>
+                                                <span><span style={{ color: T.amber }}>●</span> Max drawdown</span>
+                                            </div>
+                                        </div>
+                                        <div className="risk-grid" style={{ display: "grid", gridTemplateColumns: isMob ?
+                                                "1fr 1fr" : "1fr 1fr 1fr 1fr", gap: 8 }}>
+                                            {[
+                                                { label: "Volatility (ann.)", value: riskMetrics.volatility !== null ?
+                                                        `${riskMetrics.volatility.toFixed(1)}%` : "—",
+                                                    color: riskMetrics.volatility !== null ? (riskMetrics
+                                                        .volatility > 15 ? T.red : riskMetrics.volatility >
+                                                        8 ? T.amber : T.green) : T.text3,
+                                                    sub: riskMetrics.volatility !== null ? (riskMetrics
+                                                        .volatility > 15 ? "High" : riskMetrics.volatility >
+                                                        8 ? "Moderate" : "Low") : "N/A"
+                                                },
+                                                { label: "Max Drawdown", value: riskMetrics.maxDrawdown !==
+                                                        null ? `${riskMetrics.maxDrawdown.toFixed(1)}%` :
+                                                        "—",
+                                                    color: riskMetrics.maxDrawdown !== null ? (riskMetrics
+                                                        .maxDrawdown > 20 ? T.red : riskMetrics
+                                                        .maxDrawdown > 10 ? T.amber : T.green) : T.text3,
+                                                    sub: riskMetrics.maxDrawdown !== null ? `from peak` :
+                                                        "N/A"
+                                                },
+                                                { label: "Best Month", value: riskMetrics.bestMonth ?
+                                                        `${riskMetrics.bestMonth.ret.toFixed(1)}%` :
+                                                        "—",
+                                                    color: riskMetrics.bestMonth ? T.green : T.text3,
+                                                    sub: riskMetrics.bestMonth ? fmtDate(riskMetrics
+                                                        .bestMonth.date) : "N/A"
+                                                },
+                                                { label: "Worst Month", value: riskMetrics.worstMonth ?
+                                                        `${riskMetrics.worstMonth.ret.toFixed(1)}%` :
+                                                        "—",
+                                                    color: riskMetrics.worstMonth ? T.red : T.text3,
+                                                    sub: riskMetrics.worstMonth ? fmtDate(riskMetrics
+                                                        .worstMonth.date) : "N/A"
+                                                },
+                                            ].map((item, idx) => (
+                                                <div key={idx} className="risk-card" style={{
+                                                        background: T.cardBg || T.bg3,
+                                                        border: `1px solid ${T.border}`,
+                                                        borderRadius: 8, padding: "10px 12px",
+                                                        textAlign: "center" }}>
+                                                    <div className="label" style={{ fontSize: 8,
+                                                            letterSpacing: 1, textTransform: "uppercase",
+                                                            fontWeight: 600, color: T.text3 }}>{item
+                                                        .label}</div>
+                                                    <div className="value" style={{ fontSize: 16,
+                                                            fontWeight: 700, fontFamily: "'Space Mono',monospace",
+                                                            color: item.color, marginTop: 2 }}>{item
+                                                        .value}</div>
+                                                    <div className="sub" style={{ fontSize: 9, color: T
+                                                            .text3, marginTop: 1, fontWeight: 400 }}>{item
+                                                        .sub}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Growth Contributors (Waterfall) */}
+                                    <div style={{ ...card({ padding: 14 }) }}>
+                                        <div style={{ display: "flex", justifyContent: "space-between",
+                                                alignItems: "flex-start", marginBottom: 8,
+                                                flexWrap: "wrap", gap: 6 }}>
                                             <div>
                                                 <div style={{ fontSize: 12, fontWeight: 600,
                                                         color: T.text,
-                                                    marginBottom: 2 }}>📊 Growth Contributors — {chartPeriod}</div>
-                                                <div style={{ fontSize: 11, color: T.text3,
-                                                        fontWeight: 500 }}>Breakdown of
-                                                    what drove your portfolio value change</div>
+                                                    marginBottom: 1 }}>📊 Growth Contributors — {chartPeriod}</div>
+                                                <div style={{ fontSize: 10, color: T.text3,
+                                                    fontWeight: 400 }}>Breakdown of portfolio value change</div>
                                             </div>
-                                            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                                            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                                                 {[
                                                     ["Start / End", "#6366f155"],
                                                     ["Capital Gain", "#34a853"],
@@ -3743,18 +4073,18 @@
                                                     ["Dividends", "#34a853"]
                                                 ].map(([l, c]) => (
                                                     <div key={l} style={{ display: "flex",
-                                                            alignItems: "center", gap: 4 }}>
-                                                        <div style={{ width: 10, height: 10,
+                                                            alignItems: "center", gap: 3 }}>
+                                                        <div style={{ width: 8, height: 8,
                                                                 borderRadius: 2,
                                                             background: c }} />
-                                                        <span style={{ fontSize: 10, color: T
-                                                                .text3, fontWeight: 500 }}>{l}</span>
+                                                        <span style={{ fontSize: 8, color: T
+                                                                .text3, fontWeight: 400 }}>{l}</span>
                                                     </div>
                                                 ))}
                                             </div>
                                         </div>
                                         <ChartWaterfall data={chartData.waterfallData} T={T} yFmt={yFmtD}
-                                            height={isMob ? 220 : 270} />
+                                            height={isMob ? 200 : 240} />
                                         {chartData.waterfallData.length > 1 && (() => {
                                             const wf = chartData.waterfallData;
                                             const capItem = wf.find(d => d.label === "Capital Gain" ||
@@ -3766,8 +4096,8 @@
                                                 .abs(total) * 100).toFixed(0) +
                                                 "%" : "—";
                                             return (
-                                                <div style={{ display: "flex", gap: 8,
-                                                        marginTop: 12, flexWrap: "wrap" }}>
+                                                <div style={{ display: "flex", gap: 6,
+                                                        marginTop: 8, flexWrap: "wrap" }}>
                                                     {[
                                                         ["💹 Capital G/L", capItem?.value ??
                                                             0, capItem?.value >= 0 ?
@@ -3786,22 +4116,22 @@
                                                         <div key={l} style={{ background: T
                                                                     .bg4, border:
                                                                 `1px solid ${T.border}`,
-                                                                borderRadius: 8,
-                                                                padding: "8px 12px",
-                                                                flex: "1 1 100px",
-                                                            minWidth: 100 }}>
-                                                            <div style={{ fontSize: 10,
+                                                                borderRadius: 6,
+                                                                padding: "6px 10px",
+                                                                flex: "1 1 80px",
+                                                            minWidth: 70 }}>
+                                                            <div style={{ fontSize: 8,
                                                                     color: T.text3,
                                                                     fontWeight: 500,
-                                                                marginBottom: 3 }}>{l}</div>
+                                                                marginBottom: 2 }}>{l}</div>
                                                             <div style={{ fontFamily: "'Space Mono',monospace",
                                                                     fontSize: 12,
                                                                     fontWeight: 700,
                                                                     color: c }}>{FC(v,
                                                                     true)}</div>
-                                                            <div style={{ fontSize: 10,
+                                                            <div style={{ fontSize: 8,
                                                                     color: T.text3,
-                                                                    fontWeight: 500,
+                                                                    fontWeight: 400,
                                                                 marginTop: 1 }}>{p} of
                                                                 change</div>
                                                         </div>
@@ -3810,13 +4140,14 @@
                                             );
                                         })()}
                                     </div>
-                                    <div style={{ ...card({ padding: 16 }) }}>
-                                        <div style={{ marginBottom: 12 }}>
+
+                                    {/* Benchmark Comparison */}
+                                    <div style={{ ...card({ padding: 14 }) }}>
+                                        <div style={{ marginBottom: 8 }}>
                                             <div style={{ fontSize: 12, fontWeight: 600, color: T
-                                                        .text, marginBottom: 2 }}>📐 Benchmark Comparison — {chartPeriod}</div>
-                                            <div style={{ fontSize: 11, color: T.text3,
-                                                    marginBottom: 10, fontWeight: 500 }}>Your portfolio vs selected
-                                                benchmarks · % return from period start</div>
+                                                        .text, marginBottom: 1 }}>📐 Benchmark Comparison — {chartPeriod}</div>
+                                            <div style={{ fontSize: 10, color: T.text3,
+                                                    fontWeight: 400 }}>Your portfolio vs selected benchmarks · % return from period start</div>
                                             {(() => {
                                                 const BM_DEF = [
                                                     { key: "sp500", label: "S&P 500",
@@ -3832,8 +4163,8 @@
                                                 ];
                                                 return (
                                                     <div style={{ display: "flex",
-                                                            flexWrap: "wrap", gap: 6,
-                                                        marginBottom: 10 }}>
+                                                            flexWrap: "wrap", gap: 4,
+                                                        marginTop: 4 }}>
                                                         {BM_DEF.map(({ key, label,
                                                             color }) => {
                                                             const on = bmVisible[
@@ -3858,8 +4189,8 @@
                                                                             })
                                                                         )
                                                                     }
-                                                                    style={{ padding: "4px 12px",
-                                                                        borderRadius: 20,
+                                                                    style={{ padding: "3px 10px",
+                                                                        borderRadius: 14,
                                                                         border: `1.5px solid ${color}`,
                                                                         background: on ?
                                                                             color :
@@ -3867,7 +4198,7 @@
                                                                         color: on ?
                                                                             "#fff" :
                                                                             color,
-                                                                        fontSize: 10,
+                                                                        fontSize: 9,
                                                                         fontWeight: 600,
                                                                         cursor: "pointer",
                                                                         opacity: hasData ?
@@ -3879,17 +4210,6 @@
                                                     </div>
                                                 );
                                             })()}
-                                            {!fetchSt.lastUpdate && <div style={{ display: "flex",
-                                                    alignItems: "center", gap: 6,
-                                                    background: T.bg4, border:
-                                                    `1px solid ${T.amber}44`,
-                                                    borderRadius: 8, padding: "6px 12px",
-                                                    marginBottom: 8, fontWeight: 500 }}>
-                                                <span style={{ fontSize: 11, color: T
-                                                        .amber }}>⚠️ Click <b>🔄 Live
-                                                        Prices</b> to load benchmark
-                                                    data</span>
-                                            </div>}
                                         </div>
                                         {chartData.bmLabels.length > 1 ? (() => {
                                             const BM_DEF = [
@@ -3952,56 +4272,27 @@
                                                     v != null).slice(-1)[0] ??
                                                 0;
                                             return (<>
-                                                {!holdingPricesLoaded && <div
-                                                        style={{ fontSize: 10,
-                                                            color: T.amber,
-                                                            background: T
-                                                                .bg4,
-                                                            border: `1px solid ${T.amber}44`,
-                                                            borderRadius: 6,
-                                                            padding: "6px 10px",
-                                                            marginBottom: 8,
-                                                            fontWeight: 500 }}>
-                                                        ⏳ Fetching historical prices for
-                                                        each holding… Click 🔄 if this
-                                                        doesn't appear.
-                                                    </div>}
-                                                {holdingPricesLoaded && portPoints <
-                                                    2 && <div style={{ fontSize: 10,
+                                                {!holdingPricesLoaded && portPoints <
+                                                    2 && <div style={{ fontSize: 9,
                                                         color: T.amber,
                                                         background: T.bg4,
                                                         border: `1px solid ${T.amber}44`,
                                                         borderRadius: 6,
-                                                        padding: "6px 10px",
-                                                        marginBottom: 8,
-                                                        fontWeight: 500 }}>
-                                                        ⚠️ Not enough historical price
-                                                        data found for your holdings for
-                                                        this period.
-                                                    </div>}
-                                                {holdingPricesLoaded && portPoints >=
-                                                    2 && <div style={{ fontSize: 10,
-                                                        color: T.text3,
-                                                        background: T.bg4,
-                                                        border: `1px solid ${T.border}`,
-                                                        borderRadius: 6,
-                                                        padding: "6px 10px",
-                                                        marginBottom: 8,
-                                                        fontWeight: 500 }}>
-                                                        ℹ️ Holdings without live price
-                                                        history (PBS032, PBS033,
-                                                        NUL5339AU, NUL7270AU) use
-                                                        current price as a flat
-                                                        approximation.
+                                                        padding: "4px 10px",
+                                                        marginBottom: 6,
+                                                        fontWeight: 400 }}>
+                                                        {!holdingPricesLoaded ?
+                                                            "⏳ Fetching historical prices for each holding… Click 🔄 if this doesn't appear." :
+                                                            "⚠️ Not enough historical price data found for this period."}
                                                     </div>}
                                                 <ChartLine labels={chartData
                                                         .bmLabels} datasets={
                                                         datasets} T={T} yFmt={v =>
                                                         `${v>=0?"+":""}${v.toFixed(1)}%`}
-                                                    height={isMob ? 220 : 280}
+                                                    height={isMob ? 200 : 240}
                                                     spanGaps={false} />
                                                 <div style={{ display: "flex",
-                                                        gap: 6, marginTop: 12,
+                                                        gap: 4, marginTop: 8,
                                                     flexWrap: "wrap" }}>
                                                     <div style={{ background: T
                                                                 .bg4, border: "1.5px solid " +
@@ -4009,16 +4300,16 @@
                                                                 "#34a853" :
                                                                 "#1e8e3e"
                                                                 ),
-                                                            borderRadius: 8,
-                                                            padding: "8px 12px",
-                                                            flex: "1 1 80px" }}>
-                                                        <div style={{ fontSize: 9,
+                                                            borderRadius: 6,
+                                                            padding: "6px 10px",
+                                                            flex: "1 1 60px" }}>
+                                                        <div style={{ fontSize: 8,
                                                                 color: T.text3,
                                                                 fontWeight: 500,
-                                                            marginBottom: 2 }}>Your
+                                                            marginBottom: 1 }}>Your
                                                             Portfolio</div>
                                                         <div style={{ fontFamily: "'Space Mono',monospace",
-                                                                fontSize: 12,
+                                                                fontSize: 13,
                                                                 fontWeight: 700,
                                                                 color: dark ?
                                                                 "#34a853" :
@@ -4052,17 +4343,17 @@
                                                                     style={{ background: T
                                                                             .bg4,
                                                                         border: `1.5px solid ${b.color}`,
-                                                                        borderRadius: 8,
-                                                                        padding: "8px 12px",
-                                                                        flex: "1 1 80px" }}>
-                                                                    <div style={{ fontSize: 9,
+                                                                        borderRadius: 6,
+                                                                        padding: "6px 10px",
+                                                                        flex: "1 1 60px" }}>
+                                                                    <div style={{ fontSize: 8,
                                                                             color: T
                                                                                 .text3,
                                                                             fontWeight: 500,
-                                                                        marginBottom: 2 }}>{b
+                                                                        marginBottom: 1 }}>{b
                                                                             .label}</div>
                                                                     <div style={{ fontFamily: "'Space Mono',monospace",
-                                                                            fontSize: 12,
+                                                                            fontSize: 13,
                                                                             fontWeight: 700,
                                                                             color: b
                                                                                 .color }}>{last >=
@@ -4070,14 +4361,14 @@
                                                                         ""}{last
                                                                             .toFixed(
                                                                             2)}%</div>
-                                                                    <div style={{ fontSize: 9,
+                                                                    <div style={{ fontSize: 8,
                                                                             color: diff >=
                                                                             0 ? T
                                                                                 .green :
                                                                                 T
                                                                                 .red,
                                                                             fontWeight: 600,
-                                                                        marginTop: 2 }}>{diff >=
+                                                                        marginTop: 1 }}>{diff >=
                                                                         0 ? "▲ " :
                                                                         "▼ "}{Math
                                                                             .abs(
@@ -4092,17 +4383,17 @@
                                                 </div>
                                             </>);
                                         })() : (
-                                            <div style={{ height: 200, display: "flex",
+                                            <div style={{ height: 160, display: "flex",
                                                     flexDirection: "column",
                                                     alignItems: "center",
                                                     justifyContent: "center",
-                                                    gap: 10, color: T.text3, fontWeight: 500 }}>
-                                                <div style={{ fontSize: 32,
+                                                    gap: 6, color: T.text3, fontWeight: 500 }}>
+                                                <div style={{ fontSize: 28,
                                                     opacity: .3 }}>📐</div>
-                                                <div style={{ fontSize: 13,
+                                                <div style={{ fontSize: 12,
                                                         fontWeight: 500 }}>Benchmark
                                                     data not loaded yet</div>
-                                                <div style={{ fontSize: 11 }}>Hit <b
+                                                <div style={{ fontSize: 10 }}>Hit <b
                                                         style={{ color: T
                                                             .text2 }}>🔄 Live
                                                         Prices</b> to fetch benchmark
@@ -4114,7 +4405,7 @@
                             )}
                         </main>
 
-                        {/* Modals */}
+                        {/* Modals (same as before, trimmed for brevity) */}
                         {modal && (
                             <div onClick={closeModal} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.7)",
                                     backdropFilter: "blur(6px)", zIndex: 100, display: "flex", alignItems: "center",
