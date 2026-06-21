@@ -3412,98 +3412,230 @@
                 const treemapHeight = isMob ? 170 : 200;
 
                 return (
-                    <div className="whatif-layout" style={{ display: "flex", gap: 16, flexWrap: isMob ? "wrap" :
-                        "nowrap" }}>
-                        {/* Left half: Modify Holdings */}
-                        <div className="whatif-left" style={{ flex: "0 0 50%", minWidth: 0 }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                        {/* Top row: Input sliders */}
+                        <div className="whatif-grid" style={{ display: "grid", gridTemplateColumns: isMob ? "1fr 1fr" :
+                                "1fr 1fr 1fr 1fr", gap: 8 }}>
                             <div style={card({ padding: 10 })}>
-                                <div style={{ fontSize: 11, fontWeight: 600, color: T.text, marginBottom: 6 }}>
-                                    Modify Holdings
+                                <label style={lbl({ fontSize: 8 })}>Growth Rate</label>
+                                <input type="range" className="whatif-slider" min="0" max="15" step="0.5"
+                                    value={whatIf.growthRate}
+                                    onChange={e => setWhatIf(w => ({ ...w, growthRate: parseFloat(e.target.value) }))} />
+                                <div style={{ textAlign: "center", fontWeight: 700, fontSize: 13, color: T.text }}>{whatIf
+                                        .growthRate}%</div>
+                            </div>
+                            <div style={card({ padding: 10 })}>
+                                <label style={lbl({ fontSize: 8 })}>Reinvest</label>
+                                <input type="range" className="whatif-slider" min="0" max="100" step="5"
+                                    value={whatIf.reinvestRatio}
+                                    onChange={e => setWhatIf(w => ({ ...w, reinvestRatio: parseFloat(e.target.value) }))} />
+                                <div style={{ textAlign: "center", fontWeight: 700, fontSize: 13, color: T.text }}>{whatIf
+                                        .reinvestRatio}%</div>
+                            </div>
+                            <div style={card({ padding: 10 })}>
+                                <label style={lbl({ fontSize: 8 })}>FX Change</label>
+                                <input type="range" className="whatif-slider" min="-5" max="5" step="0.5"
+                                    value={whatIf.fxRate}
+                                    onChange={e => setWhatIf(w => ({ ...w, fxRate: parseFloat(e.target.value) }))} />
+                                <div style={{ textAlign: "center", fontWeight: 700, fontSize: 13, color: T.text }}>{whatIf
+                                        .fxRate}%</div>
+                            </div>
+                            <div style={card({ padding: 10 })}>
+                                <label style={lbl({ fontSize: 8 })}>Years</label>
+                                <input type="range" className="whatif-slider" min="1" max="10" step="1"
+                                    value={whatIf.simulationYears}
+                                    onChange={e => setWhatIf(w => ({ ...w, simulationYears: parseInt(e.target.value) }))} />
+                                <div style={{ textAlign: "center", fontWeight: 700, fontSize: 13, color: T.text }}>{whatIf
+                                        .simulationYears}</div>
+                            </div>
+                        </div>
+
+                        {/* Middle: two halves */}
+                        <div className="whatif-layout" style={{ display: "flex", gap: 16, flexWrap: isMob ? "wrap" :
+                                "nowrap" }}>
+                            {/* Left: Modify Holdings */}
+                            <div className="whatif-left" style={{ flex: "0 0 50%", minWidth: 0 }}>
+                                <div style={card({ padding: 10 })}>
+                                    <div style={{ fontSize: 11, fontWeight: 600, color: T.text, marginBottom: 6 }}>
+                                        Modify Holdings
+                                    </div>
+                                    <div className="whatif-holdings" style={{ display: "grid", gridTemplateColumns: "1fr 1fr",
+                                            gap: 4 }}>
+                                        {holdings.map(h => {
+                                            const factor = whatIf.adjustments[h.ticker] || 1.0;
+                                            const pct = Math.round(factor * 100);
+                                            return (
+                                                <div key={h.ticker} className="adj-row" style={{ background: T.bg4,
+                                                        borderRadius: 6, padding: "4px 6px", border: "1px solid " + T.border }}>
+                                                    <span className="ticker">{h.ticker}</span>
+                                                    <span className="value">{FC(h.currentValue, true)}</span>
+                                                    <button className="adj-btn" onClick={() => setWhatIf(w => ({ ...w, adjustments: { ...w.adjustments, [h.ticker]: Math.max(0.5, factor - 0.05) } }))}>−</button>
+                                                    <input type="number" style={{ width: 50, background: T.bg, border: "1px solid " + T.border, borderRadius: 4, padding: "2px 4px", fontSize: 10, color: T.text, textAlign: "center" }}
+                                                        value={pct}
+                                                        onChange={e => {
+                                                            const val = parseFloat(e.target.value);
+                                                            if (!isNaN(val) && val >= 50 && val <= 150) {
+                                                                setWhatIf(w => ({ ...w, adjustments: { ...w.adjustments, [h.ticker]: val / 100 } }));
+                                                            }
+                                                        }} />
+                                                    <button className="adj-btn" onClick={() => setWhatIf(w => ({ ...w, adjustments: { ...w.adjustments, [h.ticker]: Math.min(1.5, factor + 0.05) } }))}>+</button>
+                                                    <span className="diff-label" style={{ color: pct > 100 ? T.green : pct < 100 ? T.red : T.text3 }}>
+                                                        {pct > 100 ? `+${pct-100}%` : pct < 100 ? `${pct-100}%` : '0%'}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                                        <button onClick={() => setWhatIf(w => ({ ...w, adjustments: {} }))} style={bO(T
+                                            .text2, { fontSize: 10, padding: "2px 10px" })}>Reset</button>
+                                    </div>
                                 </div>
-                                <div className="whatif-holdings" style={{ display: "grid", gridTemplateColumns: "1fr 1fr",
-                                        gap: 4 }}>
-                                    {holdings.map(h => {
-                                        const factor = whatIf.adjustments[h.ticker] || 1.0;
-                                        const pct = Math.round(factor * 100);
-                                        return (
-                                            <div key={h.ticker} className="adj-row" style={{ background: T.bg4,
-                                                    borderRadius: 6, padding: "4px 6px", border: "1px solid " + T.border }}>
-                                                <span className="ticker">{h.ticker}</span>
-                                                <span className="value">{FC(h.currentValue, true)}</span>
-                                                <button className="adj-btn" onClick={() => setWhatIf(w => ({ ...w, adjustments: { ...w.adjustments, [h.ticker]: Math.max(0.5, factor - 0.05) } }))}>−</button>
-                                                <input type="number" style={{ width: 50, background: T.bg, border: "1px solid " + T.border, borderRadius: 4, padding: "2px 4px", fontSize: 10, color: T.text, textAlign: "center" }}
-                                                    value={pct}
-                                                    onChange={e => {
-                                                        const val = parseFloat(e.target.value);
-                                                        if (!isNaN(val) && val >= 50 && val <= 150) {
-                                                            setWhatIf(w => ({ ...w, adjustments: { ...w.adjustments, [h.ticker]: val / 100 } }));
-                                                        }
-                                                    }} />
-                                                <button className="adj-btn" onClick={() => setWhatIf(w => ({ ...w, adjustments: { ...w.adjustments, [h.ticker]: Math.min(1.5, factor + 0.05) } }))}>+</button>
-                                                <span className="diff-label" style={{ color: pct > 100 ? T.green : pct < 100 ? T.red : T.text3 }}>
-                                                    {pct > 100 ? `+${pct-100}%` : pct < 100 ? `${pct-100}%` : '0%'}
-                                                </span>
-                                            </div>
-                                        );
-                                    })}
+                            </div>
+
+                            {/* Right: Chart + Treemap stacked */}
+                            <div className="whatif-right" style={{ flex: "0 0 50%", minWidth: 0, display: "flex",
+                                    flexDirection: "column", gap: 16 }}>
+                                {/* Chart block */}
+                                <div className="chart-block" style={{ flex: "1 1 50%", minHeight: chartHeight }}>
+                                    <div style={card({ padding: 12, height: "100%" })}>
+                                        <div style={{ fontSize: 11, fontWeight: 600, color: T.text, marginBottom: 2 }}>
+                                            Dividend Income Projection
+                                        </div>
+                                        <ChartLine labels={chartLabels} datasets={divDatasets} T={T} yFmt={yFmtD}
+                                            height={chartHeight} />
+                                    </div>
                                 </div>
-                                <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
-                                    <button onClick={() => setWhatIf(w => ({ ...w, adjustments: {} }))} style={bO(T
-                                        .text2, { fontSize: 10, padding: "2px 10px" })}>Reset</button>
+
+                                {/* Treemap block */}
+                                <div className="treemap-block" style={{ flex: "1 1 50%", minHeight: treemapHeight }}>
+                                    <div style={card({ padding: 12, height: "100%" })}>
+                                        <div style={{ fontSize: 11, fontWeight: 600, color: T.text, marginBottom: 2 }}>
+                                            Adjusted Allocation
+                                        </div>
+                                        <div className="treemap-container" ref={whatIfTmRef} style={{ height: "100%",
+                                                minHeight: treemapHeight, position: "relative", borderRadius: 12,
+                                                overflow: "hidden", border: "1px solid " + T.border, background: T
+                                                    .bg3 }}>
+                                            {whatIfRects.map(r => {
+                                                const c = getPerformanceColor(r.gainPct || 0, dark);
+                                                return (
+                                                    <div key={r.ticker} style={{ position: "absolute", left: r.x,
+                                                            top: r.y, width: r.w, height: r.h,
+                                                            background: c.bg, border: "1px solid " + c
+                                                            .border, display: "flex", flexDirection: "column",
+                                                            alignItems: "center", justifyContent: "center",
+                                                            fontSize: 9, fontWeight: 700, color: c.text,
+                                                            padding: 2, textAlign: "center",
+                                                            overflow: "hidden" }}>
+                                                        <span style={{ fontSize: 10 }}>{r.ticker}</span>
+                                                        <span style={{ fontSize: 8, opacity: 0.9 }}>{FC(r
+                                                            .adjustedValue, true)}</span>
+                                                        <span style={{ fontSize: 7, opacity: 0.7 }}>{fmtPct(r
+                                                            .gainPct || 0)}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                            {whatIfRects.length === 0 && <div style={{ position: "absolute",
+                                                    inset: 0, display: "flex", alignItems: "center",
+                                                    justifyContent: "center", color: T.text3,
+                                                fontSize: 11 }}>No holdings</div>}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Right half: Chart + Treemap stacked */}
-                        <div className="whatif-right" style={{ flex: "0 0 50%", minWidth: 0, display: "flex",
-                                flexDirection: "column", gap: 16 }}>
-                            {/* Chart block */}
-                            <div className="chart-block" style={{ flex: "1 1 50%", minHeight: chartHeight }}>
-                                <div style={card({ padding: 12, height: "100%" })}>
-                                    <div style={{ fontSize: 11, fontWeight: 600, color: T.text, marginBottom: 2 }}>
-                                        Dividend Income Projection
-                                    </div>
-                                    <ChartLine labels={chartLabels} datasets={divDatasets} T={T} yFmt={yFmtD}
-                                        height={chartHeight} />
-                                </div>
+                        {/* Bottom: KPIs and Scenarios */}
+                        <div style={{ display: "grid", gridTemplateColumns: isMob ? "1fr 1fr" : "1fr 1fr 1fr 1fr",
+                                gap: 8 }}>
+                            <div style={card({ padding: 10, textAlign: "center" })}>
+                                <div style={{ fontSize: 8, color: T.text3, textTransform: "uppercase", fontWeight: 600 }}>Proj. Annual Div</div>
+                                <div style={{ fontSize: 16, fontWeight: 700, color: T.text, fontFamily: "'Space Mono',monospace" }}>{FC(adjustedDivs, true)}</div>
+                                <div style={{ fontSize: 9, color: T.text3 }}>→ {FC(finalDiv, true)} in {whatIf.simulationYears}y</div>
                             </div>
+                            <div style={card({ padding: 10, textAlign: "center" })}>
+                                <div style={{ fontSize: 8, color: T.text3, textTransform: "uppercase", fontWeight: 600 }}>Yield (div‑paying)</div>
+                                <div style={{ fontSize: 16, fontWeight: 700, color: T.text, fontFamily: "'Space Mono',monospace" }}>{currentYield.toFixed(2)}%</div>
+                                <div style={{ fontSize: 9, color: T.text3 }}>{whatIf.reinvestRatio}% reinvested</div>
+                            </div>
+                            <div style={card({ padding: 10, textAlign: "center" })}>
+                                <div style={{ fontSize: 8, color: T.text3, textTransform: "uppercase", fontWeight: 600 }}>Reinvested Income</div>
+                                <div style={{ fontSize: 16, fontWeight: 700, color: T.teal, fontFamily: "'Space Mono',monospace" }}>{FC(projectedReinvested.reduce((a, b) => a + b, 0) / whatIf.simulationYears, true)}</div>
+                                <div style={{ fontSize: 9, color: T.text3 }}>avg per year</div>
+                            </div>
+                            <div style={card({ padding: 10, textAlign: "center" })}>
+                                <div style={{ fontSize: 8, color: T.text3, textTransform: "uppercase", fontWeight: 600 }}>Risk Concentration</div>
+                                <div style={{ fontSize: 16, fontWeight: 700, color: riskConcentration > 30 ? T.red :
+                                        riskConcentration > 20 ? T.amber : T.green, fontFamily: "'Space Mono',monospace" }}>{riskConcentration.toFixed(1)}%</div>
+                                <div style={{ fontSize: 9, color: T.text3 }}>top holding</div>
+                            </div>
+                        </div>
 
-                            {/* Treemap block */}
-                            <div className="treemap-block" style={{ flex: "1 1 50%", minHeight: treemapHeight }}>
-                                <div style={card({ padding: 12, height: "100%" })}>
-                                    <div style={{ fontSize: 11, fontWeight: 600, color: T.text, marginBottom: 2 }}>
-                                        Adjusted Allocation
-                                    </div>
-                                    <div className="treemap-container" ref={whatIfTmRef} style={{ height: "100%",
-                                            minHeight: treemapHeight, position: "relative", borderRadius: 12,
-                                            overflow: "hidden", border: "1px solid " + T.border, background: T
-                                                .bg3 }}>
-                                        {whatIfRects.map(r => {
-                                            const c = getPerformanceColor(r.gainPct || 0, dark);
-                                            return (
-                                                <div key={r.ticker} style={{ position: "absolute", left: r.x,
-                                                        top: r.y, width: r.w, height: r.h,
-                                                        background: c.bg, border: "1px solid " + c
-                                                        .border, display: "flex", flexDirection: "column",
-                                                        alignItems: "center", justifyContent: "center",
-                                                        fontSize: 9, fontWeight: 700, color: c.text,
-                                                        padding: 2, textAlign: "center",
-                                                        overflow: "hidden" }}>
-                                                    <span style={{ fontSize: 10 }}>{r.ticker}</span>
-                                                    <span style={{ fontSize: 8, opacity: 0.9 }}>{FC(r
-                                                        .adjustedValue, true)}</span>
-                                                    <span style={{ fontSize: 7, opacity: 0.7 }}>{fmtPct(r
-                                                        .gainPct || 0)}</span>
-                                                </div>
-                                            );
-                                        })}
-                                        {whatIfRects.length === 0 && <div style={{ position: "absolute",
-                                                inset: 0, display: "flex", alignItems: "center",
-                                                justifyContent: "center", color: T.text3,
-                                            fontSize: 11 }}>No holdings</div>}
-                                    </div>
+                        {/* Scenarios */}
+                        <div style={card({ padding: 12 })}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
+                                    marginBottom: 6, flexWrap: "wrap", gap: 4 }}>
+                                <div>
+                                    <div style={{ fontSize: 11, fontWeight: 600, color: T.text }}>📊 Scenarios</div>
+                                    <div style={{ fontSize: 9, color: T.text3 }}>Save and compare</div>
+                                </div>
+                                <div style={{ display: "flex", gap: 4 }}>
+                                    <input style={inp()} placeholder="Name" value={whatIf.scenarioName || ""}
+                                        onChange={e => setWhatIf(w => ({ ...w, scenarioName: e.target.value }))} />
+                                    <button onClick={() => {
+                                            if (!whatIf.scenarioName) return;
+                                            const newScenario = {
+                                                id: Date.now(),
+                                                name: whatIf.scenarioName,
+                                                growthRate: whatIf.growthRate,
+                                                reinvestRatio: whatIf.reinvestRatio,
+                                                fxRate: whatIf.fxRate,
+                                                adjustments: whatIf.adjustments,
+                                                simulationYears: whatIf.simulationYears,
+                                                result: simulationResult,
+                                            };
+                                            setWhatIf(w => ({ ...w, scenarios: [...w.scenarios, newScenario],
+                                                scenarioName: "" }));
+                                        }} style={bS(T.greenBtn, "#fff", { fontSize: 10, padding: "4px 12px" })}>Save</button>
                                 </div>
                             </div>
+                            {whatIf.scenarios.length > 0 && (
+                                <div style={{ display: "grid", gridTemplateColumns: isMob ? "1fr" : "1fr 1fr 1fr",
+                                        gap: 6 }}>
+                                    {whatIf.scenarios.slice().reverse().map(s => (
+                                        <div key={s.id} className="scenario-card" style={{ border: "1px solid " + T.border,
+                                                borderRadius: 6, padding: "8px 10px", background: T.bg3 }}>
+                                            <div style={{ display: "flex", justifyContent: "space-between",
+                                                    alignItems: "center" }}>
+                                                <span style={{ fontWeight: 700, fontSize: 11, color: T.text }}>{s
+                                                    .name}</span>
+                                                <button onClick={() => {
+                                                        setWhatIf(w => ({ ...w, scenarios: w.scenarios
+                                                                .filter(sc => sc.id !== s.id) }));
+                                                    }} style={{ background: "transparent", border: "none",
+                                                        color: T.red, cursor: "pointer", fontSize: 10 }}>✕</button>
+                                            </div>
+                                            <div style={{ fontSize: 8, color: T.text3 }}>
+                                                Yield: {s.result.currentYield.toFixed(1)}% · CAGR: {s.result.cagr
+                                                    .toFixed(1)}% · Risk: {s.result.riskConcentration.toFixed(0)}%
+                                            </div>
+                                            <button onClick={() => {
+                                                    setWhatIf(w => ({
+                                                        ...w,
+                                                        growthRate: s.growthRate,
+                                                        reinvestRatio: s.reinvestRatio,
+                                                        fxRate: s.fxRate,
+                                                        adjustments: s.adjustments,
+                                                        simulationYears: s.simulationYears,
+                                                        activeScenario: s.id,
+                                                    }));
+                                                }} style={bO(T.teal, { fontSize: 9, padding: "2px 8px",
+                                                    marginTop: 4 })}>Load</button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
                 );
