@@ -51,15 +51,15 @@
             transform: scale(.97);
         }
         ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
+            width: 5px;
+            height: 5px;
         }
         ::-webkit-scrollbar-track {
             background: transparent;
         }
         ::-webkit-scrollbar-thumb {
             border-radius: 4px;
-            background: #888;
+            background: #555;
         }
         .light ::-webkit-scrollbar-thumb {
             background: #ccc;
@@ -530,36 +530,36 @@
             display: flex;
             align-items: center;
             gap: 5px;
-            padding: 4px 7px;
+            padding: 5px 8px;
             border-radius: 6px;
             border: 1px solid var(--border, #3d3d3d);
             background: var(--bg4, #333333);
             flex-wrap: nowrap;
-            min-height: 34px;
+            min-height: 38px;
         }
         .adj-row .ticker {
             font-weight: 700;
-            font-size: 11px;
-            min-width: 44px;
+            font-size: 12px;
+            min-width: 48px;
             color: var(--text, #e8eaed);
             letter-spacing: .2px;
             flex-shrink: 0;
         }
         .adj-row .value {
-            font-size: 10px;
-            min-width: 54px;
+            font-size: 11px;
+            min-width: 60px;
             text-align: right;
             color: var(--text2, #bdc1c6);
             font-weight: 500;
             flex-shrink: 0;
         }
         .adj-row input[type="number"] {
-            width: 52px;
+            width: 56px;
             background: var(--bg, #121212);
             border: 1px solid var(--border, #3d3d3d);
             border-radius: 4px;
-            padding: 2px 4px;
-            font-size: 11px;
+            padding: 3px 4px;
+            font-size: 12px;
             color: var(--text, #e8eaed);
             text-align: center;
             font-weight: 600;
@@ -569,14 +569,14 @@
             background: var(--bg2, #1e1e1e);
             border: 1px solid var(--border, #3d3d3d);
             border-radius: 4px;
-            width: 24px;
-            height: 24px;
+            width: 26px;
+            height: 26px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: var(--text, #e8eaed);
             cursor: pointer;
-            font-size: 15px;
+            font-size: 16px;
             transition: background 0.15s;
             flex-shrink: 0;
             font-weight: 700;
@@ -586,19 +586,20 @@
         }
         .adj-row .diff-label {
             font-size: 10px;
-            min-width: 38px;
+            min-width: 40px;
             text-align: right;
             color: var(--text3, #9aa0a6);
             font-weight: 600;
             flex-shrink: 0;
         }
 
-        /* What-If layout — fixed for alignment */
+        /* What-If layout */
         .whatif-layout {
             display: flex;
             gap: 14px;
             width: 100%;
             align-items: stretch;
+            min-height: 420px;
         }
         .whatif-left {
             flex: 1;
@@ -630,10 +631,11 @@
             display: flex;
             flex-direction: column;
             gap: 14px;
+            min-height: 420px;
         }
         .whatif-right .chart-block {
-            flex: 1 1 50%;
-            min-height: 160px;
+            flex: 1 1 45%;
+            min-height: 150px;
             display: flex;
             flex-direction: column;
         }
@@ -641,8 +643,8 @@
             flex: 1;
         }
         .whatif-right .treemap-block {
-            flex: 1 1 50%;
-            min-height: 160px;
+            flex: 1 1 55%;
+            min-height: 180px;
             display: flex;
             flex-direction: column;
         }
@@ -654,7 +656,7 @@
         .whatif-right .treemap-block .treemap-container {
             flex: 1;
             width: 100%;
-            min-height: 160px;
+            min-height: 180px;
             position: relative;
             border-radius: 12px;
             overflow: hidden;
@@ -667,18 +669,20 @@
         }
         .whatif-right .treemap-block .treemap-container {
             height: 100%;
-            min-height: 160px;
+            min-height: 180px;
         }
 
         /* Adjust for mobile */
         @media(max-width:768px) {
             .whatif-layout {
                 flex-direction: column;
+                min-height: auto;
             }
             .whatif-left,
             .whatif-right {
                 flex: 1 1 100% !important;
                 width: 100% !important;
+                min-height: auto !important;
             }
             .whatif-right .chart-block,
             .whatif-right .treemap-block {
@@ -692,31 +696,31 @@
                 grid-template-columns: 1fr 1fr !important;
             }
             .adj-row {
-                min-height: 30px !important;
+                min-height: 32px !important;
                 padding: 3px 5px !important;
                 gap: 3px !important;
             }
             .adj-row .ticker {
                 font-size: 10px !important;
-                min-width: 34px !important;
+                min-width: 36px !important;
             }
             .adj-row .value {
                 font-size: 9px !important;
-                min-width: 38px !important;
+                min-width: 40px !important;
             }
             .adj-row input[type="number"] {
-                width: 42px !important;
+                width: 44px !important;
                 font-size: 10px !important;
                 padding: 1px 3px !important;
             }
             .adj-row .adj-btn {
                 width: 22px !important;
                 height: 22px !important;
-                font-size: 13px !important;
+                font-size: 14px !important;
             }
             .adj-row .diff-label {
                 font-size: 9px !important;
-                min-width: 30px !important;
+                min-width: 32px !important;
             }
         }
         @media(max-width:480px) {
@@ -724,29 +728,29 @@
                 grid-template-columns: 1fr !important;
             }
             .adj-row {
-                min-height: 26px !important;
+                min-height: 28px !important;
                 padding: 2px 4px !important;
             }
             .adj-row .ticker {
                 font-size: 9px !important;
-                min-width: 28px !important;
+                min-width: 30px !important;
             }
             .adj-row .value {
                 font-size: 8px !important;
-                min-width: 30px !important;
+                min-width: 32px !important;
             }
             .adj-row input[type="number"] {
-                width: 34px !important;
+                width: 36px !important;
                 font-size: 9px !important;
             }
             .adj-row .adj-btn {
-                width: 18px !important;
-                height: 18px !important;
-                font-size: 11px !important;
+                width: 20px !important;
+                height: 20px !important;
+                font-size: 12px !important;
             }
             .adj-row .diff-label {
                 font-size: 8px !important;
-                min-width: 24px !important;
+                min-width: 26px !important;
             }
         }
     </style>
@@ -818,7 +822,7 @@
     </script>
 
     <script type="text/babel">
-        const { useState, useMemo, useCallback, useEffect, useRef, useReducer } = React;
+        const { useState, useMemo, useCallback, useEffect, useRef, useReducer, useLayoutEffect } = React;
 
         // ========== ERROR BOUNDARY ==========
         class ErrorBoundary extends React.Component {
@@ -2296,7 +2300,7 @@
             };
         }
 
-        // ─── Chart Annotations Plugin (FIXED — robust date matching) ────────────────
+        // ─── Chart Annotations Plugin (FIXED — uses direct index with robust matching) ──
         function createAnnotationPlugin(annotationData, T) {
             return {
                 id: 'customAnnotations',
@@ -2308,50 +2312,48 @@
 
                     const labels = chart.data.labels;
 
-                    // Normalize a label to a day+month string for matching
-                    const normalizeLabel = (label) => {
+                    // Helper: get day+month from a label like "30 Jun" or "31 Aug"
+                    const parseLabel = (label) => {
                         if (!label) return null;
-                        // Try to parse as a date (assuming label is like "30 Jun")
                         const parts = label.trim().split(' ');
-                        if (parts.length === 2) {
-                            const day = parseInt(parts[0]);
-                            const monthStr = parts[1];
-                            const monthMap = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5, Jul: 6, Aug: 7, Sep: 8,
-                                Oct: 9, Nov: 10, Dec: 11 };
-                            const month = monthMap[monthStr];
-                            if (!isNaN(day) && month !== undefined) {
-                                return { day, month };
-                            }
-                        }
-                        return null;
+                        if (parts.length < 2) return null;
+                        const day = parseInt(parts[0]);
+                        if (isNaN(day)) return null;
+                        const monthMap = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5, Jul: 6, Aug: 7, Sep: 8,
+                            Oct: 9, Nov: 10, Dec: 11 };
+                        const month = monthMap[parts[1]];
+                        if (month === undefined) return null;
+                        return { day, month };
                     };
 
-                    // Find index of a transaction date in the chart labels
-                    const findIndex = (dateStr) => {
+                    // Find best matching label index for a transaction date
+                    const findBestIndex = (dateStr) => {
                         if (!dateStr) return -1;
                         const d = new Date(dateStr + "T12:00:00");
                         if (isNaN(d.getTime())) return -1;
                         const txDay = d.getDate();
                         const txMonth = d.getMonth();
-                        let best = -1,
-                            bestDiff = Infinity;
+
+                        let bestIdx = -1,
+                            bestScore = Infinity;
                         for (let i = 0; i < labels.length; i++) {
-                            const lbl = labels[i];
-                            const norm = normalizeLabel(lbl);
-                            if (!norm) continue;
-                            // Compare day and month (ignore year)
-                            const diff = Math.abs(norm.day - txDay) + Math.abs(norm.month - txMonth) * 30;
-                            if (diff < bestDiff && diff < 10) { // tolerance 10 days
-                                bestDiff = diff;
-                                best = i;
+                            const parsed = parseLabel(labels[i]);
+                            if (!parsed) continue;
+                            const dayDiff = Math.abs(parsed.day - txDay);
+                            const monthDiff = Math.abs(parsed.month - txMonth);
+                            // Month diff counts more, but allow some day tolerance
+                            const score = monthDiff * 30 + dayDiff;
+                            if (score < bestScore && score < 45) { // max 45 days tolerance
+                                bestScore = score;
+                                bestIdx = i;
                             }
                         }
-                        return best;
+                        return bestIdx;
                     };
 
                     const drawMarker = (item, drawFn) => {
                         if (!item) return;
-                        const idx = findIndex(item.date);
+                        const idx = findBestIndex(item.date);
                         if (idx === -1) return;
                         const x = xAxis.getPixelForValue(idx);
                         const y = yAxis.getPixelForValue(item.value);
@@ -2359,23 +2361,23 @@
                         drawFn(ctx, x, y, yAxis);
                     };
 
-                    // Buy markers (green triangles with glow)
+                    // ── Buy markers ──
                     (annotationData.buys || []).forEach(item => {
                         drawMarker(item, (ctx, x, y, ya) => {
                             ctx.save();
                             const size = 8;
                             const yPos = y - size - 4;
                             // Glow
-                            const grad = ctx.createRadialGradient(x, yPos, 0, x, yPos, size * 1.8);
-                            grad.addColorStop(0, 'rgba(52,168,83,0.35)');
+                            const grad = ctx.createRadialGradient(x, yPos, 0, x, yPos, size * 2);
+                            grad.addColorStop(0, 'rgba(52,168,83,0.3)');
                             grad.addColorStop(1, 'rgba(52,168,83,0)');
                             ctx.fillStyle = grad;
                             ctx.beginPath();
-                            ctx.arc(x, yPos, size * 1.8, 0, Math.PI * 2);
+                            ctx.arc(x, yPos, size * 2, 0, Math.PI * 2);
                             ctx.fill();
                             // Triangle
                             ctx.fillStyle = '#34a853';
-                            ctx.shadowColor = 'rgba(52,168,83,0.5)';
+                            ctx.shadowColor = 'rgba(52,168,83,0.4)';
                             ctx.shadowBlur = 10;
                             ctx.beginPath();
                             ctx.moveTo(x, yPos - 7);
@@ -2393,23 +2395,21 @@
                         });
                     });
 
-                    // Dividend markers (yellow circles with glow)
+                    // ── Dividend markers ──
                     (annotationData.dividends || []).forEach(item => {
                         drawMarker(item, (ctx, x, y, ya) => {
                             ctx.save();
                             const size = 7;
                             const yPos = y - size - 4;
-                            // Glow
-                            const grad = ctx.createRadialGradient(x, yPos, 0, x, yPos, size * 1.6);
+                            const grad = ctx.createRadialGradient(x, yPos, 0, x, yPos, size * 1.8);
                             grad.addColorStop(0, 'rgba(249,168,37,0.3)');
                             grad.addColorStop(1, 'rgba(249,168,37,0)');
                             ctx.fillStyle = grad;
                             ctx.beginPath();
-                            ctx.arc(x, yPos, size * 1.6, 0, Math.PI * 2);
+                            ctx.arc(x, yPos, size * 1.8, 0, Math.PI * 2);
                             ctx.fill();
-                            // Circle
                             ctx.fillStyle = '#f9a825';
-                            ctx.shadowColor = 'rgba(249,168,37,0.5)';
+                            ctx.shadowColor = 'rgba(249,168,37,0.4)';
                             ctx.shadowBlur = 10;
                             ctx.beginPath();
                             ctx.arc(x, yPos, size * 0.5, 0, Math.PI * 2);
@@ -2424,7 +2424,7 @@
                         });
                     });
 
-                    // Event markers (vertical lines with labels)
+                    // ── Event markers ──
                     (annotationData.events || []).forEach(event => {
                         drawMarker(event, (ctx, x, y, ya) => {
                             const yMin = ya.top;
@@ -2452,9 +2452,8 @@
                             ctx.fillStyle = T.bg2 + 'dd';
                             ctx.shadowColor = 'rgba(0,0,0,0.3)';
                             ctx.shadowBlur = 6;
-                            const r2 = 3;
                             ctx.beginPath();
-                            ctx.roundRect(rectX, rectY, tw + pad * 2, 13, r2);
+                            ctx.roundRect(rectX, rectY, tw + pad * 2, 13, 3);
                             ctx.fill();
                             ctx.shadowBlur = 0;
                             ctx.fillStyle = event.color || '#fdd663';
@@ -2516,43 +2515,39 @@
                 scenarioName: "",
             });
 
-            // Treemap state for What-If — with a fallback size
-            const [whatIfTmSize, setWhatIfTmSize] = useState({ w: 400, h: 300 });
+            // Treemap state for What-If
+            const [whatIfTmSize, setWhatIfTmSize] = useState({ w: 400, h: 350 });
             const whatIfTmRef = useRef(null);
 
-            // Use a ResizeObserver to track the treemap container size
-            useEffect(() => {
+            // Use useLayoutEffect for more reliable size measurement
+            useLayoutEffect(() => {
                 const el = whatIfTmRef.current;
                 if (!el) return;
-                const obs = new ResizeObserver(entries => {
-                    for (const entry of entries) {
-                        const { width, height } = entry.contentRect;
-                        if (width > 10 && height > 10) {
-                            setWhatIfTmSize({ w: width, h: height });
-                        }
-                    }
-                });
-                obs.observe(el);
-                // Also set an initial size from getBoundingClientRect
-                const rect = el.getBoundingClientRect();
-                if (rect.width > 10 && rect.height > 10) {
-                    setWhatIfTmSize({ w: rect.width, h: rect.height });
-                }
-                return () => obs.disconnect();
-            }, []);
-
-            // Also re-check size when the component mounts or layout changes
-            useEffect(() => {
-                const el = whatIfTmRef.current;
-                if (!el) return;
-                const checkSize = () => {
+                const updateSize = () => {
                     const rect = el.getBoundingClientRect();
                     if (rect.width > 10 && rect.height > 10) {
                         setWhatIfTmSize({ w: rect.width, h: rect.height });
                     }
                 };
-                const timeout = setTimeout(checkSize, 100);
-                return () => clearTimeout(timeout);
+                // Initial measurement
+                updateSize();
+                const obs = new ResizeObserver(() => updateSize());
+                obs.observe(el);
+                return () => obs.disconnect();
+            }, []);
+
+            // Also re-check size on window resize
+            useEffect(() => {
+                const el = whatIfTmRef.current;
+                if (!el) return;
+                const updateSize = () => {
+                    const rect = el.getBoundingClientRect();
+                    if (rect.width > 10 && rect.height > 10) {
+                        setWhatIfTmSize({ w: rect.width, h: rect.height });
+                    }
+                };
+                window.addEventListener('resize', updateSize);
+                return () => window.removeEventListener('resize', updateSize);
             }, []);
 
             const T = dark ? DARK : LIGHT;
@@ -2583,19 +2578,15 @@
                 document.body.style.color = T.text; }, [T]);
 
             const cloudLoadAll = useCallback(async (userParam) => {
-                console.log("🔄 cloudLoadAll triggered" + (userParam ? " with user param" : ""));
                 let user = userParam || fbUserRef.current || (fbAuth && fbAuth.currentUser);
                 if (!user) {
-                    console.warn("No user found in cloudLoadAll");
                     setSyncMsg("⚠️ Sign in first");
                     return;
                 }
-                console.log("👤 Loading data for user:", user.displayName || user.uid);
                 setSyncSt("loading");
                 setSyncMsg("Loading from cloud...");
                 try {
                     const data = await cloudLoad(user.uid);
-                    console.log("📦 Firestore data:", data ? Object.keys(data) : "null");
                     if (!data) {
                         setSyncSt("ok");
                         setSyncMsg("No cloud data yet — save first");
@@ -2603,8 +2594,7 @@
                         return;
                     }
                     if (data.portfolio) { const parsed = JSON.parse(data.portfolio);
-                        setPortfolio(repairPortfolio(parsed));
-                        console.log("✅ Portfolio loaded, count:", parsed.length); }
+                        setPortfolio(repairPortfolio(parsed)); }
                     if (data.prices) { const parsed = JSON.parse(data.prices);
                         setPrices(parsed); }
                     if (data.prevPrices) { const parsed = JSON.parse(data.prevPrices);
@@ -2618,13 +2608,10 @@
                     if (typeof data.avgSuperBalanceAud === "number") setAvgSuperBalanceAud(data.avgSuperBalanceAud);
                     if (data.whatIf) { const parsed = JSON.parse(data.whatIf);
                         setWhatIf(parsed); }
-
                     setSyncSt("ok");
                     setSyncMsg("✅ Loaded ✓ " + new Date().toLocaleTimeString());
                     setCloudReady(true);
-                    console.log("✅ cloudLoadAll finished successfully");
                 } catch (e) {
-                    console.error("❌ Cloud load error:", e);
                     setSyncSt("error");
                     setSyncMsg("❌ Load failed: " + e.message);
                 }
@@ -2665,13 +2652,11 @@
             useEffect(() => {
                 if (!FB_CONFIGURED || !fbAuth) return;
                 const unsub = fbAuth.onAuthStateChanged(async (user) => {
-                    console.log("Auth state changed:", user ? user.displayName : "null");
                     setFbUser(user || null);
                     fbUserRef.current = user || null;
                     if (user) {
                         setSyncSt("idle");
                         setSyncMsg("Signed in as " + user.displayName);
-                        console.log("Auto-loading cloud data...");
                         await cloudLoadAll(user);
                     } else {
                         setSyncSt("idle");
@@ -3498,11 +3483,6 @@
                 if (!holdings.length) return null;
                 const { growthRate, reinvestRatio, fxRate, simulationYears, adjustments } = whatIf;
 
-                // Filter to dividend-paying assets for yield calculation
-                const divHoldings = holdings.filter(h =>
-                    h.assetType && DIVIDEND_PAYING_TYPES.has(h.assetType)
-                );
-
                 let adjustedDivs = 0;
                 let adjustedValue = 0;
                 let totalAdjValue = 0;
@@ -3514,7 +3494,6 @@
                     return { ...h, adjustedValue: adjVal, adjustedDividends: adjDiv };
                 });
 
-                // Compute yield only on dividend-paying holdings
                 let divPortValue = 0,
                     divPortDivs = 0;
                 adjustedHoldings.forEach(h => {
@@ -3525,7 +3504,6 @@
                 });
                 const currentYield = divPortValue > 0 ? (divPortDivs / divPortValue) * 100 : 0;
 
-                // Projection uses total adjusted dividends (all holdings)
                 const totalAdjustedDivs = adjustedHoldings.reduce((s, h) => s + h.adjustedDividends, 0);
                 const totalAdjustedValue = adjustedHoldings.reduce((s, h) => s + h.adjustedValue, 0);
 
@@ -3533,7 +3511,6 @@
                 const projectedDivs = [];
                 const projectedReinvested = [];
                 let div = totalAdjustedDivs;
-                const fxFactor = 1 + fxRate / 100;
 
                 for (let i = 0; i <= simulationYears; i++) {
                     years.push(new Date().getFullYear() + i);
@@ -3566,18 +3543,17 @@
 
             const simulationResult = useMemo(() => runSimulation(), [runSimulation]);
 
-            // ─── What-If treemap rects ──────────────────────────────────────────────
             const whatIfItems = useMemo(() => {
                 if (!simulationResult) return [];
                 return simulationResult.adjustedHoldings.map(h => ({ ...h, value: h.adjustedValue }));
             }, [simulationResult]);
 
+            // Ensure treemap has all holdings with proper dimensions
             const whatIfRects = useMemo(() => {
                 const sorted = [...whatIfItems].filter(item => item.value > 0).sort((a, b) => b.value - a.value);
                 if (!sorted.length) return [];
-                // Ensure we have valid dimensions
-                const w = Math.max(whatIfTmSize.w, 100);
-                const h = Math.max(whatIfTmSize.h, 100);
+                const w = Math.max(whatIfTmSize.w, 120);
+                const h = Math.max(whatIfTmSize.h, 120);
                 return squarify(sorted, 0, 0, w, h);
             }, [whatIfItems, whatIfTmSize]);
 
@@ -3601,10 +3577,8 @@
                     years,
                     projectedDivs,
                     projectedReinvested,
-                    adjustedHoldings,
                 } = sr;
 
-                // Chart data
                 const chartLabels = years.map(y => String(y));
                 const currentDivs = projectedDivs.map(() => adjustedDivs);
 
@@ -3615,7 +3589,7 @@
                             "rgba(52,168,83,.1)" : "rgba(30,142,62,.08)", fill: true, borderWidth: 2.5 },
                 ];
 
-                const chartHeight = isMob ? 160 : 190;
+                const chartHeight = isMob ? 150 : 180;
                 const treemapHeight = isMob ? 160 : 190;
 
                 return (
@@ -3657,15 +3631,15 @@
                             </div>
                         </div>
 
-                        {/* Middle: two halves — fixed for alignment */}
+                        {/* Middle: two halves */}
                         <div className="whatif-layout" style={{ display: "flex", gap: 12, flexWrap: isMob ? "wrap" :
-                                "nowrap", alignItems: "stretch" }}>
-                            {/* Left: Modify Holdings — now stretches to match height */}
+                                "nowrap", alignItems: "stretch", minHeight: isMob ? 'auto' : 420 }}>
+                            {/* Left: Modify Holdings — fills the space */}
                             <div className="whatif-left" style={{ flex: 1, minWidth: 0, display: "flex",
                                     flexDirection: "column" }}>
                                 <div className="left-card" style={{ ...card({ padding: 8 }), flex: 1, display: "flex",
                                         flexDirection: "column", height: "100%", minHeight: 0 }}>
-                                    <div style={{ fontSize: 11, fontWeight: 600, color: T.text, marginBottom: 5 }}>
+                                    <div style={{ fontSize: 11, fontWeight: 600, color: T.text, marginBottom: 4 }}>
                                         Modify Holdings
                                     </div>
                                     <div className="holdings-wrap" style={{ flex: 1, overflowY: "auto", paddingRight: 2,
@@ -3677,28 +3651,27 @@
                                                 const pct = Math.round(factor * 100);
                                                 return (
                                                     <div key={h.ticker} className="adj-row" style={{ background: T.bg4,
-                                                            borderRadius: 5, padding: "3px 6px", border: "1px solid " + T.border,
-                                                            minHeight: 30 }}>
-                                                        <span className="ticker" style={{ fontSize: 10,
-                                                                minWidth: 40, fontWeight: 700, color: T
-                                                                .text, letterSpacing: .2, flexShrink: 0 }}>{h
-                                                                .ticker}</span>
-                                                        <span className="value" style={{ fontSize: 9,
-                                                                minWidth: 44, textAlign: "right",
+                                                            borderRadius: 5, padding: "4px 7px", border: "1px solid " + T.border,
+                                                            minHeight: 34 }}>
+                                                        <span className="ticker" style={{ fontSize: 11,
+                                                                minWidth: 44, fontWeight: 700, color: T
+                                                                .text, flexShrink: 0 }}>{h.ticker}</span>
+                                                        <span className="value" style={{ fontSize: 10,
+                                                                minWidth: 50, textAlign: "right",
                                                             color: T.text2, fontWeight: 500, flexShrink: 0 }}>{FC(
                                                                 h.currentValue, true)}</span>
                                                         <button className="adj-btn" style={{ background: T
                                                                 .bg2, border: "1px solid " + T.border,
-                                                                borderRadius: 4, width: 22, height: 22,
+                                                                borderRadius: 4, width: 24, height: 24,
                                                                 display: "flex", alignItems: "center",
                                                                 justifyContent: "center", color: T.text,
-                                                                cursor: "pointer", fontSize: 14,
+                                                                cursor: "pointer", fontSize: 15,
                                                                 fontWeight: 700, flexShrink: 0 }}
                                                             onClick={() => setWhatIf(w => ({ ...w, adjustments: { ...w.adjustments, [h.ticker]: Math.max(0.5, factor - 0.05) } }))}>−</button>
-                                                        <input type="number" style={{ width: 44, background: T
+                                                        <input type="number" style={{ width: 48, background: T
                                                                 .bg, border: "1px solid " + T.border,
-                                                                borderRadius: 4, padding: "1px 3px",
-                                                                fontSize: 10, color: T.text, textAlign: "center",
+                                                                borderRadius: 4, padding: "2px 3px",
+                                                                fontSize: 11, color: T.text, textAlign: "center",
                                                                 fontWeight: 600, flexShrink: 0 }}
                                                             value={pct}
                                                             onChange={e => {
@@ -3709,14 +3682,14 @@
                                                             }} />
                                                         <button className="adj-btn" style={{ background: T
                                                                 .bg2, border: "1px solid " + T.border,
-                                                                borderRadius: 4, width: 22, height: 22,
+                                                                borderRadius: 4, width: 24, height: 24,
                                                                 display: "flex", alignItems: "center",
                                                                 justifyContent: "center", color: T.text,
-                                                                cursor: "pointer", fontSize: 14,
+                                                                cursor: "pointer", fontSize: 15,
                                                                 fontWeight: 700, flexShrink: 0 }}
                                                             onClick={() => setWhatIf(w => ({ ...w, adjustments: { ...w.adjustments, [h.ticker]: Math.min(1.5, factor + 0.05) } }))}>+</button>
                                                         <span className="diff-label" style={{ fontSize: 9,
-                                                                minWidth: 32, textAlign: "right",
+                                                                minWidth: 34, textAlign: "right",
                                                                 color: pct > 100 ? T.green : pct < 100 ?
                                                                 T.red : T.text3, fontWeight: 600,
                                                                 flexShrink: 0 }}>
@@ -3734,11 +3707,11 @@
                                 </div>
                             </div>
 
-                            {/* Right: Chart + Treemap stacked */}
+                            {/* Right: Chart + Treemap stacked — treemap fills the bottom */}
                             <div className="whatif-right" style={{ flex: 1, minWidth: 0, display: "flex",
-                                    flexDirection: "column", gap: 12 }}>
+                                    flexDirection: "column", gap: 12, minHeight: isMob ? 'auto' : 420 }}>
                                 {/* Chart block */}
-                                <div className="chart-block" style={{ flex: "1 1 50%", minHeight: chartHeight,
+                                <div className="chart-block" style={{ flex: "1 1 40%", minHeight: chartHeight,
                                         display: "flex", flexDirection: "column" }}>
                                     <div style={{ ...card({ padding: 10 }), flex: 1, display: "flex",
                                             flexDirection: "column" }}>
@@ -3752,8 +3725,8 @@
                                     </div>
                                 </div>
 
-                                {/* Treemap block — now fills the bottom-right space with ALL holdings */}
-                                <div className="treemap-block" style={{ flex: "1 1 50%", minHeight: treemapHeight,
+                                {/* Treemap block — fills remaining space */}
+                                <div className="treemap-block" style={{ flex: "1 1 60%", minHeight: treemapHeight,
                                         display: "flex", flexDirection: "column" }}>
                                     <div style={{ ...card({ padding: 10 }), flex: 1, display: "flex",
                                             flexDirection: "column", height: "100%" }}>
@@ -3766,21 +3739,23 @@
                                                 background: T.bg3 }}>
                                             {whatIfRects.map(r => {
                                                 const c = getPerformanceColor(r.gainPct || 0, dark);
+                                                const minDim = Math.min(r.w, r.h);
+                                                const fontSize = Math.max(8, Math.min(14, minDim / 6));
                                                 return (
                                                     <div key={r.ticker} style={{ position: "absolute", left: r.x,
                                                             top: r.y, width: r.w, height: r.h,
                                                             background: c.bg, border: "1px solid " + c
                                                             .border, display: "flex", flexDirection: "column",
                                                             alignItems: "center", justifyContent: "center",
-                                                            fontSize: 9, fontWeight: 700, color: c.text,
-                                                            padding: 2, textAlign: "center",
+                                                            fontSize: fontSize, fontWeight: 700, color: c
+                                                            .text, padding: 2, textAlign: "center",
                                                             overflow: "hidden" }}>
-                                                        <span style={{ fontSize: 10, fontWeight: 700 }}>{r
+                                                        <span style={{ fontSize: fontSize, fontWeight: 700 }}>{r
                                                             .ticker}</span>
-                                                        <span style={{ fontSize: 8, opacity: 0.9 }}>{FC(r
-                                                            .adjustedValue, true)}</span>
-                                                        <span style={{ fontSize: 7, opacity: 0.7 }}>{fmtPct(r
-                                                            .gainPct || 0)}</span>
+                                                        <span style={{ fontSize: fontSize * 0.8, opacity: 0.9 }}>{FC(
+                                                                r.adjustedValue, true)}</span>
+                                                        <span style={{ fontSize: fontSize * 0.7, opacity: 0.7 }}>{fmtPct(
+                                                                r.gainPct || 0)}</span>
                                                     </div>
                                                 );
                                             })}
