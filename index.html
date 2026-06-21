@@ -246,6 +246,9 @@
                 grid-template-columns: 1fr 1fr !important;
                 gap: 4px !important;
             }
+            .income-risk-grid {
+                grid-template-columns: 1fr 1fr !important;
+            }
         }
         @media(max-width:480px) {
             .header-kpis {
@@ -308,6 +311,9 @@
             .adj-row .diff-label {
                 font-size: 8px !important;
                 min-width: 26px !important;
+            }
+            .income-risk-grid {
+                grid-template-columns: 1fr !important;
             }
         }
         @media(min-width:769px) {
@@ -913,6 +919,9 @@
             "Shares / Stocks", "ETF", "Mutual Fund", "Index Fund", "Superannuation",
             "REIT / Property", "Bond – Government", "Bond – Corporate", "Bond – Indonesia (SBN)", "Bond – Sharia (Sukuk)"
         ]);
+
+        // Holdings to EXCLUDE from income risk (non-dividend or special cases)
+        const INCOME_RISK_EXCLUDED_TICKERS = new Set(["SHIB", "BTC", "GOLD", "NUL5339AU", "NUL7270AU"]);
 
         // ─── Themes ───────────────────────────────────────────────────────────────
         const DARK = {
@@ -2344,14 +2353,24 @@
             };
         }
 
-        // ─── Income Risk Metrics ────────────────────────────────────────────────────
+        // ─── Income Risk Metrics (only dividend-paying holdings) ────────────────────
         function computeIncomeRiskMetrics(portfolio, rates, displayCur) {
+            // Filter to dividend-paying holdings that are NOT excluded
+            const divHoldings = portfolio.filter(h =>
+                DIVIDEND_PAYING_TYPES.has(h.assetType) &&
+                !INCOME_RISK_EXCLUDED_TICKERS.has(h.ticker)
+            );
+            if (divHoldings.length === 0) {
+                return { totalIncome: 0, stability: null, payoutRisk: null, cutProb: null, concentration: null,
+                    fxVol: null, incomeDrawdown: null };
+            }
+
             // Collect monthly dividend income per holding
-            const monthlyIncome = {}; // date -> total income AUD
-            const monthlyByHolding = {}; // date -> { ticker: amountAUD }
+            const monthlyIncome = {};
+            const monthlyByHolding = {};
             const holdingTotalIncome = {};
 
-            for (const h of portfolio) {
+            for (const h of divHoldings) {
                 const divTxs = h.transactions.filter(t => t.type === "dividend" && t.date);
                 for (const tx of divTxs) {
                     const date = tx.date.slice(0, 7); // YYYY-MM
@@ -2368,19 +2387,16 @@
 
             const dates = Object.keys(monthlyIncome).sort();
             if (dates.length < 3) {
-                return { stability: null, payoutRisk: null, cutProb: null, concentration: null, fxVol: null,
-                    incomeDrawdown: null };
+                return { totalIncome: 0, stability: null, payoutRisk: null, cutProb: null, concentration: null,
+                    fxVol: null, incomeDrawdown: null };
             }
 
             const incomeValues = dates.map(d => monthlyIncome[d]);
-
-            // 1. Stability Score = 1 - stdDev / mean
             const mean = incomeValues.reduce((a, b) => a + b, 0) / incomeValues.length;
             const stdDev = Math.sqrt(incomeValues.reduce((s, v) => s + (v - mean) ** 2, 0) / incomeValues.length);
             const stability = mean > 0 ? Math.max(0, Math.min(1, 1 - stdDev / mean)) : 0;
 
-            // 2. Payout Ratio Risk (simulated based on dividend yield relative to industry)
-            // We'll use a simplified model: payout risk = weighted avg of (dividend yield / 0.05) capped at 1
+            // Payout Risk (simplified)
             let weightedPayout = 0;
             let totalDivWeight = 0;
             const holdingsWithIncome = Object.keys(holdingTotalIncome).filter(k => holdingTotalIncome[k] > 0);
@@ -2391,27 +2407,23 @@
                 const inv = h.transactions.filter(t => t.type === "buy").reduce((s, t) => s + toAUD(t.qty * t.price, h
                     .currency, rates), 0);
                 const yield_ = inv > 0 ? divTotal / inv : 0;
-                // Simulate payout ratio: 0.3 + 0.5 * (yield / 0.04), capped at 1
                 const payout = Math.min(1, 0.3 + 0.5 * (yield_ / 0.04));
                 weightedPayout += payout * divTotal;
                 totalDivWeight += divTotal;
             }
             const payoutRisk = totalDivWeight > 0 ? weightedPayout / totalDivWeight : 0;
-
-            // 3. Dividend Cut Probability (categorical)
             const cutProb = payoutRisk > 0.8 ? "High" : payoutRisk > 0.6 ? "Medium" : "Low";
 
-            // 4. Income Concentration Risk
+            // Concentration
             const sortedIncome = Object.values(holdingTotalIncome).sort((a, b) => b - a);
             const top3 = sortedIncome.slice(0, 3).reduce((s, v) => s + v, 0);
             const totalIncome = sortedIncome.reduce((s, v) => s + v, 0);
             const concentration = totalIncome > 0 ? top3 / totalIncome : 0;
 
-            // 5. FX-Adjusted Income Volatility (simplified: use standard deviation of income * FX rate)
-            // For simplicity, we use the same stdDev as income volatility
+            // FX Volatility (using income stdDev as proxy)
             const fxVol = stdDev / (mean || 1);
 
-            // 6. Income Drawdown
+            // Income Drawdown
             let peakIncome = -Infinity;
             let maxIncomeDrawdown = 0;
             for (const v of incomeValues) {
@@ -2423,6 +2435,7 @@
             }
 
             return {
+                totalIncome,
                 stability,
                 payoutRisk,
                 cutProb,
@@ -2431,7 +2444,6 @@
                 incomeDrawdown: maxIncomeDrawdown,
                 meanMonthlyIncome: mean,
                 stdDevMonthly: stdDev,
-                totalIncome,
                 dates,
                 incomeValues,
                 monthlyByHolding,
@@ -2947,6 +2959,51 @@
                 return computeIncomeRiskMetrics(portfolio, rates, displayCur);
             }, [portfolio, rates, displayCur]);
 
+            // ─── Y-axis formatter that converts AUD to display currency ──────────────
+            const yFmtD = useCallback((v) => {
+                // v is in AUD (what-if chart uses AUD)
+                // Convert to display currency
+                const val = fromAUD(v, displayCur, rates);
+                if (displayCur === "IDR") {
+                    const abs = Math.abs(val);
+                    if (abs >= 1e9) return `Rp${(val/1e9).toFixed(1)}M`;
+                    if (abs >= 1e6) return `Rp${(val/1e6).toFixed(1)}Jt`;
+                    if (abs >= 1e3) return `Rp${(val/1e3).toFixed(0)}Rb`;
+                    return `Rp${val.toFixed(0)}`;
+                } else if (displayCur === "USD") {
+                    const abs = Math.abs(val);
+                    if (abs >= 1e6) return `US$${(val/1e6).toFixed(1)}M`;
+                    if (abs >= 1e3) return `US$${(val/1e3).toFixed(1)}K`;
+                    return `US$${val.toFixed(2)}`;
+                } else {
+                    const abs = Math.abs(val);
+                    if (abs >= 1e6) return `A$${(val/1e6).toFixed(1)}M`;
+                    if (abs >= 1e3) return `A$${(val/1e3).toFixed(1)}K`;
+                    return `A$${val.toFixed(2)}`;
+                }
+            }, [displayCur, rates]);
+
+            // For main chart values are already in display currency
+            const yFmtMain = useCallback((v) => {
+                if (displayCur === "IDR") {
+                    const abs = Math.abs(v);
+                    if (abs >= 1e9) return `Rp${(v/1e9).toFixed(1)}M`;
+                    if (abs >= 1e6) return `Rp${(v/1e6).toFixed(1)}Jt`;
+                    if (abs >= 1e3) return `Rp${(v/1e3).toFixed(0)}Rb`;
+                    return `Rp${v.toFixed(0)}`;
+                } else if (displayCur === "USD") {
+                    const abs = Math.abs(v);
+                    if (abs >= 1e6) return `US$${(v/1e6).toFixed(1)}M`;
+                    if (abs >= 1e3) return `US$${(v/1e3).toFixed(1)}K`;
+                    return `US$${v.toFixed(2)}`;
+                } else {
+                    const abs = Math.abs(v);
+                    if (abs >= 1e6) return `A$${(v/1e6).toFixed(1)}M`;
+                    if (abs >= 1e3) return `A$${(v/1e3).toFixed(1)}K`;
+                    return `A$${v.toFixed(2)}`;
+                }
+            }, [displayCur]);
+
             const perfRects = useMemo(() => { const it = holdings.map(h => ({ ...h, value: h.currentValue })).sort((a,
                     b) => b.value - a.value); return it.length ? squarify(it, 0, 0, tmSize.w, tmSize.h) : []; }, [
                 holdings, tmSize
@@ -3439,14 +3496,6 @@
             }, [history, holdings, displayCur, rates, portfolio, chartPeriod, periodCutoff, benchmarks, totVal, dark,
                 prices
             ]);
-
-            const yFmtD = useCallback((v) => {
-                if (displayCur === "IDR") { const abs = Math.abs(v); if (abs >= 1e9) return `Rp${(v/1e9).toFixed(1)}M`; if (
-                        abs >= 1e6) return `Rp${(v/1e6).toFixed(1)}Jt`; return `Rp${(v/1e3).toFixed(0)}Rb`; }
-                const abs = Math.abs(v);
-                if (abs >= 1e6) return `${displayCur==="USD"?"US$":"A$"}${(v/1e6).toFixed(1)}M`;
-                return `${displayCur==="USD"?"US$":"A$"}${(v/1e3).toFixed(0)}K`;
-            }, [displayCur]);
 
             const closeModal = () => { setModal(null);
                 setForm({}); };
@@ -5069,7 +5118,7 @@
                                                     backgroundColor: "transparent",
                                                     borderDash: [5, 4], borderWidth: 1.5,
                                                     yAxisID: "y2" }
-                                            ]} T={T} yFmt={yFmtD} y2Fmt={yFmtD} height={isMob ? 150 :
+                                            ]} T={T} yFmt={yFmtMain} y2Fmt={yFmtMain} height={isMob ? 150 :
                                                 210} plugins={[createAnnotationPlugin(annotationData,
                                                     T)]} />
                                         </div>
@@ -5125,7 +5174,7 @@
                                                         borderColor: dark ? "#8ab4f8" :
                                                         "#1a73e8", borderWidth: 1,
                                                         borderRadius: 4
-                                                    }]} T={T} yFmt={yFmtD} height={isMob ? 130 :
+                                                    }]} T={T} yFmt={yFmtMain} height={isMob ? 130 :
                                                 170} stacked={!!(chartData.mDatasets && chartData
                                                     .mDatasets.length > 1)} />
                                         </div>
@@ -5406,7 +5455,7 @@
                                                 ))}
                                             </div>
                                         </div>
-                                        <ChartWaterfall data={chartData.waterfallData} T={T} yFmt={yFmtD}
+                                        <ChartWaterfall data={chartData.waterfallData} T={T} yFmt={yFmtMain}
                                             height={isMob ? 180 : 220} />
                                         {chartData.waterfallData.length > 1 && (() => {
                                             const wf = chartData.waterfallData;
