@@ -211,9 +211,9 @@
                 min-width: 40px !important;
                 font-size: 9px !important;
             }
-            .adj-row input[type="range"] {
-                min-width: 60px !important;
-                flex: 1 1 100% !important;
+            .adj-row input[type="number"] {
+                width: 50px !important;
+                font-size: 10px !important;
             }
             .adj-row .adj-btn {
                 width: 28px !important;
@@ -221,7 +221,7 @@
                 font-size: 16px !important;
             }
             .adj-row .diff-label {
-                min-width: 50px !important;
+                min-width: 40px !important;
                 font-size: 9px !important;
             }
         }
@@ -501,11 +501,15 @@
             text-align: right;
             color: var(--text2, #bdc1c6);
         }
-        .adj-row input[type="range"] {
-            flex: 1;
-            height: 4px;
-            accent-color: var(--green-btn, #34a853);
-            min-width: 40px;
+        .adj-row input[type="number"] {
+            width: 60px;
+            background: var(--bg, #121212);
+            border: 1px solid var(--border, #3d3d3d);
+            border-radius: 4px;
+            padding: 2px 4px;
+            font-size: 11px;
+            color: var(--text, #e8eaed);
+            text-align: center;
         }
         .adj-row .adj-btn {
             background: var(--bg2, #1e1e1e);
@@ -2022,7 +2026,7 @@
             URL.revokeObjectURL(a.href);
         }
 
-        // ─── Risk Metrics ─────────────────────────────────────────────────────────────
+        // ─── Risk Metrics (corrected) ─────────────────────────────────────────────────
         function computeRiskMetrics(historyData) {
             if (!historyData || historyData.length < 3) {
                 return { volatility: null, maxDrawdown: null, bestMonth: null, worstMonth: null };
@@ -2032,7 +2036,11 @@
             const returns = [];
             for (let i = 1; i < values.length; i++) {
                 if (values[i - 1] > 0) {
-                    returns.push((values[i] - values[i - 1]) / values[i - 1]);
+                    let ret = (values[i] - values[i - 1]) / values[i - 1];
+                    // Cap extreme returns (>±100%) to avoid outliers from bad data
+                    if (ret > 1) ret = 1;
+                    if (ret < -1) ret = -1;
+                    returns.push(ret);
                 }
             }
             if (returns.length < 2) {
@@ -2054,7 +2062,9 @@
             const monthlyRet = [];
             const sortedDates = sorted.map(d => d.date);
             for (let i = 1; i < values.length; i++) {
-                const ret = values[i - 1] > 0 ? (values[i] - values[i - 1]) / values[i - 1] : 0;
+                let ret = values[i - 1] > 0 ? (values[i] - values[i - 1]) / values[i - 1] : 0;
+                if (ret > 1) ret = 1;
+                if (ret < -1) ret = -1;
                 monthlyRet.push({ date: sortedDates[i], ret });
             }
             const best = monthlyRet.reduce((a, b) => a.ret > b.ret ? a : b, { ret: -Infinity });
@@ -2068,7 +2078,7 @@
             };
         }
 
-        // ─── Chart Annotations Plugin (robust) ──────────────────────────────────────
+        // ─── Chart Annotations Plugin (improved) ─────────────────────────────────────
         function createAnnotationPlugin(annotationData, T) {
             return {
                 id: 'customAnnotations',
@@ -2123,7 +2133,7 @@
                         drawFn(ctx, x, y);
                     };
 
-                    // Draw Buy markers
+                    // Buy markers
                     (annotationData.buys || []).forEach(item => {
                         drawMarker(item, (ctx, x, y) => {
                             ctx.save();
@@ -2145,7 +2155,7 @@
                         });
                     });
 
-                    // Draw Dividend markers
+                    // Dividend markers
                     (annotationData.dividends || []).forEach(item => {
                         drawMarker(item, (ctx, x, y) => {
                             ctx.save();
@@ -2165,7 +2175,7 @@
                         });
                     });
 
-                    // Draw Event markers
+                    // Event markers
                     (annotationData.events || []).forEach(event => {
                         drawMarker(event, (ctx, x, y) => {
                             const yMin = yAxis.top;
@@ -3192,10 +3202,15 @@
             const fetchBarColor = fetchSt.loading ? T.amber : Object.keys(fetchSt.errors).length > 0 ? T.amber : fetchSt
                 .lastUpdate ? T.green : T.text3;
 
-            // ─── What-If Logic ────────────────────────────────────────────────────────
+            // ─── What-If Logic (yield only on dividend-paying assets) ───────────────
             const runSimulation = useCallback(() => {
                 if (!holdings.length) return null;
                 const { growthRate, reinvestRatio, fxRate, simulationYears, adjustments } = whatIf;
+
+                // Filter to dividend-paying assets for yield calculation
+                const divHoldings = holdings.filter(h =>
+                    h.assetType && DIVIDEND_PAYING_TYPES.has(h.assetType)
+                );
 
                 let adjustedDivs = 0;
                 let adjustedValue = 0;
@@ -3208,17 +3223,25 @@
                     return { ...h, adjustedValue: adjVal, adjustedDividends: adjDiv };
                 });
 
+                // Compute yield only on dividend-paying holdings
+                let divPortValue = 0,
+                    divPortDivs = 0;
                 adjustedHoldings.forEach(h => {
-                    adjustedDivs += h.adjustedDividends;
-                    adjustedValue += h.adjustedValue;
+                    if (h.assetType && DIVIDEND_PAYING_TYPES.has(h.assetType)) {
+                        divPortValue += h.adjustedValue;
+                        divPortDivs += h.adjustedDividends;
+                    }
                 });
+                const currentYield = divPortValue > 0 ? (divPortDivs / divPortValue) * 100 : 0;
 
-                const currentYield = adjustedValue > 0 ? (adjustedDivs / adjustedValue) * 100 : 0;
+                // Projection uses total adjusted dividends (all holdings)
+                const totalAdjustedDivs = adjustedHoldings.reduce((s, h) => s + h.adjustedDividends, 0);
+                const totalAdjustedValue = adjustedHoldings.reduce((s, h) => s + h.adjustedValue, 0);
 
                 const years = [];
                 const projectedDivs = [];
                 const projectedReinvested = [];
-                let div = adjustedDivs;
+                let div = totalAdjustedDivs;
                 const fxFactor = 1 + fxRate / 100;
 
                 for (let i = 0; i <= simulationYears; i++) {
@@ -3229,15 +3252,16 @@
                     div = div * (1 + growthRate / 100) + reinvested * (growthRate / 100) * 0.5;
                 }
 
-                const finalDiv = projectedDivs[projectedDivs.length - 1] || adjustedDivs;
-                const cagr = adjustedDivs > 0 ? (Math.pow(finalDiv / adjustedDivs, 1 / simulationYears) - 1) * 100 : 0;
+                const finalDiv = projectedDivs[projectedDivs.length - 1] || totalAdjustedDivs;
+                const cagr = totalAdjustedDivs > 0 ? (Math.pow(finalDiv / totalAdjustedDivs, 1 / simulationYears) - 1) *
+                100 : 0;
 
                 const maxHolding = adjustedHoldings.reduce((max, h) => h.adjustedValue > max ? h.adjustedValue : max, 0);
-                const riskConcentration = adjustedValue > 0 ? (maxHolding / adjustedValue) * 100 : 0;
+                const riskConcentration = totalAdjustedValue > 0 ? (maxHolding / totalAdjustedValue) * 100 : 0;
 
                 return {
-                    adjustedDivs,
-                    adjustedValue,
+                    adjustedDivs: totalAdjustedDivs,
+                    adjustedValue: totalAdjustedValue,
                     currentYield,
                     finalDiv,
                     cagr,
@@ -3251,14 +3275,14 @@
 
             const simulationResult = useMemo(() => runSimulation(), [runSimulation]);
 
-            // ─── What-If treemap rects (computed at top level) ──────────────────────
+            // ─── What-If treemap rects ──────────────────────────────────────────────
             const whatIfItems = useMemo(() => {
                 if (!simulationResult) return [];
                 return simulationResult.adjustedHoldings.map(h => ({ ...h, value: h.adjustedValue }));
             }, [simulationResult]);
 
             const whatIfRects = useMemo(() => {
-                const sorted = [...whatIfItems].sort((a, b) => b.value - a.value);
+                const sorted = [...whatIfItems].filter(item => item.value > 0).sort((a, b) => b.value - a.value);
                 if (!sorted.length) return [];
                 return squarify(sorted, 0, 0, whatIfTmSize.w, whatIfTmSize.h);
             }, [whatIfItems, whatIfTmSize]);
@@ -3338,26 +3362,32 @@
                             </div>
                         </div>
 
-                        {/* Holdings Adjustments - compact */}
+                        {/* Holdings Adjustments - compact with number inputs and +/- buttons */}
                         <div style={card({ padding: 10 })}>
                             <div style={{ fontSize: 11, fontWeight: 600, color: T.text, marginBottom: 6 }}>Modify Holdings</div>
                             <div className="whatif-holdings" style={{ display: "grid", gridTemplateColumns: isMob ?
                                     "1fr" : "1fr 1fr", gap: 4 }}>
                                 {holdings.map(h => {
                                     const factor = whatIf.adjustments[h.ticker] || 1.0;
-                                    const adjVal = h.currentValue * factor;
-                                    const diff = adjVal - h.currentValue;
-                                    const isPositive = diff >= 0;
+                                    const pct = Math.round(factor * 100);
                                     return (
                                         <div key={h.ticker} className="adj-row" style={{ background: T.bg4,
                                                 borderRadius: 6, padding: "4px 8px", border: "1px solid " + T.border }}>
                                             <span className="ticker">{h.ticker}</span>
                                             <span className="value">{FC(h.currentValue, true)}</span>
                                             <button className="adj-btn" onClick={() => setWhatIf(w => ({ ...w, adjustments: { ...w.adjustments, [h.ticker]: Math.max(0.5, factor - 0.05) } }))}>−</button>
-                                            <input type="range" min="50" max="150" step="5" value={Math.round(factor * 100)}
-                                                onChange={e => setWhatIf(w => ({ ...w, adjustments: { ...w.adjustments, [h.ticker]: parseFloat(e.target.value) / 100 } }))} />
+                                            <input type="number" style={{ width: 60, background: T.bg, border: "1px solid " + T.border, borderRadius: 4, padding: "2px 4px", fontSize: 11, color: T.text, textAlign: "center" }}
+                                                value={pct}
+                                                onChange={e => {
+                                                    const val = parseFloat(e.target.value);
+                                                    if (!isNaN(val) && val >= 50 && val <= 150) {
+                                                        setWhatIf(w => ({ ...w, adjustments: { ...w.adjustments, [h.ticker]: val / 100 } }));
+                                                    }
+                                                }} />
                                             <button className="adj-btn" onClick={() => setWhatIf(w => ({ ...w, adjustments: { ...w.adjustments, [h.ticker]: Math.min(1.5, factor + 0.05) } }))}>+</button>
-                                            <span className="diff-label" style={{ color: isPositive ? T.green : T.red }}>{isPositive ? "+" : ""}{FC(diff, true)}</span>
+                                            <span className="diff-label" style={{ color: pct > 100 ? T.green : pct < 100 ? T.red : T.text3 }}>
+                                                {pct > 100 ? `+${pct-100}%` : pct < 100 ? `${pct-100}%` : '0%'}
+                                            </span>
                                         </div>
                                     );
                                 })}
@@ -3377,7 +3407,7 @@
                                 <div style={{ fontSize: 9, color: T.text3 }}>→ {FC(finalDiv, true)} in {whatIf.simulationYears}y</div>
                             </div>
                             <div style={card({ padding: 10, textAlign: "center" })}>
-                                <div style={{ fontSize: 8, color: T.text3, textTransform: "uppercase", fontWeight: 600 }}>Yield</div>
+                                <div style={{ fontSize: 8, color: T.text3, textTransform: "uppercase", fontWeight: 600 }}>Yield (div‑paying)</div>
                                 <div style={{ fontSize: 16, fontWeight: 700, color: T.text, fontFamily: "'Space Mono',monospace" }}>{currentYield.toFixed(2)}%</div>
                                 <div style={{ fontSize: 9, color: T.text3 }}>{whatIf.reinvestRatio}% reinvested</div>
                             </div>
@@ -5061,7 +5091,7 @@
                             {view === "whatif" && renderWhatIf()}
                         </main>
 
-                        {/* Modals */}
+                        {/* Modals - unchanged, but included for completeness */}
                         {modal && (
                             <div onClick={closeModal} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.7)",
                                     backdropFilter: "blur(6px)", zIndex: 100, display: "flex", alignItems: "center",
