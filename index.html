@@ -525,7 +525,7 @@
             border-color: var(--green-btn, #34a853);
             box-shadow: 0 0 0 2px var(--green-btn, #34a853);
         }
-        /* Compact What-If adjustment rows — TIGHT & CLEAN */
+        /* Compact What-If adjustment rows */
         .adj-row {
             display: flex;
             align-items: center;
@@ -2296,7 +2296,7 @@
             };
         }
 
-        // ─── Chart Annotations Plugin (FIXED — more robust matching) ────────────────
+        // ─── Chart Annotations Plugin (FIXED — robust date matching) ────────────────
         function createAnnotationPlugin(annotationData, T) {
             return {
                 id: 'customAnnotations',
@@ -2308,15 +2308,10 @@
 
                     const labels = chart.data.labels;
 
-                    // Convert various date formats to a comparable string
+                    // Normalize a label to a day+month string for matching
                     const normalizeLabel = (label) => {
-                        if (!label) return '';
-                        // Try to parse as date
-                        const d = new Date(label);
-                        if (!isNaN(d.getTime())) {
-                            return d.toISOString().slice(0, 10);
-                        }
-                        // Try "dd Mmm" format like "15 Jan"
+                        if (!label) return null;
+                        // Try to parse as a date (assuming label is like "30 Jun")
                         const parts = label.trim().split(' ');
                         if (parts.length === 2) {
                             const day = parseInt(parts[0]);
@@ -2325,44 +2320,28 @@
                                 Oct: 9, Nov: 10, Dec: 11 };
                             const month = monthMap[monthStr];
                             if (!isNaN(day) && month !== undefined) {
-                                // Return as "YYYY-MM-DD" using a placeholder year
-                                return `2024-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                                return { day, month };
                             }
                         }
-                        // Try "dd Mmm" with year like "15 Jan 25"
-                        const parts2 = label.trim().split(' ');
-                        if (parts2.length === 3) {
-                            const day = parseInt(parts2[0]);
-                            const monthStr = parts2[1];
-                            const yearSuffix = parseInt(parts2[2]);
-                            const monthMap = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5, Jul: 6, Aug: 7, Sep: 8,
-                                Oct: 9, Nov: 10, Dec: 11 };
-                            const month = monthMap[monthStr];
-                            const year = 2000 + yearSuffix;
-                            if (!isNaN(day) && month !== undefined && !isNaN(year)) {
-                                return `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-                            }
-                        }
-                        return label;
+                        return null;
                     };
 
+                    // Find index of a transaction date in the chart labels
                     const findIndex = (dateStr) => {
                         if (!dateStr) return -1;
-                        const target = new Date(dateStr + "T12:00:00");
-                        if (isNaN(target.getTime())) return -1;
-
+                        const d = new Date(dateStr + "T12:00:00");
+                        if (isNaN(d.getTime())) return -1;
+                        const txDay = d.getDate();
+                        const txMonth = d.getMonth();
                         let best = -1,
                             bestDiff = Infinity;
                         for (let i = 0; i < labels.length; i++) {
                             const lbl = labels[i];
-                            if (!lbl) continue;
                             const norm = normalizeLabel(lbl);
                             if (!norm) continue;
-                            const d = new Date(norm + "T12:00:00");
-                            if (isNaN(d.getTime())) continue;
-                            const diff = Math.abs(d.getTime() - target.getTime());
-                            // Allow up to 15 days difference
-                            if (diff < bestDiff && diff < 15 * 86400000) {
+                            // Compare day and month (ignore year)
+                            const diff = Math.abs(norm.day - txDay) + Math.abs(norm.month - txMonth) * 30;
+                            if (diff < bestDiff && diff < 10) { // tolerance 10 days
                                 bestDiff = diff;
                                 best = i;
                             }
