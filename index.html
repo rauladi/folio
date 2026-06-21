@@ -229,9 +229,11 @@
             }
             .whatif-left {
                 width: 100% !important;
+                flex: 1 1 auto !important;
             }
             .whatif-right {
                 width: 100% !important;
+                flex: 1 1 auto !important;
             }
             .whatif-right .chart-block,
             .whatif-right .treemap-block {
@@ -553,18 +555,31 @@
             color: var(--text3, #9aa0a6);
         }
 
-        /* New What-If layout */
+        /* New What-If layout — fixed for alignment */
         .whatif-layout {
             display: flex;
             gap: 16px;
             width: 100%;
+            align-items: stretch;
         }
         .whatif-left {
-            flex: 0 0 50%;
+            flex: 1;
             min-width: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .whatif-left .left-card {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        .whatif-left .left-card .holdings-wrap {
+            flex: 1;
+            overflow-y: auto;
         }
         .whatif-right {
-            flex: 0 0 50%;
+            flex: 1;
             min-width: 0;
             display: flex;
             flex-direction: column;
@@ -572,27 +587,33 @@
         }
         .whatif-right .chart-block {
             flex: 1 1 50%;
-            min-height: 200px;
+            min-height: 180px;
+            display: flex;
+            flex-direction: column;
+        }
+        .whatif-right .chart-block>div {
+            flex: 1;
         }
         .whatif-right .treemap-block {
             flex: 1 1 50%;
-            min-height: 200px;
+            min-height: 180px;
+            display: flex;
+            flex-direction: column;
+        }
+        .whatif-right .treemap-block>div {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
         }
         .whatif-right .treemap-block .treemap-container {
+            flex: 1;
             width: 100%;
-            height: 100%;
-            min-height: 200px;
+            min-height: 180px;
             position: relative;
             border-radius: 12px;
             overflow: hidden;
             border: 1px solid var(--border, #3d3d3d);
             background: var(--bg3, #2a2a2a);
-        }
-        /* Force treemap blocks to have equal height */
-        .whatif-right .chart-block,
-        .whatif-right .treemap-block {
-            flex: 1;
-            min-height: 220px;
         }
         .whatif-right .chart-block canvas {
             width: 100% !important;
@@ -600,7 +621,7 @@
         }
         .whatif-right .treemap-block .treemap-container {
             height: 100%;
-            min-height: 220px;
+            min-height: 180px;
         }
 
         /* Adjust for mobile */
@@ -616,6 +637,10 @@
             .whatif-right .chart-block,
             .whatif-right .treemap-block {
                 min-height: 200px !important;
+            }
+            .whatif-left .left-card {
+                height: auto !important;
+                min-height: 320px;
             }
         }
     </style>
@@ -2054,7 +2079,7 @@
 
         function downloadTemplateXLSX() {
             const b64 =
-                "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";
+                "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";
             const bin = atob(b64);
             const buf = new Uint8Array(bin.length);
             for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
@@ -2179,9 +2204,16 @@
 
                     const findIndex = (dateStr) => {
                         if (!dateStr) return -1;
-                        // Try exact match
+                        // Try exact match first
                         let idx = labels.indexOf(dateStr);
                         if (idx !== -1) return idx;
+
+                        // Try matching by date string (if labels contain ISO dates)
+                        for (let i = 0; i < labels.length; i++) {
+                            const lbl = labels[i];
+                            if (!lbl) continue;
+                            if (lbl.startsWith(dateStr) || dateStr.startsWith(lbl)) return i;
+                        }
 
                         // Try to match by month/year (assuming labels like "Jan 25")
                         const d = new Date(dateStr + "T12:00:00");
@@ -2190,6 +2222,9 @@
 
                         let best = -1,
                             bestDiff = Infinity;
+                        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov",
+                            "Dec"
+                        ];
                         for (let i = 0; i < labels.length; i++) {
                             const label = labels[i];
                             if (!label) continue;
@@ -2197,17 +2232,14 @@
                             if (parts.length === 2) {
                                 const monthAbbr = parts[0];
                                 const yearSuffix = parts[1];
-                                const month = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov",
-                                    "Dec"
-                                ].indexOf(monthAbbr);
+                                const month = monthNames.indexOf(monthAbbr);
                                 const year = 2000 + parseInt(yearSuffix);
-                                if (month === targetMonth && year === targetYear) {
-                                    return i;
-                                }
-                                const diffMonths = Math.abs((year - targetYear) * 12 + (month - targetMonth));
-                                if (diffMonths < bestDiff) {
-                                    bestDiff = diffMonths;
-                                    best = i;
+                                if (!isNaN(year) && month !== -1) {
+                                    const diffMonths = Math.abs((year - targetYear) * 12 + (month - targetMonth));
+                                    if (diffMonths < bestDiff) {
+                                        bestDiff = diffMonths;
+                                        best = i;
+                                    }
                                 }
                             }
                         }
@@ -2220,62 +2252,85 @@
                         if (idx === -1) return;
                         const x = xAxis.getPixelForValue(idx);
                         const y = yAxis.getPixelForValue(item.value);
-                        if (!x || !y || !isFinite(y)) return;
-                        drawFn(ctx, x, y);
+                        if (!x || !y || !isFinite(y) || y < yAxis.top || y > yAxis.bottom) return;
+                        drawFn(ctx, x, y, yAxis);
                     };
 
-                    // Buy markers (green triangles)
+                    // Buy markers (green triangles with glow)
                     (annotationData.buys || []).forEach(item => {
-                        drawMarker(item, (ctx, x, y) => {
+                        drawMarker(item, (ctx, x, y, ya) => {
                             ctx.save();
-                            ctx.fillStyle = '#34a853';
-                            ctx.shadowColor = 'rgba(52,168,83,0.4)';
-                            ctx.shadowBlur = 8;
+                            const size = 9;
+                            const yPos = y - size;
+                            // Glow
+                            const grad = ctx.createRadialGradient(x, yPos, 0, x, yPos, size * 1.8);
+                            grad.addColorStop(0, 'rgba(52,168,83,0.35)');
+                            grad.addColorStop(1, 'rgba(52,168,83,0)');
+                            ctx.fillStyle = grad;
                             ctx.beginPath();
-                            ctx.moveTo(x, y - 8);
-                            ctx.lineTo(x - 6, y + 4);
-                            ctx.lineTo(x + 6, y + 4);
+                            ctx.arc(x, yPos, size * 1.8, 0, Math.PI * 2);
+                            ctx.fill();
+                            // Triangle
+                            ctx.fillStyle = '#34a853';
+                            ctx.shadowColor = 'rgba(52,168,83,0.5)';
+                            ctx.shadowBlur = 12;
+                            ctx.beginPath();
+                            ctx.moveTo(x, yPos - 8);
+                            ctx.lineTo(x - 7, yPos + 4);
+                            ctx.lineTo(x + 7, yPos + 4);
                             ctx.closePath();
                             ctx.fill();
                             ctx.shadowBlur = 0;
                             ctx.fillStyle = '#ffffff';
-                            ctx.font = '6px sans-serif';
+                            ctx.font = 'bold 6px sans-serif';
                             ctx.textAlign = 'center';
-                            ctx.fillText('B', x, y + 2);
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText('B', x, yPos + 1);
                             ctx.restore();
                         });
                     });
 
-                    // Dividend markers (yellow circles)
+                    // Dividend markers (yellow circles with glow)
                     (annotationData.dividends || []).forEach(item => {
-                        drawMarker(item, (ctx, x, y) => {
+                        drawMarker(item, (ctx, x, y, ya) => {
                             ctx.save();
-                            ctx.fillStyle = '#f9a825';
-                            ctx.shadowColor = 'rgba(249,168,37,0.4)';
-                            ctx.shadowBlur = 8;
-                            const size = 7;
+                            const size = 8;
+                            const yPos = y - size;
+                            // Glow
+                            const grad = ctx.createRadialGradient(x, yPos, 0, x, yPos, size * 1.6);
+                            grad.addColorStop(0, 'rgba(249,168,37,0.3)');
+                            grad.addColorStop(1, 'rgba(249,168,37,0)');
+                            ctx.fillStyle = grad;
                             ctx.beginPath();
-                            ctx.arc(x, y - size, size * 0.5, 0, Math.PI * 2);
+                            ctx.arc(x, yPos, size * 1.6, 0, Math.PI * 2);
+                            ctx.fill();
+                            // Circle
+                            ctx.fillStyle = '#f9a825';
+                            ctx.shadowColor = 'rgba(249,168,37,0.5)';
+                            ctx.shadowBlur = 12;
+                            ctx.beginPath();
+                            ctx.arc(x, yPos, size * 0.55, 0, Math.PI * 2);
                             ctx.fill();
                             ctx.shadowBlur = 0;
                             ctx.fillStyle = '#ffffff';
-                            ctx.font = '5px sans-serif';
+                            ctx.font = 'bold 5px sans-serif';
                             ctx.textAlign = 'center';
-                            ctx.fillText('D', x, y - size + 2);
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText('D', x, yPos + 0.5);
                             ctx.restore();
                         });
                     });
 
-                    // Event markers (vertical lines)
+                    // Event markers (vertical lines with labels)
                     (annotationData.events || []).forEach(event => {
-                        drawMarker(event, (ctx, x, y) => {
-                            const yMin = yAxis.top;
-                            const yMax = yAxis.bottom;
+                        drawMarker(event, (ctx, x, y, ya) => {
+                            const yMin = ya.top;
+                            const yMax = ya.bottom;
                             ctx.save();
-                            ctx.setLineDash([3, 4]);
+                            ctx.setLineDash([3, 5]);
                             ctx.strokeStyle = event.color || '#fdd663';
-                            ctx.lineWidth = 1.5;
-                            ctx.globalAlpha = 0.6;
+                            ctx.lineWidth = 1.8;
+                            ctx.globalAlpha = 0.55;
                             ctx.beginPath();
                             ctx.moveTo(x, yMin);
                             ctx.lineTo(x, yMax);
@@ -2283,9 +2338,25 @@
                             ctx.globalAlpha = 1;
                             ctx.setLineDash([]);
                             ctx.fillStyle = event.color || '#fdd663';
-                            ctx.font = '7px sans-serif';
+                            ctx.font = 'bold 8px sans-serif';
                             ctx.textAlign = 'center';
-                            ctx.fillText(event.label || '', x, yMin + 12);
+                            ctx.textBaseline = 'top';
+                            const label = event.label || '';
+                            const tw = ctx.measureText(label).width;
+                            const pad = 6;
+                            const rectX = x - tw / 2 - pad;
+                            const rectY = yMin + 4;
+                            ctx.fillStyle = T.bg2 + 'dd';
+                            ctx.shadowColor = 'rgba(0,0,0,0.3)';
+                            ctx.shadowBlur = 8;
+                            const r2 = 4;
+                            ctx.beginPath();
+                            ctx.roundRect(rectX, rectY, tw + pad * 2, 14, r2);
+                            ctx.fill();
+                            ctx.shadowBlur = 0;
+                            ctx.fillStyle = event.color || '#fdd663';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(label, x, rectY + 7);
                             ctx.restore();
                         });
                     });
@@ -2349,7 +2420,7 @@
                 if (!whatIfTmRef.current) return;
                 const obs = new ResizeObserver(e => {
                     const { width, height } = e[0].contentRect;
-                    setWhatIfTmSize({ w: width, h: height });
+                    setWhatIfTmSize({ w: width || 300, h: height || 300 });
                 });
                 obs.observe(whatIfTmRef.current);
                 return () => obs.disconnect();
@@ -3454,41 +3525,45 @@
                             </div>
                         </div>
 
-                        {/* Middle: two halves */}
+                        {/* Middle: two halves — fixed for alignment */}
                         <div className="whatif-layout" style={{ display: "flex", gap: 16, flexWrap: isMob ? "wrap" :
-                                "nowrap" }}>
-                            {/* Left: Modify Holdings */}
-                            <div className="whatif-left" style={{ flex: "0 0 50%", minWidth: 0 }}>
-                                <div style={card({ padding: 10 })}>
+                                "nowrap", alignItems: "stretch" }}>
+                            {/* Left: Modify Holdings — now stretches to match height */}
+                            <div className="whatif-left" style={{ flex: 1, minWidth: 0, display: "flex",
+                                    flexDirection: "column" }}>
+                                <div className="left-card" style={{ ...card({ padding: 10 }), flex: 1, display: "flex",
+                                        flexDirection: "column", height: "100%" }}>
                                     <div style={{ fontSize: 11, fontWeight: 600, color: T.text, marginBottom: 6 }}>
                                         Modify Holdings
                                     </div>
-                                    <div className="whatif-holdings" style={{ display: "grid", gridTemplateColumns: "1fr 1fr",
-                                            gap: 4 }}>
-                                        {holdings.map(h => {
-                                            const factor = whatIf.adjustments[h.ticker] || 1.0;
-                                            const pct = Math.round(factor * 100);
-                                            return (
-                                                <div key={h.ticker} className="adj-row" style={{ background: T.bg4,
-                                                        borderRadius: 6, padding: "4px 6px", border: "1px solid " + T.border }}>
-                                                    <span className="ticker">{h.ticker}</span>
-                                                    <span className="value">{FC(h.currentValue, true)}</span>
-                                                    <button className="adj-btn" onClick={() => setWhatIf(w => ({ ...w, adjustments: { ...w.adjustments, [h.ticker]: Math.max(0.5, factor - 0.05) } }))}>−</button>
-                                                    <input type="number" style={{ width: 50, background: T.bg, border: "1px solid " + T.border, borderRadius: 4, padding: "2px 4px", fontSize: 10, color: T.text, textAlign: "center" }}
-                                                        value={pct}
-                                                        onChange={e => {
-                                                            const val = parseFloat(e.target.value);
-                                                            if (!isNaN(val) && val >= 50 && val <= 150) {
-                                                                setWhatIf(w => ({ ...w, adjustments: { ...w.adjustments, [h.ticker]: val / 100 } }));
-                                                            }
-                                                        }} />
-                                                    <button className="adj-btn" onClick={() => setWhatIf(w => ({ ...w, adjustments: { ...w.adjustments, [h.ticker]: Math.min(1.5, factor + 0.05) } }))}>+</button>
-                                                    <span className="diff-label" style={{ color: pct > 100 ? T.green : pct < 100 ? T.red : T.text3 }}>
-                                                        {pct > 100 ? `+${pct-100}%` : pct < 100 ? `${pct-100}%` : '0%'}
-                                                    </span>
-                                                </div>
-                                            );
-                                        })}
+                                    <div className="holdings-wrap" style={{ flex: 1, overflowY: "auto" }}>
+                                        <div className="whatif-holdings" style={{ display: "grid", gridTemplateColumns: "1fr 1fr",
+                                                gap: 4 }}>
+                                            {holdings.map(h => {
+                                                const factor = whatIf.adjustments[h.ticker] || 1.0;
+                                                const pct = Math.round(factor * 100);
+                                                return (
+                                                    <div key={h.ticker} className="adj-row" style={{ background: T.bg4,
+                                                            borderRadius: 6, padding: "4px 6px", border: "1px solid " + T.border }}>
+                                                        <span className="ticker">{h.ticker}</span>
+                                                        <span className="value">{FC(h.currentValue, true)}</span>
+                                                        <button className="adj-btn" onClick={() => setWhatIf(w => ({ ...w, adjustments: { ...w.adjustments, [h.ticker]: Math.max(0.5, factor - 0.05) } }))}>−</button>
+                                                        <input type="number" style={{ width: 50, background: T.bg, border: "1px solid " + T.border, borderRadius: 4, padding: "2px 4px", fontSize: 10, color: T.text, textAlign: "center" }}
+                                                            value={pct}
+                                                            onChange={e => {
+                                                                const val = parseFloat(e.target.value);
+                                                                if (!isNaN(val) && val >= 50 && val <= 150) {
+                                                                    setWhatIf(w => ({ ...w, adjustments: { ...w.adjustments, [h.ticker]: val / 100 } }));
+                                                                }
+                                                            }} />
+                                                        <button className="adj-btn" onClick={() => setWhatIf(w => ({ ...w, adjustments: { ...w.adjustments, [h.ticker]: Math.min(1.5, factor + 0.05) } }))}>+</button>
+                                                        <span className="diff-label" style={{ color: pct > 100 ? T.green : pct < 100 ? T.red : T.text3 }}>
+                                                            {pct > 100 ? `+${pct-100}%` : pct < 100 ? `${pct-100}%` : '0%'}
+                                                        </span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
                                     </div>
                                     <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
                                         <button onClick={() => setWhatIf(w => ({ ...w, adjustments: {} }))} style={bO(T
@@ -3498,29 +3573,35 @@
                             </div>
 
                             {/* Right: Chart + Treemap stacked */}
-                            <div className="whatif-right" style={{ flex: "0 0 50%", minWidth: 0, display: "flex",
+                            <div className="whatif-right" style={{ flex: 1, minWidth: 0, display: "flex",
                                     flexDirection: "column", gap: 16 }}>
                                 {/* Chart block */}
-                                <div className="chart-block" style={{ flex: "1 1 50%", minHeight: chartHeight }}>
-                                    <div style={card({ padding: 12, height: "100%" })}>
+                                <div className="chart-block" style={{ flex: "1 1 50%", minHeight: chartHeight,
+                                        display: "flex", flexDirection: "column" }}>
+                                    <div style={{ ...card({ padding: 12 }), flex: 1, display: "flex",
+                                            flexDirection: "column" }}>
                                         <div style={{ fontSize: 11, fontWeight: 600, color: T.text, marginBottom: 2 }}>
                                             Dividend Income Projection
                                         </div>
-                                        <ChartLine labels={chartLabels} datasets={divDatasets} T={T} yFmt={yFmtD}
-                                            height={chartHeight} />
+                                        <div style={{ flex: 1 }}>
+                                            <ChartLine labels={chartLabels} datasets={divDatasets} T={T} yFmt={yFmtD}
+                                                height={chartHeight} />
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Treemap block */}
-                                <div className="treemap-block" style={{ flex: "1 1 50%", minHeight: treemapHeight }}>
-                                    <div style={card({ padding: 12, height: "100%" })}>
+                                {/* Treemap block — now fills the bottom-right space */}
+                                <div className="treemap-block" style={{ flex: "1 1 50%", minHeight: treemapHeight,
+                                        display: "flex", flexDirection: "column" }}>
+                                    <div style={{ ...card({ padding: 12 }), flex: 1, display: "flex",
+                                            flexDirection: "column", height: "100%" }}>
                                         <div style={{ fontSize: 11, fontWeight: 600, color: T.text, marginBottom: 2 }}>
                                             Adjusted Allocation
                                         </div>
-                                        <div className="treemap-container" ref={whatIfTmRef} style={{ height: "100%",
-                                                minHeight: treemapHeight, position: "relative", borderRadius: 12,
-                                                overflow: "hidden", border: "1px solid " + T.border, background: T
-                                                    .bg3 }}>
+                                        <div className="treemap-container" ref={whatIfTmRef} style={{ flex: 1,
+                                                width: "100%", minHeight: treemapHeight, position: "relative",
+                                                borderRadius: 12, overflow: "hidden", border: "1px solid " + T.border,
+                                                background: T.bg3 }}>
                                             {whatIfRects.map(r => {
                                                 const c = getPerformanceColor(r.gainPct || 0, dark);
                                                 return (
