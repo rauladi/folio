@@ -307,7 +307,7 @@
             }
             .adj-row .diff-label {
                 font-size: 8px !important;
-                min-width: 28px !important;
+                min-width: 26px !important;
             }
         }
         @media(min-width:769px) {
@@ -822,7 +822,7 @@
     </script>
 
     <script type="text/babel">
-        const { useState, useMemo, useCallback, useEffect, useRef, useReducer, useLayoutEffect } = React;
+        const { useState, useMemo, useCallback, useEffect, useRef, useLayoutEffect } = React;
 
         // ========== ERROR BOUNDARY ==========
         class ErrorBoundary extends React.Component {
@@ -2300,7 +2300,7 @@
             };
         }
 
-        // ─── Chart Annotations Plugin (FIXED — uses direct index with robust matching) ──
+        // ─── Chart Annotations Plugin — FIXED with exact label matching ─────────────
         function createAnnotationPlugin(annotationData, T) {
             return {
                 id: 'customAnnotations',
@@ -2312,48 +2312,40 @@
 
                     const labels = chart.data.labels;
 
-                    // Helper: get day+month from a label like "30 Jun" or "31 Aug"
-                    const parseLabel = (label) => {
-                        if (!label) return null;
-                        const parts = label.trim().split(' ');
-                        if (parts.length < 2) return null;
-                        const day = parseInt(parts[0]);
-                        if (isNaN(day)) return null;
-                        const monthMap = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5, Jul: 6, Aug: 7, Sep: 8,
-                            Oct: 9, Nov: 10, Dec: 11 };
-                        const month = monthMap[parts[1]];
-                        if (month === undefined) return null;
-                        return { day, month };
-                    };
+                    // Build a map from label string to index for quick lookup
+                    const labelIndexMap = {};
+                    labels.forEach((l, i) => { labelIndexMap[l] = i; });
 
-                    // Find best matching label index for a transaction date
-                    const findBestIndex = (dateStr) => {
+                    // Find the index by formatting the date with fmtMonShort
+                    const findIndex = (dateStr) => {
                         if (!dateStr) return -1;
+                        const label = fmtMonShort(dateStr);
+                        const idx = labelIndexMap[label];
+                        if (idx !== undefined) return idx;
+                        // If not found, try to find the closest by day/month (fallback)
                         const d = new Date(dateStr + "T12:00:00");
-                        if (isNaN(d.getTime())) return -1;
                         const txDay = d.getDate();
                         const txMonth = d.getMonth();
-
-                        let bestIdx = -1,
+                        let best = -1,
                             bestScore = Infinity;
                         for (let i = 0; i < labels.length; i++) {
-                            const parsed = parseLabel(labels[i]);
-                            if (!parsed) continue;
-                            const dayDiff = Math.abs(parsed.day - txDay);
-                            const monthDiff = Math.abs(parsed.month - txMonth);
-                            // Month diff counts more, but allow some day tolerance
-                            const score = monthDiff * 30 + dayDiff;
-                            if (score < bestScore && score < 45) { // max 45 days tolerance
-                                bestScore = score;
-                                bestIdx = i;
-                            }
+                            const parts = labels[i].split(' ');
+                            if (parts.length < 2) continue;
+                            const day = parseInt(parts[0]);
+                            const monthMap = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5, Jul: 6, Aug: 7, Sep: 8,
+                                Oct: 9, Nov: 10, Dec: 11 };
+                            const month = monthMap[parts[1]];
+                            if (isNaN(day) || month === undefined) continue;
+                            const score = Math.abs(month - txMonth) * 30 + Math.abs(day - txDay);
+                            if (score < bestScore) { bestScore = score;
+                                best = i; }
                         }
-                        return bestIdx;
+                        return (bestScore < 45) ? best : -1;
                     };
 
                     const drawMarker = (item, drawFn) => {
                         if (!item) return;
-                        const idx = findBestIndex(item.date);
+                        const idx = findIndex(item.date);
                         if (idx === -1) return;
                         const x = xAxis.getPixelForValue(idx);
                         const y = yAxis.getPixelForValue(item.value);
@@ -2361,13 +2353,12 @@
                         drawFn(ctx, x, y, yAxis);
                     };
 
-                    // ── Buy markers ──
+                    // Buy markers
                     (annotationData.buys || []).forEach(item => {
                         drawMarker(item, (ctx, x, y, ya) => {
                             ctx.save();
                             const size = 8;
                             const yPos = y - size - 4;
-                            // Glow
                             const grad = ctx.createRadialGradient(x, yPos, 0, x, yPos, size * 2);
                             grad.addColorStop(0, 'rgba(52,168,83,0.3)');
                             grad.addColorStop(1, 'rgba(52,168,83,0)');
@@ -2375,7 +2366,6 @@
                             ctx.beginPath();
                             ctx.arc(x, yPos, size * 2, 0, Math.PI * 2);
                             ctx.fill();
-                            // Triangle
                             ctx.fillStyle = '#34a853';
                             ctx.shadowColor = 'rgba(52,168,83,0.4)';
                             ctx.shadowBlur = 10;
@@ -2395,7 +2385,7 @@
                         });
                     });
 
-                    // ── Dividend markers ──
+                    // Dividend markers
                     (annotationData.dividends || []).forEach(item => {
                         drawMarker(item, (ctx, x, y, ya) => {
                             ctx.save();
@@ -2424,7 +2414,7 @@
                         });
                     });
 
-                    // ── Event markers ──
+                    // Event markers
                     (annotationData.events || []).forEach(event => {
                         drawMarker(event, (ctx, x, y, ya) => {
                             const yMin = ya.top;
@@ -2515,11 +2505,11 @@
                 scenarioName: "",
             });
 
-            // Treemap state for What-If
+            // Treemap state for What-If — with robust size tracking
             const [whatIfTmSize, setWhatIfTmSize] = useState({ w: 400, h: 350 });
             const whatIfTmRef = useRef(null);
 
-            // Use useLayoutEffect for more reliable size measurement
+            // Measure container size using ResizeObserver + fallback
             useLayoutEffect(() => {
                 const el = whatIfTmRef.current;
                 if (!el) return;
@@ -2529,14 +2519,21 @@
                         setWhatIfTmSize({ w: rect.width, h: rect.height });
                     }
                 };
-                // Initial measurement
-                updateSize();
+                // Initial measurement after layout
+                requestAnimationFrame(updateSize);
+                // Also after a short delay
+                const timeout = setTimeout(updateSize, 100);
                 const obs = new ResizeObserver(() => updateSize());
                 obs.observe(el);
-                return () => obs.disconnect();
+                window.addEventListener('resize', updateSize);
+                return () => {
+                    clearTimeout(timeout);
+                    obs.disconnect();
+                    window.removeEventListener('resize', updateSize);
+                };
             }, []);
 
-            // Also re-check size on window resize
+            // Force re-measure on any change that might affect layout
             useEffect(() => {
                 const el = whatIfTmRef.current;
                 if (!el) return;
@@ -2546,8 +2543,15 @@
                         setWhatIfTmSize({ w: rect.width, h: rect.height });
                     }
                 };
-                window.addEventListener('resize', updateSize);
-                return () => window.removeEventListener('resize', updateSize);
+                // Use a MutationObserver to watch for changes in the container's style/attributes
+                const mo = new MutationObserver(updateSize);
+                mo.observe(el, { attributes: true, childList: true, subtree: true });
+                // Also after a small delay to catch layout shifts
+                const timeout = setTimeout(updateSize, 200);
+                return () => {
+                    mo.disconnect();
+                    clearTimeout(timeout);
+                };
             }, []);
 
             const T = dark ? DARK : LIGHT;
