@@ -2109,7 +2109,7 @@
             URL.revokeObjectURL(a.href);
         }
 
-        // ─── Risk Metrics (corrected) ─────────────────────────────────────────────────
+        // ─── Risk Metrics (corrected with proper formulas) ──────────────────────────
         function computeRiskMetrics(historyData) {
             if (!historyData || historyData.length < 3) {
                 return { volatility: null, maxDrawdown: null, bestMonth: null, worstMonth: null };
@@ -2120,7 +2120,7 @@
             for (let i = 1; i < values.length; i++) {
                 if (values[i - 1] > 0) {
                     let ret = (values[i] - values[i - 1]) / values[i - 1];
-                    // Cap extreme returns (>±100%) to avoid outliers from bad data
+                    // Cap extreme returns to avoid outlier distortion
                     if (ret > 1) ret = 1;
                     if (ret < -1) ret = -1;
                     returns.push(ret);
@@ -2129,11 +2129,14 @@
             if (returns.length < 2) {
                 return { volatility: null, maxDrawdown: null, bestMonth: null, worstMonth: null };
             }
+
+            // Volatility: annualized standard deviation of monthly returns
             const meanRet = returns.reduce((s, r) => s + r, 0) / returns.length;
             const variance = returns.reduce((s, r) => s + (r - meanRet) ** 2, 0) / returns.length;
             const monthlyStd = Math.sqrt(variance);
-            const volatility = monthlyStd * Math.sqrt(12);
+            const volatility = monthlyStd * Math.sqrt(12); // annualized
 
+            // Max Drawdown: peak-to-trough decline
             let peak = values[0];
             let maxDrawdown = 0;
             for (const v of values) {
@@ -2142,6 +2145,7 @@
                 if (dd > maxDrawdown) maxDrawdown = dd;
             }
 
+            // Best and Worst Month
             const monthlyRet = [];
             const sortedDates = sorted.map(d => d.date);
             for (let i = 1; i < values.length; i++) {
@@ -2207,7 +2211,7 @@
                                 }
                             }
                         }
-                        return bestDiff < 3 ? best : -1; // allow 3 months tolerance
+                        return bestDiff < 3 ? best : -1;
                     };
 
                     const drawMarker = (item, drawFn) => {
