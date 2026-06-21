@@ -672,6 +672,52 @@
             min-height: 180px;
         }
 
+        /* Income Risk styles */
+        .income-risk-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            margin-top: 6px;
+        }
+        .income-risk-card {
+            border-radius: 8px;
+            padding: 10px 12px;
+            background: var(--card-bg, #252525);
+            border: 1px solid var(--border, #3d3d3d);
+            text-align: center;
+        }
+        .income-risk-card .label {
+            font-size: 8px;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            font-weight: 600;
+            color: var(--text3, #9aa0a6);
+        }
+        .income-risk-card .value {
+            font-size: 15px;
+            font-weight: 700;
+            font-family: 'Space Mono', monospace;
+            margin-top: 2px;
+        }
+        .income-risk-card .sub {
+            font-size: 9px;
+            color: var(--text3, #9aa0a6);
+            margin-top: 1px;
+            font-weight: 400;
+        }
+        .income-risk-card .bar-wrap {
+            height: 4px;
+            border-radius: 2px;
+            background: var(--bg4, #333);
+            margin-top: 4px;
+            overflow: hidden;
+        }
+        .income-risk-card .bar-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width .4s;
+        }
+
         /* Adjust for mobile */
         @media(max-width:768px) {
             .whatif-layout {
@@ -722,6 +768,9 @@
                 font-size: 9px !important;
                 min-width: 32px !important;
             }
+            .income-risk-grid {
+                grid-template-columns: 1fr 1fr !important;
+            }
         }
         @media(max-width:480px) {
             .whatif-left .left-card .holdings-wrap .whatif-holdings {
@@ -751,6 +800,9 @@
             .adj-row .diff-label {
                 font-size: 8px !important;
                 min-width: 26px !important;
+            }
+            .income-risk-grid {
+                grid-template-columns: 1fr !important;
             }
         }
     </style>
@@ -1604,7 +1656,7 @@
                 divYieldOnCost: divYoc, totalInvested: totalInv };
         }
 
-        // ─── REPAIR PORTFOLIO — ensures each holding has independent transactions and unique IDs ───
+        // ─── REPAIR PORTFOLIO ────────────────────────────────────────────────────────
         let globalIdCounter = Date.now();
 
         function repairPortfolio(portfolio) {
@@ -2244,7 +2296,7 @@
             URL.revokeObjectURL(a.href);
         }
 
-        // ─── Risk Metrics (corrected with proper formulas) ──────────────────────────
+        // ─── Risk Metrics ────────────────────────────────────────────────────────────
         function computeRiskMetrics(historyData) {
             if (!historyData || historyData.length < 3) {
                 return { volatility: null, maxDrawdown: null, bestMonth: null, worstMonth: null };
@@ -2255,7 +2307,6 @@
             for (let i = 1; i < values.length; i++) {
                 if (values[i - 1] > 0) {
                     let ret = (values[i] - values[i - 1]) / values[i - 1];
-                    // Cap extreme returns to avoid outlier distortion
                     if (ret > 1) ret = 1;
                     if (ret < -1) ret = -1;
                     returns.push(ret);
@@ -2264,14 +2315,10 @@
             if (returns.length < 2) {
                 return { volatility: null, maxDrawdown: null, bestMonth: null, worstMonth: null };
             }
-
-            // Volatility: annualized standard deviation of monthly returns
             const meanRet = returns.reduce((s, r) => s + r, 0) / returns.length;
             const variance = returns.reduce((s, r) => s + (r - meanRet) ** 2, 0) / returns.length;
             const monthlyStd = Math.sqrt(variance);
-            const volatility = monthlyStd * Math.sqrt(12); // annualized
-
-            // Max Drawdown: peak-to-trough decline
+            const volatility = monthlyStd * Math.sqrt(12);
             let peak = values[0];
             let maxDrawdown = 0;
             for (const v of values) {
@@ -2279,8 +2326,6 @@
                 const dd = peak > 0 ? (peak - v) / peak : 0;
                 if (dd > maxDrawdown) maxDrawdown = dd;
             }
-
-            // Best and Worst Month
             const monthlyRet = [];
             const sortedDates = sorted.map(d => d.date);
             for (let i = 1; i < values.length; i++) {
@@ -2291,12 +2336,106 @@
             }
             const best = monthlyRet.reduce((a, b) => a.ret > b.ret ? a : b, { ret: -Infinity });
             const worst = monthlyRet.reduce((a, b) => a.ret < b.ret ? a : b, { ret: Infinity });
-
             return {
                 volatility: volatility * 100,
                 maxDrawdown: maxDrawdown * 100,
                 bestMonth: best.ret !== -Infinity ? { date: best.date, ret: best.ret * 100 } : null,
                 worstMonth: worst.ret !== Infinity ? { date: worst.date, ret: worst.ret * 100 } : null,
+            };
+        }
+
+        // ─── Income Risk Metrics ────────────────────────────────────────────────────
+        function computeIncomeRiskMetrics(portfolio, rates, displayCur) {
+            // Collect monthly dividend income per holding
+            const monthlyIncome = {}; // date -> total income AUD
+            const monthlyByHolding = {}; // date -> { ticker: amountAUD }
+            const holdingTotalIncome = {};
+
+            for (const h of portfolio) {
+                const divTxs = h.transactions.filter(t => t.type === "dividend" && t.date);
+                for (const tx of divTxs) {
+                    const date = tx.date.slice(0, 7); // YYYY-MM
+                    const amountAUD = toAUD(tx.totalAmount || 0, h.currency, rates);
+                    if (!monthlyIncome[date]) monthlyIncome[date] = 0;
+                    monthlyIncome[date] += amountAUD;
+                    if (!monthlyByHolding[date]) monthlyByHolding[date] = {};
+                    if (!monthlyByHolding[date][h.ticker]) monthlyByHolding[date][h.ticker] = 0;
+                    monthlyByHolding[date][h.ticker] += amountAUD;
+                    if (!holdingTotalIncome[h.ticker]) holdingTotalIncome[h.ticker] = 0;
+                    holdingTotalIncome[h.ticker] += amountAUD;
+                }
+            }
+
+            const dates = Object.keys(monthlyIncome).sort();
+            if (dates.length < 3) {
+                return { stability: null, payoutRisk: null, cutProb: null, concentration: null, fxVol: null,
+                    incomeDrawdown: null };
+            }
+
+            const incomeValues = dates.map(d => monthlyIncome[d]);
+
+            // 1. Stability Score = 1 - stdDev / mean
+            const mean = incomeValues.reduce((a, b) => a + b, 0) / incomeValues.length;
+            const stdDev = Math.sqrt(incomeValues.reduce((s, v) => s + (v - mean) ** 2, 0) / incomeValues.length);
+            const stability = mean > 0 ? Math.max(0, Math.min(1, 1 - stdDev / mean)) : 0;
+
+            // 2. Payout Ratio Risk (simulated based on dividend yield relative to industry)
+            // We'll use a simplified model: payout risk = weighted avg of (dividend yield / 0.05) capped at 1
+            let weightedPayout = 0;
+            let totalDivWeight = 0;
+            const holdingsWithIncome = Object.keys(holdingTotalIncome).filter(k => holdingTotalIncome[k] > 0);
+            for (const ticker of holdingsWithIncome) {
+                const h = portfolio.find(p => p.ticker === ticker);
+                if (!h) continue;
+                const divTotal = holdingTotalIncome[ticker];
+                const inv = h.transactions.filter(t => t.type === "buy").reduce((s, t) => s + toAUD(t.qty * t.price, h
+                    .currency, rates), 0);
+                const yield_ = inv > 0 ? divTotal / inv : 0;
+                // Simulate payout ratio: 0.3 + 0.5 * (yield / 0.04), capped at 1
+                const payout = Math.min(1, 0.3 + 0.5 * (yield_ / 0.04));
+                weightedPayout += payout * divTotal;
+                totalDivWeight += divTotal;
+            }
+            const payoutRisk = totalDivWeight > 0 ? weightedPayout / totalDivWeight : 0;
+
+            // 3. Dividend Cut Probability (categorical)
+            const cutProb = payoutRisk > 0.8 ? "High" : payoutRisk > 0.6 ? "Medium" : "Low";
+
+            // 4. Income Concentration Risk
+            const sortedIncome = Object.values(holdingTotalIncome).sort((a, b) => b - a);
+            const top3 = sortedIncome.slice(0, 3).reduce((s, v) => s + v, 0);
+            const totalIncome = sortedIncome.reduce((s, v) => s + v, 0);
+            const concentration = totalIncome > 0 ? top3 / totalIncome : 0;
+
+            // 5. FX-Adjusted Income Volatility (simplified: use standard deviation of income * FX rate)
+            // For simplicity, we use the same stdDev as income volatility
+            const fxVol = stdDev / (mean || 1);
+
+            // 6. Income Drawdown
+            let peakIncome = -Infinity;
+            let maxIncomeDrawdown = 0;
+            for (const v of incomeValues) {
+                if (v > peakIncome) peakIncome = v;
+                if (peakIncome > 0) {
+                    const dd = (peakIncome - v) / peakIncome;
+                    if (dd > maxIncomeDrawdown) maxIncomeDrawdown = dd;
+                }
+            }
+
+            return {
+                stability,
+                payoutRisk,
+                cutProb,
+                concentration,
+                fxVol,
+                incomeDrawdown: maxIncomeDrawdown,
+                meanMonthlyIncome: mean,
+                stdDevMonthly: stdDev,
+                totalIncome,
+                dates,
+                incomeValues,
+                monthlyByHolding,
+                holdingTotalIncome,
             };
         }
 
@@ -2543,10 +2682,8 @@
                         setWhatIfTmSize({ w: rect.width, h: rect.height });
                     }
                 };
-                // Use a MutationObserver to watch for changes in the container's style/attributes
                 const mo = new MutationObserver(updateSize);
                 mo.observe(el, { attributes: true, childList: true, subtree: true });
-                // Also after a small delay to catch layout shifts
                 const timeout = setTimeout(updateSize, 200);
                 return () => {
                     mo.disconnect();
@@ -2804,6 +2941,11 @@
             const pColor = n => n >= 0 ? T.green : T.red;
 
             const riskMetrics = useMemo(() => computeRiskMetrics(history), [history]);
+
+            // ─── Income Risk Metrics ────────────────────────────────────────────────────
+            const incomeRiskMetrics = useMemo(() => {
+                return computeIncomeRiskMetrics(portfolio, rates, displayCur);
+            }, [portfolio, rates, displayCur]);
 
             const perfRects = useMemo(() => { const it = holdings.map(h => ({ ...h, value: h.currentValue })).sort((a,
                     b) => b.value - a.value); return it.length ? squarify(it, 0, 0, tmSize.w, tmSize.h) : []; }, [
@@ -3482,7 +3624,7 @@
             const fetchBarColor = fetchSt.loading ? T.amber : Object.keys(fetchSt.errors).length > 0 ? T.amber : fetchSt
                 .lastUpdate ? T.green : T.text3;
 
-            // ─── What-If Logic (yield only on dividend-paying assets) ───────────────
+            // ─── What-If Logic ──────────────────────────────────────────────────────
             const runSimulation = useCallback(() => {
                 if (!holdings.length) return null;
                 const { growthRate, reinvestRatio, fxRate, simulationYears, adjustments } = whatIf;
@@ -3638,7 +3780,7 @@
                         {/* Middle: two halves */}
                         <div className="whatif-layout" style={{ display: "flex", gap: 12, flexWrap: isMob ? "wrap" :
                                 "nowrap", alignItems: "stretch", minHeight: isMob ? 'auto' : 420 }}>
-                            {/* Left: Modify Holdings — fills the space */}
+                            {/* Left: Modify Holdings */}
                             <div className="whatif-left" style={{ flex: 1, minWidth: 0, display: "flex",
                                     flexDirection: "column" }}>
                                 <div className="left-card" style={{ ...card({ padding: 8 }), flex: 1, display: "flex",
@@ -3711,7 +3853,7 @@
                                 </div>
                             </div>
 
-                            {/* Right: Chart + Treemap stacked — treemap fills the bottom */}
+                            {/* Right: Chart + Treemap stacked */}
                             <div className="whatif-right" style={{ flex: 1, minWidth: 0, display: "flex",
                                     flexDirection: "column", gap: 12, minHeight: isMob ? 'auto' : 420 }}>
                                 {/* Chart block */}
@@ -3729,7 +3871,7 @@
                                     </div>
                                 </div>
 
-                                {/* Treemap block — fills remaining space */}
+                                {/* Treemap block */}
                                 <div className="treemap-block" style={{ flex: "1 1 60%", minHeight: treemapHeight,
                                         display: "flex", flexDirection: "column" }}>
                                     <div style={{ ...card({ padding: 10 }), flex: 1, display: "flex",
@@ -4998,13 +5140,13 @@
                                         </div>
                                     </div>
 
-                                    {/* Risk Exposure Section */}
+                                    {/* Risk Exposure Section — Capital Risk */}
                                     <div style={{ ...card({ padding: 12 }) }}>
                                         <div style={{ display: "flex", justifyContent: "space-between",
                                                 alignItems: "center", marginBottom: 6, flexWrap: "wrap", gap: 3 }}>
                                             <div>
                                                 <div style={{ fontSize: 11, fontWeight: 600, color: T
-                                                        .text }}>📊 Risk Exposure</div>
+                                                        .text }}>📊 Capital Risk Exposure</div>
                                                 <div style={{ fontSize: 9, color: T.text3,
                                                     fontWeight: 400 }}>Based on {history.length} monthly snapshots</div>
                                             </div>
@@ -5069,6 +5211,168 @@
                                                 </div>
                                             ))}
                                         </div>
+                                    </div>
+
+                                    {/* ─── INCOME RISK EXPOSURE (NEW SECOND LAYER) ─── */}
+                                    <div style={{ ...card({ padding: 12 }) }}>
+                                        <div style={{ display: "flex", justifyContent: "space-between",
+                                                alignItems: "center", marginBottom: 6, flexWrap: "wrap", gap: 3 }}>
+                                            <div>
+                                                <div style={{ fontSize: 11, fontWeight: 600, color: T
+                                                        .text }}>📈 Income Risk Exposure</div>
+                                                <div style={{ fontSize: 9, color: T.text3,
+                                                    fontWeight: 400 }}>Measures stability, concentration &amp; sustainability of your dividend income</div>
+                                            </div>
+                                            <div style={{ display: "flex", gap: 4, flexWrap: "wrap",
+                                                    fontSize: 8, color: T.text3 }}>
+                                                <span style={{ color: T.green }}>🟩</span>
+                                                <span style={{ color: T.teal }}>🟦</span>
+                                                <span style={{ color: T.amber }}>🟨</span>
+                                                <span style={{ color: T.red }}>🟥</span>
+                                            </div>
+                                        </div>
+                                        {incomeRiskMetrics.totalIncome > 0 ? (() => {
+                                            const ir = incomeRiskMetrics;
+                                            const stabilityColor = ir.stability >= 0.8 ? T.green :
+                                                ir.stability >= 0.5 ? T.amber : T.red;
+                                            const stabilityLabel = ir.stability >= 0.8 ? "Very Stable" :
+                                                ir.stability >= 0.5 ? "Moderate" : "Fluctuates";
+                                            const concentrationColor = ir.concentration < 0.4 ? T.green :
+                                                ir.concentration < 0.6 ? T.amber : T.red;
+                                            const concentrationLabel = ir.concentration < 0.4 ?
+                                                "Well Diversified" : ir.concentration < 0.6 ?
+                                                "Moderate" : "High Concentration";
+                                            const payoutColor = ir.payoutRisk < 0.6 ? T.green :
+                                                ir.payoutRisk < 0.8 ? T.amber : T.red;
+                                            const payoutLabel = ir.payoutRisk < 0.6 ? "Safe" :
+                                                ir.payoutRisk < 0.8 ? "Moderate" : "High Risk";
+                                            const cutColor = ir.cutProb === "Low" ? T.green :
+                                                ir.cutProb === "Medium" ? T.amber : T.red;
+                                            const drawdownColor = ir.incomeDrawdown < 0.15 ? T.green :
+                                                ir.incomeDrawdown < 0.30 ? T.amber : T.red;
+                                            const fxVolColor = ir.fxVol < 0.3 ? T.green :
+                                                ir.fxVol < 0.6 ? T.amber : T.red;
+
+                                            return (
+                                                <div className="income-risk-grid" style={{ display: "grid",
+                                                        gridTemplateColumns: isMob ? "1fr 1fr" :
+                                                            "1fr 1fr 1fr", gap: 6 }}>
+                                                    {[
+                                                        { label: "🟩 Stability Score",
+                                                            value: ir.stability.toFixed(2),
+                                                            color: stabilityColor,
+                                                            sub: stabilityLabel,
+                                                            bar: ir.stability * 100 },
+                                                        { label: "🟦 Payout Risk",
+                                                            value: (ir.payoutRisk * 100).toFixed(
+                                                            0) + "%",
+                                                            color: payoutColor,
+                                                            sub: payoutLabel,
+                                                            bar: ir.payoutRisk * 100 },
+                                                        { label: "🟨 Cut Probability",
+                                                            value: ir.cutProb,
+                                                            color: cutColor,
+                                                            sub: ir.payoutRisk > 0.8 ?
+                                                                "⚠️ High risk of cuts" :
+                                                                ir.payoutRisk > 0.6 ?
+                                                                "⚡ Monitor closely" :
+                                                                "✅ Low risk",
+                                                            bar: ir.payoutRisk > 0.8 ? 80 :
+                                                                ir.payoutRisk > 0.6 ? 60 :
+                                                                20 },
+                                                        { label: "🟧 Income Concentration",
+                                                            value: (ir.concentration *
+                                                            100).toFixed(0) + "%",
+                                                            color: concentrationColor,
+                                                            sub: concentrationLabel,
+                                                            bar: ir.concentration *
+                                                            100 },
+                                                        { label: "🟥 FX‑Adjusted Volatility",
+                                                            value: (ir.fxVol *
+                                                            100).toFixed(0) + "%",
+                                                            color: fxVolColor,
+                                                            sub: ir.fxVol < 0.3 ?
+                                                                "Low currency impact" :
+                                                                ir.fxVol < 0.6 ?
+                                                                "Moderate" :
+                                                                "High FX sensitivity",
+                                                            bar: Math.min(ir.fxVol *
+                                                            100, 100) },
+                                                        { label: "🟪 Income Drawdown",
+                                                            value: (ir.incomeDrawdown *
+                                                            100).toFixed(0) + "%",
+                                                            color: drawdownColor,
+                                                            sub: ir.incomeDrawdown < 0.15 ?
+                                                                "Mild dips" :
+                                                                ir.incomeDrawdown < 0.30 ?
+                                                                "Moderate drops" :
+                                                                "⚠️ Severe drop",
+                                                            bar: Math.min(ir
+                                                                .incomeDrawdown *
+                                                            100, 100) },
+                                                    ].map((item, idx) => (
+                                                        <div key={idx} className="income-risk-card"
+                                                            style={{ background: T.cardBg || T
+                                                                    .bg3, border: "1px solid " + T
+                                                                    .border, borderRadius: 6,
+                                                                padding: "8px 10px",
+                                                            textAlign: "center" }}>
+                                                            <div className="label" style={{
+                                                                    fontSize: 7,
+                                                                    letterSpacing: 0.8,
+                                                                    textTransform: "uppercase",
+                                                                    fontWeight: 600,
+                                                                    color: T.text3 }}>{item
+                                                                .label}</div>
+                                                            <div className="value" style={{
+                                                                    fontSize: 14,
+                                                                    fontWeight: 700,
+                                                                    fontFamily: "'Space Mono',monospace",
+                                                                    color: item.color,
+                                                                    marginTop: 1 }}>{item
+                                                                .value}</div>
+                                                            <div className="sub" style={{
+                                                                    fontSize: 8, color: T
+                                                                        .text3,
+                                                                    marginTop: 1,
+                                                                    fontWeight: 400 }}>{item
+                                                                .sub}</div>
+                                                            <div className="bar-wrap"
+                                                                style={{ height: 3,
+                                                                    borderRadius: 2,
+                                                                    background: T.bg4,
+                                                                    marginTop: 3,
+                                                                overflow: "hidden" }}>
+                                                                <div className="bar-fill"
+                                                                    style={{ height: "100%",
+                                                                        borderRadius: 2,
+                                                                        background: item
+                                                                        .color,
+                                                                        width: Math.min(
+                                                                            Math.max(
+                                                                                item
+                                                                                .bar,
+                                                                                2),
+                                                                            100) +
+                                                                        "%",
+                                                                        transition: "width .4s" }} />
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            );
+                                        })() : (
+                                            <div style={{ padding: 12, textAlign: "center", color: T
+                                                    .text3, fontSize: 10, fontWeight: 500 }}>
+                                                No dividend income recorded yet. Add dividend transactions to see income risk metrics.
+                                            </div>
+                                        )}
+                                        {incomeRiskMetrics.totalIncome > 0 && (
+                                            <div style={{ fontSize: 8, color: T.text4, marginTop: 6,
+                                                    textAlign: "center", opacity: 0.7, fontWeight: 400 }}>
+                                                Based on {incomeRiskMetrics.dates?.length || 0} months of dividend history · Total income: {FC(incomeRiskMetrics.totalIncome, true)}
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Growth Contributors (Waterfall) */}
@@ -5423,7 +5727,7 @@
                             {view === "whatif" && renderWhatIf()}
                         </main>
 
-                        {/* Modals - unchanged, but included for completeness */}
+                        {/* Modals — same as before */}
                         {modal && (
                             <div onClick={closeModal} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.7)",
                                     backdropFilter: "blur(6px)", zIndex: 100, display: "flex", alignItems: "center",
