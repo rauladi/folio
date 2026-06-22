@@ -2403,7 +2403,6 @@
             const stability = Math.max(0, Math.min(1, 1 - Math.min(cv, 1)));
 
             // Payout Risk: based on dividend volatility and stability
-            // Higher volatility => higher risk
             const rawPayoutRisk = cv;
             const payoutRisk = Math.min(1, Math.max(0, rawPayoutRisk * 0.8 + 0.1));
 
@@ -2729,6 +2728,32 @@
             const isMob = winW < 768;
 
             const fbUserRef = useRef(null);
+
+            // Main treemap container ref — use a ref object with useEffect
+            const tmContainerRef = useRef(null);
+
+            // Measure main treemap container size
+            useEffect(() => {
+                const el = tmContainerRef.current;
+                if (!el) return;
+                const updateSize = () => {
+                    const rect = el.getBoundingClientRect();
+                    if (rect.width > 10 && rect.height > 10) {
+                        setTmSize({ w: rect.width, h: rect.height });
+                    }
+                };
+                // Initial measurement
+                requestAnimationFrame(updateSize);
+                const timeout = setTimeout(updateSize, 100);
+                const obs = new ResizeObserver(() => updateSize());
+                obs.observe(el);
+                window.addEventListener('resize', updateSize);
+                return () => {
+                    clearTimeout(timeout);
+                    obs.disconnect();
+                    window.removeEventListener('resize', updateSize);
+                };
+            }, []);
 
             useEffect(() => { localStorage.setItem("f6_p", JSON.stringify(portfolio)); }, [portfolio]);
             useEffect(() => { localStorage.setItem("f6_pr", JSON.stringify(prices)); }, [prices]);
@@ -4565,7 +4590,8 @@
                             {view === "treemap" && (
                                 <div className="tm-wrap" style={{ display: "flex", gap: 10, alignItems: "flex-start",
                                         flexWrap: isMob ? "wrap" : "nowrap" }}>
-                                    <div style={{
+                                    <div ref={tmContainerRef}
+                                    style={{
                                         flex: "1 1 280px",
                                         width: isMob ? "100%" : "auto",
                                         height: isMob ? "calc(100vw - 28px)" : 400,
@@ -4575,29 +4601,6 @@
                                         border: "1px solid " + T.border,
                                         background: T.bg3,
                                         minWidth: 180,
-                                    }} ref={node => {
-                                        if (!node) return;
-                                        // Use ResizeObserver to track container size
-                                        const obs = new ResizeObserver(e => {
-                                            const rect = e[0].contentRect;
-                                            if (rect.width > 10 && rect.height > 10) {
-                                                setTmSize({ w: rect.width, h: rect.height });
-                                            }
-                                        });
-                                        obs.observe(node);
-                                        // Also set initial size
-                                        const rect = node.getBoundingClientRect();
-                                        if (rect.width > 10 && rect.height > 10) {
-                                            setTmSize({ w: rect.width, h: rect.height });
-                                        }
-                                        // Store observer for cleanup
-                                        node._tmObs = obs;
-                                        return () => {
-                                            if (node._tmObs) {
-                                                node._tmObs.disconnect();
-                                                delete node._tmObs;
-                                            }
-                                        };
                                     }}>
                                         {rects.map(r => {
                                             let pct = 0;
