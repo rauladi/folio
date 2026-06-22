@@ -2353,7 +2353,7 @@
             };
         }
 
-        // ─── Income Risk Metrics (only dividend-paying holdings) ────────────────────
+        // ─── Income Risk Metrics (FIXED) ─────────────────────────────────────────────
         function computeIncomeRiskMetrics(portfolio, rates, displayCur) {
             // Filter to dividend-paying holdings that are NOT excluded
             const divHoldings = portfolio.filter(h =>
@@ -2362,18 +2362,20 @@
             );
             if (divHoldings.length === 0) {
                 return { totalIncome: 0, stability: null, payoutRisk: null, cutProb: null, concentration: null,
-                    fxVol: null, incomeDrawdown: null };
+                    incomeVolatility: null, incomeDrawdown: null, dividendGrowth: null };
             }
 
             // Collect monthly dividend income per holding
             const monthlyIncome = {};
             const monthlyByHolding = {};
             const holdingTotalIncome = {};
+            const yearlyIncome = {};
 
             for (const h of divHoldings) {
                 const divTxs = h.transactions.filter(t => t.type === "dividend" && t.date);
                 for (const tx of divTxs) {
                     const date = tx.date.slice(0, 7); // YYYY-MM
+                    const year = tx.date.slice(0, 4);
                     const amountAUD = toAUD(tx.totalAmount || 0, h.currency, rates);
                     if (!monthlyIncome[date]) monthlyIncome[date] = 0;
                     monthlyIncome[date] += amountAUD;
@@ -2382,48 +2384,47 @@
                     monthlyByHolding[date][h.ticker] += amountAUD;
                     if (!holdingTotalIncome[h.ticker]) holdingTotalIncome[h.ticker] = 0;
                     holdingTotalIncome[h.ticker] += amountAUD;
+                    if (!yearlyIncome[year]) yearlyIncome[year] = 0;
+                    yearlyIncome[year] += amountAUD;
                 }
             }
 
             const dates = Object.keys(monthlyIncome).sort();
             if (dates.length < 3) {
                 return { totalIncome: 0, stability: null, payoutRisk: null, cutProb: null, concentration: null,
-                    fxVol: null, incomeDrawdown: null };
+                    incomeVolatility: null, incomeDrawdown: null, dividendGrowth: null };
             }
 
             const incomeValues = dates.map(d => monthlyIncome[d]);
             const mean = incomeValues.reduce((a, b) => a + b, 0) / incomeValues.length;
             const stdDev = Math.sqrt(incomeValues.reduce((s, v) => s + (v - mean) ** 2, 0) / incomeValues.length);
-            const stability = mean > 0 ? Math.max(0, Math.min(1, 1 - stdDev / mean)) : 0;
+            // Stability: 1 - coefficient of variation (capped at 0)
+            const cv = mean > 0 ? stdDev / mean : 1;
+            const stability = Math.max(0, Math.min(1, 1 - Math.min(cv, 1)));
 
-            // Payout Risk (simplified)
-            let weightedPayout = 0;
-            let totalDivWeight = 0;
-            const holdingsWithIncome = Object.keys(holdingTotalIncome).filter(k => holdingTotalIncome[k] > 0);
-            for (const ticker of holdingsWithIncome) {
-                const h = portfolio.find(p => p.ticker === ticker);
-                if (!h) continue;
-                const divTotal = holdingTotalIncome[ticker];
-                const inv = h.transactions.filter(t => t.type === "buy").reduce((s, t) => s + toAUD(t.qty * t.price, h
-                    .currency, rates), 0);
-                const yield_ = inv > 0 ? divTotal / inv : 0;
-                const payout = Math.min(1, 0.3 + 0.5 * (yield_ / 0.04));
-                weightedPayout += payout * divTotal;
-                totalDivWeight += divTotal;
-            }
-            const payoutRisk = totalDivWeight > 0 ? weightedPayout / totalDivWeight : 0;
-            const cutProb = payoutRisk > 0.8 ? "High" : payoutRisk > 0.6 ? "Medium" : "Low";
+            // Payout Risk: based on dividend volatility and stability
+            // Higher volatility => higher risk
+            const rawPayoutRisk = cv;
+            const payoutRisk = Math.min(1, Math.max(0, rawPayoutRisk * 0.8 + 0.1));
 
-            // Concentration
+            // Cut Probability: based on payout risk and stability
+            let cutProb;
+            if (payoutRisk < 0.3 && stability > 0.7) cutProb = "Low";
+            else if (payoutRisk < 0.5 && stability > 0.5) cutProb = "Low–Medium";
+            else if (payoutRisk < 0.6) cutProb = "Medium";
+            else if (payoutRisk < 0.75) cutProb = "Medium–High";
+            else cutProb = "High";
+
+            // Concentration: top 3 holdings % of total income
             const sortedIncome = Object.values(holdingTotalIncome).sort((a, b) => b - a);
             const top3 = sortedIncome.slice(0, 3).reduce((s, v) => s + v, 0);
             const totalIncome = sortedIncome.reduce((s, v) => s + v, 0);
             const concentration = totalIncome > 0 ? top3 / totalIncome : 0;
 
-            // FX Volatility (using income stdDev as proxy)
-            const fxVol = stdDev / (mean || 1);
+            // Income Volatility (coefficient of variation of monthly income)
+            const incomeVolatility = mean > 0 ? stdDev / mean : 0;
 
-            // Income Drawdown
+            // Income Drawdown (max decline from peak monthly income)
             let peakIncome = -Infinity;
             let maxIncomeDrawdown = 0;
             for (const v of incomeValues) {
@@ -2434,24 +2435,40 @@
                 }
             }
 
+            // Dividend Growth: CAGR of annual dividend income
+            const years = Object.keys(yearlyIncome).sort();
+            let dividendGrowth = null;
+            if (years.length >= 2) {
+                const firstY = years[0];
+                const lastY = years[years.length - 1];
+                const firstVal = yearlyIncome[firstY];
+                const lastVal = yearlyIncome[lastY];
+                const numYears = parseInt(lastY) - parseInt(firstY);
+                if (numYears > 0 && firstVal > 0 && lastVal > 0) {
+                    dividendGrowth = (Math.pow(lastVal / firstVal, 1 / numYears) - 1) * 100;
+                }
+            }
+
             return {
                 totalIncome,
                 stability,
                 payoutRisk,
                 cutProb,
                 concentration,
-                fxVol,
+                incomeVolatility,
                 incomeDrawdown: maxIncomeDrawdown,
+                dividendGrowth,
                 meanMonthlyIncome: mean,
                 stdDevMonthly: stdDev,
                 dates,
                 incomeValues,
                 monthlyByHolding,
                 holdingTotalIncome,
+                yearlyIncome,
             };
         }
 
-        // ─── Chart Annotations Plugin — FIXED with exact label matching ─────────────
+        // ─── Chart Annotations Plugin — FIXED with proper roundRect fallback ─────────
         function createAnnotationPlugin(annotationData, T) {
             return {
                 id: 'customAnnotations',
@@ -2462,43 +2479,15 @@
                     if (!xAxis || !yAxis) return;
 
                     const labels = chart.data.labels;
-
-                    // Build a map from label string to index for quick lookup
                     const labelIndexMap = {};
                     labels.forEach((l, i) => { labelIndexMap[l] = i; });
 
-                    // Find the index by formatting the date with fmtMonShort
                     const findIndex = (dateStr) => {
                         if (!dateStr) return -1;
-                        // Try exact label match first
                         const label = fmtMonShort(dateStr);
                         const idx = labelIndexMap[label];
                         if (idx !== undefined) return idx;
-                        // If not found, try to find the closest by day/month (fallback)
-                        const d = new Date(dateStr + "T12:00:00");
-                        const txDay = d.getDate();
-                        const txMonth = d.getMonth();
-                        let best = -1,
-                            bestScore = Infinity;
-                        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov",
-                            "Dec"
-                        ];
-                        for (let i = 0; i < labels.length; i++) {
-                            const parts = labels[i].split(' ');
-                            if (parts.length < 2) continue;
-                            const day = parseInt(parts[0]);
-                            const month = monthNames.indexOf(parts[1]);
-                            if (isNaN(day) || month === -1) continue;
-                            const score = Math.abs(month - txMonth) * 30 + Math.abs(day - txDay);
-                            if (score < bestScore) { bestScore = score;
-                                best = i; }
-                        }
-                        return (bestScore < 45) ? best : -1;
-                    };
-
-                    // Also try matching by day-only for event markers (sometimes labels are just day)
-                    const findIndexByDay = (dateStr) => {
-                        if (!dateStr) return -1;
+                        // Fallback: fuzzy match by day/month
                         const d = new Date(dateStr + "T12:00:00");
                         const txDay = d.getDate();
                         const txMonth = d.getMonth();
@@ -2522,8 +2511,7 @@
 
                     const drawMarker = (item, drawFn) => {
                         if (!item) return;
-                        let idx = findIndex(item.date);
-                        if (idx === -1) idx = findIndexByDay(item.date);
+                        const idx = findIndex(item.date);
                         if (idx === -1) return;
                         const x = xAxis.getPixelForValue(idx);
                         const y = yAxis.getPixelForValue(item.value);
@@ -2620,8 +2608,17 @@
                             ctx.fillStyle = T.bg2 + 'dd';
                             ctx.shadowColor = 'rgba(0,0,0,0.3)';
                             ctx.shadowBlur = 6;
+                            // Manual roundRect fallback
+                            const r = 3;
+                            const w = tw + pad * 2;
+                            const h = 13;
                             ctx.beginPath();
-                            ctx.roundRect(rectX, rectY, tw + pad * 2, 13, 3);
+                            ctx.moveTo(rectX + r, rectY);
+                            ctx.arcTo(rectX + w, rectY, rectX + w, rectY + h, r);
+                            ctx.arcTo(rectX + w, rectY + h, rectX, rectY + h, r);
+                            ctx.arcTo(rectX, rectY + h, rectX, rectY, r);
+                            ctx.arcTo(rectX, rectY, rectX + w, rectY, r);
+                            ctx.closePath();
                             ctx.fill();
                             ctx.shadowBlur = 0;
                             ctx.fillStyle = event.color || '#fdd663';
@@ -2697,9 +2694,7 @@
                         setWhatIfTmSize({ w: rect.width, h: rect.height });
                     }
                 };
-                // Initial measurement after layout
                 requestAnimationFrame(updateSize);
-                // Also after a short delay
                 const timeout = setTimeout(updateSize, 100);
                 const obs = new ResizeObserver(() => updateSize());
                 obs.observe(el);
@@ -2711,7 +2706,6 @@
                 };
             }, []);
 
-            // Force re-measure on any change that might affect layout
             useEffect(() => {
                 const el = whatIfTmRef.current;
                 if (!el) return;
@@ -2988,8 +2982,6 @@
 
             // ─── Y-axis formatter that converts AUD to display currency ──────────────
             const yFmtD = useCallback((v) => {
-                // v is in AUD (what-if chart uses AUD)
-                // Convert to display currency
                 const val = fromAUD(v, displayCur, rates);
                 if (displayCur === "IDR") {
                     const abs = Math.abs(val);
@@ -3010,7 +3002,6 @@
                 }
             }, [displayCur, rates]);
 
-            // For main chart values are already in display currency
             const yFmtMain = useCallback((v) => {
                 if (displayCur === "IDR") {
                     const abs = Math.abs(v);
@@ -3770,7 +3761,6 @@
                 return simulationResult.adjustedHoldings.map(h => ({ ...h, value: h.adjustedValue }));
             }, [simulationResult]);
 
-            // Ensure treemap has all holdings with proper dimensions
             const whatIfRects = useMemo(() => {
                 const sorted = [...whatIfItems].filter(item => item.value > 0).sort((a, b) => b.value - a.value);
                 if (!sorted.length) return [];
@@ -4575,14 +4565,40 @@
                             {view === "treemap" && (
                                 <div className="tm-wrap" style={{ display: "flex", gap: 10, alignItems: "flex-start",
                                         flexWrap: isMob ? "wrap" : "nowrap" }}>
-                                    <div ref={node => { if (!node) return; const obs = new ResizeObserver(e => { const {
-                                                width, height } = e[0].contentRect;
-                                            setTmSize({ w: width, h: height }); });
-                                        obs.observe(node); }}
-                                    style={{ flex: "1 1 280px", width: isMob ? "100%" : "auto", height: isMob ?
-                                            "calc(100vw - 28px)" : 400, position: "relative", borderRadius: 10,
-                                            overflow: "hidden", border: "1px solid " + T.border, background: T
-                                                .bg3, minWidth: 180 }}>
+                                    <div style={{
+                                        flex: "1 1 280px",
+                                        width: isMob ? "100%" : "auto",
+                                        height: isMob ? "calc(100vw - 28px)" : 400,
+                                        position: "relative",
+                                        borderRadius: 10,
+                                        overflow: "hidden",
+                                        border: "1px solid " + T.border,
+                                        background: T.bg3,
+                                        minWidth: 180,
+                                    }} ref={node => {
+                                        if (!node) return;
+                                        // Use ResizeObserver to track container size
+                                        const obs = new ResizeObserver(e => {
+                                            const rect = e[0].contentRect;
+                                            if (rect.width > 10 && rect.height > 10) {
+                                                setTmSize({ w: rect.width, h: rect.height });
+                                            }
+                                        });
+                                        obs.observe(node);
+                                        // Also set initial size
+                                        const rect = node.getBoundingClientRect();
+                                        if (rect.width > 10 && rect.height > 10) {
+                                            setTmSize({ w: rect.width, h: rect.height });
+                                        }
+                                        // Store observer for cleanup
+                                        node._tmObs = obs;
+                                        return () => {
+                                            if (node._tmObs) {
+                                                node._tmObs.disconnect();
+                                                delete node._tmObs;
+                                            }
+                                        };
+                                    }}>
                                         {rects.map(r => {
                                             let pct = 0;
                                             let colorFn;
@@ -5289,7 +5305,7 @@
                                         </div>
                                     </div>
 
-                                    {/* ─── INCOME RISK EXPOSURE (NEW SECOND LAYER) ─── */}
+                                    {/* ─── INCOME RISK EXPOSURE (FIXED) ─── */}
                                     <div style={{ ...card({ padding: 12 }) }}>
                                         <div style={{ display: "flex", justifyContent: "space-between",
                                                 alignItems: "center", marginBottom: 6, flexWrap: "wrap", gap: 3 }}>
@@ -5309,25 +5325,31 @@
                                         </div>
                                         {incomeRiskMetrics.totalIncome > 0 ? (() => {
                                             const ir = incomeRiskMetrics;
-                                            const stabilityColor = ir.stability >= 0.8 ? T.green :
-                                                ir.stability >= 0.5 ? T.amber : T.red;
-                                            const stabilityLabel = ir.stability >= 0.8 ? "Very Stable" :
-                                                ir.stability >= 0.5 ? "Moderate" : "Fluctuates";
+                                            const stabilityColor = ir.stability >= 0.7 ? T.green :
+                                                ir.stability >= 0.4 ? T.amber : T.red;
+                                            const stabilityLabel = ir.stability >= 0.7 ? "Very Stable" :
+                                                ir.stability >= 0.4 ? "Moderate" : "Fluctuates";
                                             const concentrationColor = ir.concentration < 0.4 ? T.green :
                                                 ir.concentration < 0.6 ? T.amber : T.red;
                                             const concentrationLabel = ir.concentration < 0.4 ?
                                                 "Well Diversified" : ir.concentration < 0.6 ?
                                                 "Moderate" : "High Concentration";
-                                            const payoutColor = ir.payoutRisk < 0.6 ? T.green :
-                                                ir.payoutRisk < 0.8 ? T.amber : T.red;
-                                            const payoutLabel = ir.payoutRisk < 0.6 ? "Safe" :
-                                                ir.payoutRisk < 0.8 ? "Moderate" : "High Risk";
+                                            const payoutColor = ir.payoutRisk < 0.3 ? T.green :
+                                                ir.payoutRisk < 0.5 ? T.amber : T.red;
+                                            const payoutLabel = ir.payoutRisk < 0.3 ? "Low Risk" :
+                                                ir.payoutRisk < 0.5 ? "Moderate" : "High Risk";
                                             const cutColor = ir.cutProb === "Low" ? T.green :
-                                                ir.cutProb === "Medium" ? T.amber : T.red;
+                                                ir.cutProb === "Low–Medium" || ir.cutProb === "Medium" ?
+                                                T.amber : T.red;
                                             const drawdownColor = ir.incomeDrawdown < 0.15 ? T.green :
                                                 ir.incomeDrawdown < 0.30 ? T.amber : T.red;
-                                            const fxVolColor = ir.fxVol < 0.3 ? T.green :
-                                                ir.fxVol < 0.6 ? T.amber : T.red;
+                                            const volColor = ir.incomeVolatility < 0.3 ? T.green :
+                                                ir.incomeVolatility < 0.6 ? T.amber : T.red;
+                                            const growthColor = ir.dividendGrowth !== null ? (ir
+                                                .dividendGrowth > 0 ? T.green : T.red) : T.text3;
+                                            const growthLabel = ir.dividendGrowth !== null ? (ir
+                                                .dividendGrowth > 0 ? `+${ir.dividendGrowth.toFixed(1)}% CAGR` :
+                                                `${ir.dividendGrowth.toFixed(1)}% CAGR`) : "N/A";
 
                                             return (
                                                 <div className="income-risk-grid" style={{ display: "grid",
@@ -5335,7 +5357,8 @@
                                                             "1fr 1fr 1fr", gap: 6 }}>
                                                     {[
                                                         { label: "🟩 Stability Score",
-                                                            value: ir.stability.toFixed(2),
+                                                            value: (ir.stability * 100).toFixed(
+                                                            0) + "%",
                                                             color: stabilityColor,
                                                             sub: stabilityLabel,
                                                             bar: ir.stability * 100 },
@@ -5348,14 +5371,17 @@
                                                         { label: "🟨 Cut Probability",
                                                             value: ir.cutProb,
                                                             color: cutColor,
-                                                            sub: ir.payoutRisk > 0.8 ?
-                                                                "⚠️ High risk of cuts" :
-                                                                ir.payoutRisk > 0.6 ?
-                                                                "⚡ Monitor closely" :
-                                                                "✅ Low risk",
-                                                            bar: ir.payoutRisk > 0.8 ? 80 :
-                                                                ir.payoutRisk > 0.6 ? 60 :
-                                                                20 },
+                                                            sub: ir.cutProb === "Low" ?
+                                                                "✅ Low risk" :
+                                                                ir.cutProb === "Low–Medium" ?
+                                                                "⚡ Monitor" :
+                                                                ir.cutProb === "Medium" ?
+                                                                "⚠️ Elevated" :
+                                                                "🚨 High risk",
+                                                            bar: ir.cutProb === "Low" ? 20 :
+                                                                ir.cutProb === "Low–Medium" ?
+                                                                40 : ir.cutProb === "Medium" ?
+                                                                60 : 85 },
                                                         { label: "🟧 Income Concentration",
                                                             value: (ir.concentration *
                                                             100).toFixed(0) + "%",
@@ -5363,29 +5389,29 @@
                                                             sub: concentrationLabel,
                                                             bar: ir.concentration *
                                                             100 },
-                                                        { label: "🟥 FX‑Adjusted Volatility",
-                                                            value: (ir.fxVol *
+                                                        { label: "🟥 Income Volatility (CV)",
+                                                            value: (ir.incomeVolatility *
                                                             100).toFixed(0) + "%",
-                                                            color: fxVolColor,
-                                                            sub: ir.fxVol < 0.3 ?
-                                                                "Low currency impact" :
-                                                                ir.fxVol < 0.6 ?
-                                                                "Moderate" :
-                                                                "High FX sensitivity",
-                                                            bar: Math.min(ir.fxVol *
-                                                            100, 100) },
-                                                        { label: "🟪 Income Drawdown",
-                                                            value: (ir.incomeDrawdown *
-                                                            100).toFixed(0) + "%",
-                                                            color: drawdownColor,
-                                                            sub: ir.incomeDrawdown < 0.15 ?
-                                                                "Mild dips" :
-                                                                ir.incomeDrawdown < 0.30 ?
-                                                                "Moderate drops" :
-                                                                "⚠️ Severe drop",
+                                                            color: volColor,
+                                                            sub: ir.incomeVolatility < 0.3 ?
+                                                                "Low volatility" :
+                                                                ir.incomeVolatility < 0.6 ?
+                                                                "Moderate" : "High volatility",
                                                             bar: Math.min(ir
-                                                                .incomeDrawdown *
+                                                                .incomeVolatility *
                                                             100, 100) },
+                                                        { label: "🟪 Dividend Growth",
+                                                            value: ir.dividendGrowth !==
+                                                                null ? ir.dividendGrowth
+                                                                .toFixed(1) + "%" : "—",
+                                                            color: growthColor,
+                                                            sub: growthLabel,
+                                                            bar: ir.dividendGrowth !==
+                                                                null ? Math.min(Math
+                                                                    .max(ir
+                                                                    .dividendGrowth +
+                                                                    10, 0), 100) :
+                                                                50 },
                                                     ].map((item, idx) => (
                                                         <div key={idx} className="income-risk-card"
                                                             style={{ background: T.cardBg || T
