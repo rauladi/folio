@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover" />
     <title>SAUDAGAR KAPITALIS — Investment Dashboard</title>
     <style>
-        /* ─── All existing styles unchanged ─── */
         *,
         *::before,
         *::after {
@@ -2468,7 +2467,7 @@
             };
         }
 
-        // ─── Chart Annotations Plugin — FIXED: clamp markers to visible y-range ─────
+        // ─── Chart Annotations Plugin — FIXED with robust date matching ─────────────
         function createAnnotationPlugin(annotationData, T) {
             return {
                 id: 'customAnnotations',
@@ -2479,16 +2478,22 @@
                     if (!xAxis || !yAxis) return;
 
                     const labels = chart.data.labels;
-                    const labelIndexMap = {};
-                    labels.forEach((l, i) => { labelIndexMap[l] = i; });
+                    // Build a map from date string to index using the raw dates passed in chart data
+                    const rawDates = chart.data.rawDates || [];
+                    const dateToIndex = {};
+                    rawDates.forEach((d, i) => {
+                        if (d) dateToIndex[d] = i;
+                    });
 
                     const findIndex = (dateStr) => {
                         if (!dateStr) return -1;
-                        // Try exact label match first (e.g. "15 Jan")
+                        // First try exact match on raw date
+                        if (dateToIndex[dateStr] !== undefined) return dateToIndex[dateStr];
+                        // Try formatted match
                         const label = fmtMonShort(dateStr);
-                        const idx = labelIndexMap[label];
-                        if (idx !== undefined) return idx;
-                        // Fallback: fuzzy match by day/month within 60 days
+                        const idx = labels.indexOf(label);
+                        if (idx !== -1) return idx;
+                        // Fuzzy fallback: try to match by day/month within 60 days
                         const d = new Date(dateStr + "T12:00:00");
                         const txDay = d.getDate();
                         const txMonth = d.getMonth();
@@ -2515,13 +2520,13 @@
                         const idx = findIndex(item.date);
                         if (idx === -1) return;
                         const x = xAxis.getPixelForValue(idx);
-                        // Clamp y to the visible range so markers always appear
+                        // Use the value from annotation data, but clamp to visible range
                         let y = yAxis.getPixelForValue(item.value);
-                        if (y === undefined || !isFinite(y)) {
-                            // If value is outside, use min or max
-                            y = (item.value > 0) ? yAxis.top : yAxis.bottom;
+                        if (y === undefined || !isFinite(y) || y < yAxis.top || y > yAxis.bottom) {
+                            // If outside, place at the nearest edge with a small offset
+                            y = (item.value > 0) ? yAxis.top + 12 : yAxis.bottom - 12;
                         }
-                        y = Math.max(yAxis.top, Math.min(yAxis.bottom, y));
+                        y = Math.max(yAxis.top + 4, Math.min(yAxis.bottom - 4, y));
                         drawFn(ctx, x, y, yAxis);
                     };
 
@@ -2736,9 +2741,9 @@
 
             const fbUserRef = useRef(null);
 
-            // ─── MAIN TREEMAP CONTAINER REF — FIXED: use useRef + useEffect ─────────
+            // ─── MAIN TREEMAP CONTAINER REF — FIXED: use useRef + useLayoutEffect ────
             const tmContainerRef = useRef(null);
-            useEffect(() => {
+            useLayoutEffect(() => {
                 const el = tmContainerRef.current;
                 if (!el) return;
                 const updateSize = () => {
@@ -2747,9 +2752,11 @@
                         setTmSize({ w: rect.width, h: rect.height });
                     }
                 };
-                // Initial measurement
+                // Initial measurement right away
+                updateSize();
+                // Then after layout
                 requestAnimationFrame(updateSize);
-                const timeout = setTimeout(updateSize, 100);
+                const timeout = setTimeout(updateSize, 150);
                 const obs = new ResizeObserver(() => updateSize());
                 obs.observe(el);
                 window.addEventListener('resize', updateSize);
@@ -2759,6 +2766,20 @@
                     window.removeEventListener('resize', updateSize);
                 };
             }, []);
+
+            // Also update when view changes (treemap tab may re-render)
+            useEffect(() => {
+                const el = tmContainerRef.current;
+                if (!el) return;
+                const updateSize = () => {
+                    const rect = el.getBoundingClientRect();
+                    if (rect.width > 10 && rect.height > 10) {
+                        setTmSize({ w: rect.width, h: rect.height });
+                    }
+                };
+                const timeout = setTimeout(updateSize, 50);
+                return () => clearTimeout(timeout);
+            }, [view, tmMode]);
 
             useEffect(() => { localStorage.setItem("f6_p", JSON.stringify(portfolio)); }, [portfolio]);
             useEffect(() => { localStorage.setItem("f6_pr", JSON.stringify(prices)); }, [prices]);
@@ -3342,6 +3363,7 @@
                 let labels = [],
                     vals = [],
                     divCumul = [];
+                let rawDates = [];
                 let bmLabels = [],
                     bmSeries = {},
                     bmPortfolio = [];
@@ -3420,12 +3442,14 @@
                                 baseVal) / baseVal) * 100);
                         }
                         labels = bmLabels;
+                        rawDates = bmDates;
                         vals = portVals.map(v => fromAUD(v || 0, displayCur, rates));
                         divCumul = bmDates.map(d => fromAUD(cumulativeDividendsAtDate(d), displayCur, rates));
                     }
                 } else {
                     const periodSnaps = allSorted.filter(s => new Date(s.date) >= cutoff);
                     labels = periodSnaps.map(s => fmtMonShort(s.date));
+                    rawDates = periodSnaps.map(s => s.date);
                     vals = periodSnaps.map(s => fromAUD(s.totalValueAUD, displayCur, rates));
                     divCumul = periodSnaps.map(s => {
                         let divAUD = 0;
@@ -3521,6 +3545,7 @@
                 }
                 return {
                     labels,
+                    rawDates,
                     vals,
                     divCumul,
                     mLabels: mKeys.map(fmtMon),
@@ -4318,7 +4343,7 @@
                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
                                     flexWrap: "wrap", gap: 6, marginBottom: 2 }}>
                                 <div className="logo-area" style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 56" width={isMob ? 120 : 170}
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 56" width={isMob ? 130 : 190}
                                         height={isMob ? 34 : 44} style={{ display: "block" }}>
                                         <defs><linearGradient id="hbg2" x1="0%" y1="100%" x2="100%" y2="0%"><stop
                                                     offset="0%" stopColor="#34a853" /><stop offset="55%"
@@ -4343,10 +4368,10 @@
                                         <circle cx="23" cy="15" r="1.5" fill="#0dd6c0" />
                                         <circle cx="30" cy="10" r="3" fill="#8ab4f8" filter="url(#hgl2)" />
                                         <circle cx="30" cy="10" r="1.5" fill="#e0f9ff" />
-                                        <text x="46" y="27" fontFamily="'Space Mono',monospace" fontWeight="700"
-                                            fontSize="16" letterSpacing="2.5" fill="url(#htg2)">SAUDAGAR</text>
-                                        <text x="46" y="37" fontFamily="'Space Mono',monospace" fontWeight="700"
-                                            fontSize="16" letterSpacing="2.5" fill="url(#htg2)">KAPITALIS</text>
+                                        <text x="46" y="22" fontFamily="'Space Mono',monospace" fontWeight="700"
+                                            fontSize="14" letterSpacing="2" fill="url(#htg2)">SAUDAGAR</text>
+                                        <text x="46" y="34" fontFamily="'Space Mono',monospace" fontWeight="700"
+                                            fontSize="14" letterSpacing="2" fill="url(#htg2)">KAPITALIS</text>
                                     </svg>
                                 </div>
                                 <div className="header-kpis" style={{ display: "flex", gap: isMob ? 8 : 16,
