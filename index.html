@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover" />
-    <title>FOLIO — Investment Dashboard</title>
+    <title>SAUDAGAR KAPITALIS — Investment Dashboard</title>
     <style>
+        /* ─── All existing styles unchanged ─── */
         *,
         *::before,
         *::after {
@@ -2467,7 +2468,7 @@
             };
         }
 
-        // ─── Chart Annotations Plugin — FIXED with proper roundRect fallback ─────────
+        // ─── Chart Annotations Plugin — FIXED: clamp markers to visible y-range ─────
         function createAnnotationPlugin(annotationData, T) {
             return {
                 id: 'customAnnotations',
@@ -2483,10 +2484,11 @@
 
                     const findIndex = (dateStr) => {
                         if (!dateStr) return -1;
+                        // Try exact label match first (e.g. "15 Jan")
                         const label = fmtMonShort(dateStr);
                         const idx = labelIndexMap[label];
                         if (idx !== undefined) return idx;
-                        // Fallback: fuzzy match by day/month
+                        // Fallback: fuzzy match by day/month within 60 days
                         const d = new Date(dateStr + "T12:00:00");
                         const txDay = d.getDate();
                         const txMonth = d.getMonth();
@@ -2505,7 +2507,7 @@
                             if (score < bestScore) { bestScore = score;
                                 best = i; }
                         }
-                        return (bestScore < 45) ? best : -1;
+                        return (bestScore < 60) ? best : -1;
                     };
 
                     const drawMarker = (item, drawFn) => {
@@ -2513,8 +2515,13 @@
                         const idx = findIndex(item.date);
                         if (idx === -1) return;
                         const x = xAxis.getPixelForValue(idx);
-                        const y = yAxis.getPixelForValue(item.value);
-                        if (!x || !y || !isFinite(y) || y < yAxis.top || y > yAxis.bottom) return;
+                        // Clamp y to the visible range so markers always appear
+                        let y = yAxis.getPixelForValue(item.value);
+                        if (y === undefined || !isFinite(y)) {
+                            // If value is outside, use min or max
+                            y = (item.value > 0) ? yAxis.top : yAxis.bottom;
+                        }
+                        y = Math.max(yAxis.top, Math.min(yAxis.bottom, y));
                         drawFn(ctx, x, y, yAxis);
                     };
 
@@ -2729,10 +2736,8 @@
 
             const fbUserRef = useRef(null);
 
-            // Main treemap container ref — use a ref object with useEffect
+            // ─── MAIN TREEMAP CONTAINER REF — FIXED: use useRef + useEffect ─────────
             const tmContainerRef = useRef(null);
-
-            // Measure main treemap container size
             useEffect(() => {
                 const el = tmContainerRef.current;
                 if (!el) return;
@@ -4339,10 +4344,9 @@
                                         <circle cx="30" cy="10" r="3" fill="#8ab4f8" filter="url(#hgl2)" />
                                         <circle cx="30" cy="10" r="1.5" fill="#e0f9ff" />
                                         <text x="46" y="27" fontFamily="'Space Mono',monospace" fontWeight="700"
-                                            fontSize="16" letterSpacing="2.5" fill="url(#htg2)">FOLIO</text>
-                                        <text x="47" y="37" fontFamily="'Roboto',sans-serif" fontWeight="500"
-                                            fontSize="5" letterSpacing="2" fill="#4dd08a" opacity="0.7">PORTFOLIO
-                                            TRACKER</text>
+                                            fontSize="16" letterSpacing="2.5" fill="url(#htg2)">SAUDAGAR</text>
+                                        <text x="46" y="37" fontFamily="'Space Mono',monospace" fontWeight="700"
+                                            fontSize="16" letterSpacing="2.5" fill="url(#htg2)">KAPITALIS</text>
                                     </svg>
                                 </div>
                                 <div className="header-kpis" style={{ display: "flex", gap: isMob ? 8 : 16,
