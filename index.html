@@ -2470,6 +2470,7 @@
                     // Find the index by formatting the date with fmtMonShort
                     const findIndex = (dateStr) => {
                         if (!dateStr) return -1;
+                        // Try exact label match first
                         const label = fmtMonShort(dateStr);
                         const idx = labelIndexMap[label];
                         if (idx !== undefined) return idx;
@@ -2479,14 +2480,39 @@
                         const txMonth = d.getMonth();
                         let best = -1,
                             bestScore = Infinity;
+                        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov",
+                            "Dec"
+                        ];
                         for (let i = 0; i < labels.length; i++) {
                             const parts = labels[i].split(' ');
                             if (parts.length < 2) continue;
                             const day = parseInt(parts[0]);
-                            const monthMap = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5, Jul: 6, Aug: 7, Sep: 8,
-                                Oct: 9, Nov: 10, Dec: 11 };
-                            const month = monthMap[parts[1]];
-                            if (isNaN(day) || month === undefined) continue;
+                            const month = monthNames.indexOf(parts[1]);
+                            if (isNaN(day) || month === -1) continue;
+                            const score = Math.abs(month - txMonth) * 30 + Math.abs(day - txDay);
+                            if (score < bestScore) { bestScore = score;
+                                best = i; }
+                        }
+                        return (bestScore < 45) ? best : -1;
+                    };
+
+                    // Also try matching by day-only for event markers (sometimes labels are just day)
+                    const findIndexByDay = (dateStr) => {
+                        if (!dateStr) return -1;
+                        const d = new Date(dateStr + "T12:00:00");
+                        const txDay = d.getDate();
+                        const txMonth = d.getMonth();
+                        let best = -1,
+                            bestScore = Infinity;
+                        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov",
+                            "Dec"
+                        ];
+                        for (let i = 0; i < labels.length; i++) {
+                            const parts = labels[i].split(' ');
+                            if (parts.length < 2) continue;
+                            const day = parseInt(parts[0]);
+                            const month = monthNames.indexOf(parts[1]);
+                            if (isNaN(day) || month === -1) continue;
                             const score = Math.abs(month - txMonth) * 30 + Math.abs(day - txDay);
                             if (score < bestScore) { bestScore = score;
                                 best = i; }
@@ -2496,7 +2522,8 @@
 
                     const drawMarker = (item, drawFn) => {
                         if (!item) return;
-                        const idx = findIndex(item.date);
+                        let idx = findIndex(item.date);
+                        if (idx === -1) idx = findIndexByDay(item.date);
                         if (idx === -1) return;
                         const x = xAxis.getPixelForValue(idx);
                         const y = yAxis.getPixelForValue(item.value);
