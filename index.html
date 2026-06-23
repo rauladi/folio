@@ -1771,7 +1771,7 @@
         }
 
         // ─── Chart Components ─────────────────────────────────────────────────────────
-        function ChartLine({ labels, datasets, T, yFmt, y2Fmt, height = 220, spanGaps = false, plugins = [] }) {
+        function ChartLine({ labels, rawDates, datasets, T, yFmt, y2Fmt, height = 220, spanGaps = false, plugins = [] }) {
             const ref = useRef(null);
             const inst = useRef(null);
             useEffect(() => {
@@ -1794,17 +1794,42 @@
                     };
                 }
                 const allPlugins = [...plugins];
-                inst.current = new Chart(ref.current, { type: "line", data: { labels, datasets }, options: { spanGaps: spanGaps,
-                        responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: T.text2,
-                                    font: { family: "Roboto", size: 11, weight: "500" }, boxWidth: 10, padding: 12 } },
-                            tooltip: { backgroundColor: T.bg2, borderColor: T.border, borderWidth: 1,
-                                titleColor: T.text, bodyColor: T.text2, padding: 10, cornerRadius: 8,
-                                callbacks: { label: (ctx) => { const fmt = ctx.dataset.yAxisID === "y2" &&
-                                        y2Fmt ? y2Fmt : yFmt || (v => `${v}`); return ` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)}`; } } } },
-                    scales: scales, elements: { line: { tension: 0.4 }, point: { radius: 2, hoverRadius: 5 } },
-                    plugins: allPlugins } });
+                inst.current = new Chart(ref.current, {
+                    type: "line",
+                    data: { labels, rawDates, datasets },
+                    options: {
+                        spanGaps: spanGaps,
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: { color: T.text2, font: { family: "Roboto", size: 11, weight: "500" },
+                                    boxWidth: 10, padding: 12 }
+                            },
+                            tooltip: {
+                                backgroundColor: T.bg2,
+                                borderColor: T.border,
+                                borderWidth: 1,
+                                titleColor: T.text,
+                                bodyColor: T.text2,
+                                padding: 10,
+                                cornerRadius: 8,
+                                callbacks: {
+                                    label: (ctx) => {
+                                        const fmt = ctx.dataset.yAxisID === "y2" && y2Fmt ? y2Fmt : yFmt || (v =>
+                                            `${v}`);
+                                        return ` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)}`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: scales,
+                        elements: { line: { tension: 0.4 }, point: { radius: 2, hoverRadius: 5 } },
+                        plugins: allPlugins
+                    }
+                });
                 return () => { if (inst.current) inst.current.destroy(); };
-            }, [labels, datasets, T, yFmt, y2Fmt, plugins]);
+            }, [labels, rawDates, datasets, T, yFmt, y2Fmt, plugins]);
             return <div style={{ height, position: "relative" }}><canvas ref={ref} /></div>;
         }
 
@@ -2467,7 +2492,7 @@
             };
         }
 
-        // ─── Chart Annotations Plugin — FIXED with robust date matching ─────────────
+        // ─── Chart Annotations Plugin — FIXED: uses rawDates for exact matching ─────
         function createAnnotationPlugin(annotationData, T) {
             return {
                 id: 'customAnnotations',
@@ -2477,9 +2502,9 @@
                     const yAxis = chart.scales.y;
                     if (!xAxis || !yAxis) return;
 
-                    const labels = chart.data.labels;
-                    // Build a map from date string to index using the raw dates passed in chart data
                     const rawDates = chart.data.rawDates || [];
+                    const labels = chart.data.labels || [];
+
                     const dateToIndex = {};
                     rawDates.forEach((d, i) => {
                         if (d) dateToIndex[d] = i;
@@ -2487,13 +2512,13 @@
 
                     const findIndex = (dateStr) => {
                         if (!dateStr) return -1;
-                        // First try exact match on raw date
+                        // Exact match by raw date
                         if (dateToIndex[dateStr] !== undefined) return dateToIndex[dateStr];
-                        // Try formatted match
+                        // Try formatted label match
                         const label = fmtMonShort(dateStr);
                         const idx = labels.indexOf(label);
                         if (idx !== -1) return idx;
-                        // Fuzzy fallback: try to match by day/month within 60 days
+                        // Fuzzy fallback: day/month proximity
                         const d = new Date(dateStr + "T12:00:00");
                         const txDay = d.getDate();
                         const txMonth = d.getMonth();
@@ -2512,7 +2537,7 @@
                             if (score < bestScore) { bestScore = score;
                                 best = i; }
                         }
-                        return (bestScore < 60) ? best : -1;
+                        return (bestScore < 45) ? best : -1;
                     };
 
                     const drawMarker = (item, drawFn) => {
@@ -2523,7 +2548,6 @@
                         // Use the value from annotation data, but clamp to visible range
                         let y = yAxis.getPixelForValue(item.value);
                         if (y === undefined || !isFinite(y) || y < yAxis.top || y > yAxis.bottom) {
-                            // If outside, place at the nearest edge with a small offset
                             y = (item.value > 0) ? yAxis.top + 12 : yAxis.bottom - 12;
                         }
                         y = Math.max(yAxis.top + 4, Math.min(yAxis.bottom - 4, y));
@@ -2619,7 +2643,6 @@
                             ctx.fillStyle = T.bg2 + 'dd';
                             ctx.shadowColor = 'rgba(0,0,0,0.3)';
                             ctx.shadowBlur = 6;
-                            // Manual roundRect fallback
                             const r = 3;
                             const w = tw + pad * 2;
                             const h = 13;
@@ -5177,7 +5200,7 @@
                                                             .startVal * 100 : 0)}</div>
                                                 </div>}
                                             </div>
-                                            <ChartLine labels={chartData.labels} datasets={[
+                                            <ChartLine labels={chartData.labels} rawDates={chartData.rawDates} datasets={[
                                                 { label: "Portfolio Value", data: chartData
                                                         .vals, borderColor: dark ?
                                                         "#34a853" : "#1e8e3e",
