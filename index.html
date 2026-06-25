@@ -2492,7 +2492,7 @@
             };
         }
 
-        // ─── Chart Annotations Plugin — FIXED: uses rawDates for exact matching ─────
+        // ─── Chart Annotations Plugin — FIXED ──────────────────────────────────────
         function createAnnotationPlugin(annotationData, T) {
             return {
                 id: 'customAnnotations',
@@ -2505,23 +2505,42 @@
                     const rawDates = chart.data.rawDates || [];
                     const labels = chart.data.labels || [];
 
+                    // Build multiple lookup maps
                     const dateToIndex = {};
+                    const monthToIndex = {};
+                    const labelToIndex = {};
+
                     rawDates.forEach((d, i) => {
-                        if (d) dateToIndex[d] = i;
+                        if (d) {
+                            dateToIndex[d] = i;
+                            const short = d.slice(0, 7);
+                            if (!monthToIndex[short]) monthToIndex[short] = i;
+                            // Also store YYYY-MM-DD for exact
+                            const exact = d;
+                            if (!dateToIndex[exact]) dateToIndex[exact] = i;
+                        }
+                    });
+
+                    labels.forEach((l, i) => {
+                        if (l) labelToIndex[l] = i;
                     });
 
                     const findIndex = (dateStr) => {
                         if (!dateStr) return -1;
-                        // Exact match by raw date
+                        // 1. Exact raw date
                         if (dateToIndex[dateStr] !== undefined) return dateToIndex[dateStr];
-                        // Try formatted label match
+                        // 2. YYYY-MM
+                        const short = dateStr.slice(0, 7);
+                        if (monthToIndex[short] !== undefined) return monthToIndex[short];
+                        // 3. Formatted label
                         const label = fmtMonShort(dateStr);
-                        const idx = labels.indexOf(label);
-                        if (idx !== -1) return idx;
-                        // Fuzzy fallback: day/month proximity
+                        if (labelToIndex[label] !== undefined) return labelToIndex[label];
+                        // 4. Fuzzy: match by month+day within same year
                         const d = new Date(dateStr + "T12:00:00");
+                        if (isNaN(d.getTime())) return -1;
                         const txDay = d.getDate();
                         const txMonth = d.getMonth();
+                        const txYear = d.getFullYear();
                         let best = -1,
                             bestScore = Infinity;
                         const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov",
@@ -2533,11 +2552,17 @@
                             const day = parseInt(parts[0]);
                             const month = monthNames.indexOf(parts[1]);
                             if (isNaN(day) || month === -1) continue;
+                            // Check raw date year if available
+                            const rawDate = rawDates[i];
+                            if (rawDate) {
+                                const rawYear = parseInt(rawDate.slice(0, 4));
+                                if (rawYear !== txYear) continue; // must be same year
+                            }
                             const score = Math.abs(month - txMonth) * 30 + Math.abs(day - txDay);
                             if (score < bestScore) { bestScore = score;
                                 best = i; }
                         }
-                        return (bestScore < 45) ? best : -1;
+                        return (bestScore < 90) ? best : -1;
                     };
 
                     const drawMarker = (item, drawFn) => {
@@ -2545,7 +2570,7 @@
                         const idx = findIndex(item.date);
                         if (idx === -1) return;
                         const x = xAxis.getPixelForValue(idx);
-                        // Use the value from annotation data, but clamp to visible range
+                        if (x === undefined || isNaN(x)) return;
                         let y = yAxis.getPixelForValue(item.value);
                         if (y === undefined || !isFinite(y) || y < yAxis.top || y > yAxis.bottom) {
                             y = (item.value > 0) ? yAxis.top + 12 : yAxis.bottom - 12;
@@ -2764,7 +2789,7 @@
 
             const fbUserRef = useRef(null);
 
-            // ─── MAIN TREEMAP CONTAINER REF — FIXED: use useRef + useLayoutEffect ────
+            // ─── MAIN TREEMAP CONTAINER REF ──────────────────────────────────────────
             const tmContainerRef = useRef(null);
             useLayoutEffect(() => {
                 const el = tmContainerRef.current;
@@ -2775,9 +2800,7 @@
                         setTmSize({ w: rect.width, h: rect.height });
                     }
                 };
-                // Initial measurement right away
                 updateSize();
-                // Then after layout
                 requestAnimationFrame(updateSize);
                 const timeout = setTimeout(updateSize, 150);
                 const obs = new ResizeObserver(() => updateSize());
@@ -2790,7 +2813,6 @@
                 };
             }, []);
 
-            // Also update when view changes (treemap tab may re-render)
             useEffect(() => {
                 const el = tmContainerRef.current;
                 if (!el) return;
@@ -3205,7 +3227,7 @@
                 for (const h of portfolio) {
                     for (const tx of h.transactions) {
                         const txDate = new Date(tx.date + "T12:00:00");
-                        if (txDate < cutoff) continue; // only include transactions within selected period
+                        if (txDate < cutoff) continue;
                         if (tx.type === "buy") {
                             const val = getPortfolioValueAtDate(tx.date);
                             buys.push({ date: tx.date, value: val, ticker: h.ticker });
@@ -3241,7 +3263,6 @@
                     }
                 }
 
-                // Only keep events within period
                 const filteredEvents = events.filter(e => new Date(e.date + "T12:00:00") >= cutoff);
                 const sortedEvents = filteredEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
                 const recentEvents = sortedEvents.slice(-8);
@@ -3897,6 +3918,10 @@
                 const chartHeight = isMob ? 150 : 180;
                 const treemapHeight = isMob ? 160 : 190;
 
+                // Dynamically adjust max adjustment based on years
+                const maxAdjust = 100 + whatIf.simulationYears * 20; // e.g., 5 years => 200%, 10 years => 300%
+                const step = 5;
+
                 return (
                     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                         {/* Top row: Input sliders */}
@@ -3946,6 +3971,7 @@
                                         flexDirection: "column", height: "100%", minHeight: 0 }}>
                                     <div style={{ fontSize: 11, fontWeight: 600, color: T.text, marginBottom: 4 }}>
                                         Modify Holdings
+                                        <span style={{ fontSize: 8, color: T.text3, fontWeight: 400, marginLeft: 4 }}>(max: {maxAdjust}%)</span>
                                     </div>
                                     <div className="holdings-wrap" style={{ flex: 1, overflowY: "auto", paddingRight: 2,
                                             minHeight: 0 }}>
@@ -3972,16 +3998,21 @@
                                                                 justifyContent: "center", color: T.text,
                                                                 cursor: "pointer", fontSize: 15,
                                                                 fontWeight: 700, flexShrink: 0 }}
-                                                            onClick={() => setWhatIf(w => ({ ...w, adjustments: { ...w.adjustments, [h.ticker]: Math.max(0.5, factor - 0.05) } }))}>−</button>
+                                                            onClick={() => {
+                                                                const newVal = Math.max(0, factor - step / 100);
+                                                                setWhatIf(w => ({ ...w, adjustments: { ...w.adjustments, [h.ticker]: newVal } }));
+                                                            }}>−</button>
                                                         <input type="number" style={{ width: 48, background: T
                                                                 .bg, border: "1px solid " + T.border,
                                                                 borderRadius: 4, padding: "2px 3px",
                                                                 fontSize: 11, color: T.text, textAlign: "center",
                                                                 fontWeight: 600, flexShrink: 0 }}
                                                             value={pct}
+                                                            min="0"
+                                                            max={maxAdjust}
                                                             onChange={e => {
                                                                 const val = parseFloat(e.target.value);
-                                                                if (!isNaN(val) && val >= 50 && val <= 150) {
+                                                                if (!isNaN(val) && val >= 0 && val <= maxAdjust) {
                                                                     setWhatIf(w => ({ ...w, adjustments: { ...w.adjustments, [h.ticker]: val / 100 } }));
                                                                 }
                                                             }} />
@@ -3992,7 +4023,10 @@
                                                                 justifyContent: "center", color: T.text,
                                                                 cursor: "pointer", fontSize: 15,
                                                                 fontWeight: 700, flexShrink: 0 }}
-                                                            onClick={() => setWhatIf(w => ({ ...w, adjustments: { ...w.adjustments, [h.ticker]: Math.min(1.5, factor + 0.05) } }))}>+</button>
+                                                            onClick={() => {
+                                                                const newVal = Math.min(maxAdjust / 100, factor + step / 100);
+                                                                setWhatIf(w => ({ ...w, adjustments: { ...w.adjustments, [h.ticker]: newVal } }));
+                                                            }}>+</button>
                                                         <span className="diff-label" style={{ fontSize: 9,
                                                                 minWidth: 34, textAlign: "right",
                                                                 color: pct > 100 ? T.green : pct < 100 ?
