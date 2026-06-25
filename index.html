@@ -2492,7 +2492,7 @@
             };
         }
 
-        // ─── Chart Annotations Plugin — FIXED: robust date matching ──────────────
+        // ─── Chart Annotations Plugin — FIXED: uses rawDates for exact matching ─────
         function createAnnotationPlugin(annotationData, T) {
             return {
                 id: 'customAnnotations',
@@ -2505,44 +2505,39 @@
                     const rawDates = chart.data.rawDates || [];
                     const labels = chart.data.labels || [];
 
-                    // Build index maps
                     const dateToIndex = {};
                     rawDates.forEach((d, i) => {
-                        if (d) {
-                            dateToIndex[d] = i;
-                            // Also store YYYY-MM for matching
-                            const short = d.slice(0, 7);
-                            if (!dateToIndex[short]) dateToIndex[short] = i;
-                        }
+                        if (d) dateToIndex[d] = i;
                     });
-
-                    // Also map by formatted label
-                    const labelToIndex = {};
-                    labels.forEach((l, i) => { if (l) labelToIndex[l] = i; });
 
                     const findIndex = (dateStr) => {
                         if (!dateStr) return -1;
-                        // 1. Exact raw date
+                        // Exact match by raw date
                         if (dateToIndex[dateStr] !== undefined) return dateToIndex[dateStr];
-                        // 2. YYYY-MM
-                        const short = dateStr.slice(0, 7);
-                        if (dateToIndex[short] !== undefined) return dateToIndex[short];
-                        // 3. Formatted label
+                        // Try formatted label match
                         const label = fmtMonShort(dateStr);
-                        if (labelToIndex[label] !== undefined) return labelToIndex[label];
-                        // 4. Fuzzy closest within 15 days
-                        const target = new Date(dateStr + "T12:00:00").getTime();
+                        const idx = labels.indexOf(label);
+                        if (idx !== -1) return idx;
+                        // Fuzzy fallback: day/month proximity
+                        const d = new Date(dateStr + "T12:00:00");
+                        const txDay = d.getDate();
+                        const txMonth = d.getMonth();
                         let best = -1,
-                            bestDiff = 15 * 86400000; // 15 days tolerance
-                        for (let i = 0; i < rawDates.length; i++) {
-                            const d = new Date(rawDates[i] + "T12:00:00").getTime();
-                            const diff = Math.abs(d - target);
-                            if (diff < bestDiff) {
-                                bestDiff = diff;
-                                best = i;
-                            }
+                            bestScore = Infinity;
+                        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov",
+                            "Dec"
+                        ];
+                        for (let i = 0; i < labels.length; i++) {
+                            const parts = labels[i].split(' ');
+                            if (parts.length < 2) continue;
+                            const day = parseInt(parts[0]);
+                            const month = monthNames.indexOf(parts[1]);
+                            if (isNaN(day) || month === -1) continue;
+                            const score = Math.abs(month - txMonth) * 30 + Math.abs(day - txDay);
+                            if (score < bestScore) { bestScore = score;
+                                best = i; }
                         }
-                        return best;
+                        return (bestScore < 45) ? best : -1;
                     };
 
                     const drawMarker = (item, drawFn) => {
@@ -2550,7 +2545,7 @@
                         const idx = findIndex(item.date);
                         if (idx === -1) return;
                         const x = xAxis.getPixelForValue(idx);
-                        if (x === undefined || isNaN(x)) return;
+                        // Use the value from annotation data, but clamp to visible range
                         let y = yAxis.getPixelForValue(item.value);
                         if (y === undefined || !isFinite(y) || y < yAxis.top || y > yAxis.bottom) {
                             y = (item.value > 0) ? yAxis.top + 12 : yAxis.bottom - 12;
@@ -2745,7 +2740,6 @@
                 };
             }, []);
 
-            // Additional force update when the tab becomes visible
             useEffect(() => {
                 const el = whatIfTmRef.current;
                 if (!el) return;
@@ -2758,13 +2752,9 @@
                 const mo = new MutationObserver(updateSize);
                 mo.observe(el, { attributes: true, childList: true, subtree: true });
                 const timeout = setTimeout(updateSize, 200);
-                // Also on window resize
-                const handleResize = () => updateSize();
-                window.addEventListener('resize', handleResize);
                 return () => {
                     mo.disconnect();
                     clearTimeout(timeout);
-                    window.removeEventListener('resize', handleResize);
                 };
             }, []);
 
@@ -2774,7 +2764,7 @@
 
             const fbUserRef = useRef(null);
 
-            // ─── MAIN TREEMAP CONTAINER REF — unchanged ──────────────────────────
+            // ─── MAIN TREEMAP CONTAINER REF — FIXED: use useRef + useLayoutEffect ────
             const tmContainerRef = useRef(null);
             useLayoutEffect(() => {
                 const el = tmContainerRef.current;
@@ -2785,7 +2775,9 @@
                         setTmSize({ w: rect.width, h: rect.height });
                     }
                 };
+                // Initial measurement right away
                 updateSize();
+                // Then after layout
                 requestAnimationFrame(updateSize);
                 const timeout = setTimeout(updateSize, 150);
                 const obs = new ResizeObserver(() => updateSize());
@@ -2798,6 +2790,7 @@
                 };
             }, []);
 
+            // Also update when view changes (treemap tab may re-render)
             useEffect(() => {
                 const el = tmContainerRef.current;
                 if (!el) return;
@@ -3180,6 +3173,7 @@
 
             // ─── ANNOTATION DATA ──────────────────────────────────────────────────────
             const annotationData = useMemo(() => {
+                const cutoff = periodCutoff(chartPeriod);
                 const historyMap = {};
                 for (const snap of history) {
                     historyMap[snap.date] = snap.totalValueAUD;
@@ -3210,6 +3204,8 @@
 
                 for (const h of portfolio) {
                     for (const tx of h.transactions) {
+                        const txDate = new Date(tx.date + "T12:00:00");
+                        if (txDate < cutoff) continue; // only include transactions within selected period
                         if (tx.type === "buy") {
                             const val = getPortfolioValueAtDate(tx.date);
                             buys.push({ date: tx.date, value: val, ticker: h.ticker });
@@ -3245,7 +3241,9 @@
                     }
                 }
 
-                const sortedEvents = events.sort((a, b) => new Date(a.date) - new Date(b.date));
+                // Only keep events within period
+                const filteredEvents = events.filter(e => new Date(e.date + "T12:00:00") >= cutoff);
+                const sortedEvents = filteredEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
                 const recentEvents = sortedEvents.slice(-8);
 
                 return {
@@ -3253,7 +3251,7 @@
                     dividends: Object.values(divMap).slice(0, 15),
                     events: recentEvents,
                 };
-            }, [portfolio, history, displayCur, rates, totVal]);
+            }, [portfolio, history, displayCur, rates, totVal, chartPeriod, periodCutoff]);
 
             const autoRefresh = useCallback(async () => {
                 setFetchSt(s => ({ ...s, loading: true, fetched: 0 }));
@@ -3853,6 +3851,16 @@
                 const h = Math.max(whatIfTmSize.h, 120);
                 return squarify(sorted, 0, 0, w, h);
             }, [whatIfItems, whatIfTmSize]);
+
+            // Force re-measure when view changes to "whatif"
+            useEffect(() => {
+                if (view === "whatif" && whatIfTmRef.current) {
+                    const rect = whatIfTmRef.current.getBoundingClientRect();
+                    if (rect.width > 10 && rect.height > 10) {
+                        setWhatIfTmSize({ w: rect.width, h: rect.height });
+                    }
+                }
+            }, [view]);
 
             // ─── What-If Render ────────────────────────────────────────────────────────
             const renderWhatIf = () => {
