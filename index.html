@@ -2492,7 +2492,7 @@
             };
         }
 
-        // ─── Chart Annotations Plugin — FIXED ──────────────────────────────────────
+        // ─── Chart Annotations Plugin — FIXED: robust date matching ─────────────────
         function createAnnotationPlugin(annotationData, T) {
             return {
                 id: 'customAnnotations',
@@ -2515,9 +2515,6 @@
                             dateToIndex[d] = i;
                             const short = d.slice(0, 7);
                             if (!monthToIndex[short]) monthToIndex[short] = i;
-                            // Also store YYYY-MM-DD for exact
-                            const exact = d;
-                            if (!dateToIndex[exact]) dateToIndex[exact] = i;
                         }
                     });
 
@@ -3194,8 +3191,8 @@
             }, []);
 
             // ─── ANNOTATION DATA ──────────────────────────────────────────────────────
+            // Do NOT filter by cutoff; let the plugin skip dates not in the chart data
             const annotationData = useMemo(() => {
-                const cutoff = periodCutoff(chartPeriod);
                 const historyMap = {};
                 for (const snap of history) {
                     historyMap[snap.date] = snap.totalValueAUD;
@@ -3226,8 +3223,6 @@
 
                 for (const h of portfolio) {
                     for (const tx of h.transactions) {
-                        const txDate = new Date(tx.date + "T12:00:00");
-                        if (txDate < cutoff) continue;
                         if (tx.type === "buy") {
                             const val = getPortfolioValueAtDate(tx.date);
                             buys.push({ date: tx.date, value: val, ticker: h.ticker });
@@ -3263,8 +3258,7 @@
                     }
                 }
 
-                const filteredEvents = events.filter(e => new Date(e.date + "T12:00:00") >= cutoff);
-                const sortedEvents = filteredEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
+                const sortedEvents = events.sort((a, b) => new Date(a.date) - new Date(b.date));
                 const recentEvents = sortedEvents.slice(-8);
 
                 return {
@@ -3272,7 +3266,7 @@
                     dividends: Object.values(divMap).slice(0, 15),
                     events: recentEvents,
                 };
-            }, [portfolio, history, displayCur, rates, totVal, chartPeriod, periodCutoff]);
+            }, [portfolio, history, displayCur, rates, totVal]);
 
             const autoRefresh = useCallback(async () => {
                 setFetchSt(s => ({ ...s, loading: true, fetched: 0 }));
