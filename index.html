@@ -3191,8 +3191,10 @@
             }, []);
 
             // ─── ANNOTATION DATA ──────────────────────────────────────────────────────
-            // Do NOT filter by cutoff; let the plugin skip dates not in the chart data
+            // Filter to include only transactions within the selected period
             const annotationData = useMemo(() => {
+                const cutoff = periodCutoff(chartPeriod);
+                const now = new Date();
                 const historyMap = {};
                 for (const snap of history) {
                     historyMap[snap.date] = snap.totalValueAUD;
@@ -3223,6 +3225,8 @@
 
                 for (const h of portfolio) {
                     for (const tx of h.transactions) {
+                        const txDate = new Date(tx.date + "T12:00:00");
+                        if (txDate < cutoff || txDate > now) continue; // only include within period
                         if (tx.type === "buy") {
                             const val = getPortfolioValueAtDate(tx.date);
                             buys.push({ date: tx.date, value: val, ticker: h.ticker });
@@ -3258,7 +3262,11 @@
                     }
                 }
 
-                const sortedEvents = events.sort((a, b) => new Date(a.date) - new Date(b.date));
+                const filteredEvents = events.filter(e => {
+                    const d = new Date(e.date + "T12:00:00");
+                    return d >= cutoff && d <= now;
+                });
+                const sortedEvents = filteredEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
                 const recentEvents = sortedEvents.slice(-8);
 
                 return {
@@ -3266,7 +3274,7 @@
                     dividends: Object.values(divMap).slice(0, 15),
                     events: recentEvents,
                 };
-            }, [portfolio, history, displayCur, rates, totVal]);
+            }, [portfolio, history, displayCur, rates, totVal, chartPeriod, periodCutoff]);
 
             const autoRefresh = useCallback(async () => {
                 setFetchSt(s => ({ ...s, loading: true, fetched: 0 }));
