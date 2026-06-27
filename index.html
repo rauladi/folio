@@ -3294,6 +3294,137 @@
             const fetchBarColor = fetchSt.loading ? T.amber : Object.keys(fetchSt.errors).length > 0 ? T.amber : fetchSt
                 .lastUpdate ? T.green : T.text3;
 
+            // ─── autoRefresh ──────────────────────────────────────────────────────────
+            const autoRefresh = useCallback(async () => {
+                setFetchSt(s => ({ ...s, loading: true, fetched: 0 }));
+                let newRates = rates,
+                    rateOk = false;
+                try {
+                    newRates = await fetchExchangeRates();
+                    setRates(newRates);
+                    rateOk = true;
+                } catch (e) { console.warn("Rate fetch failed:", e.message); }
+
+                let bmStatus = "no benchmark data";
+                try {
+                    const BM_DEFS = [
+                        { key: "sp500", label: "S&P 500", fetch: () => fetchBenchmark("^GSPC") },
+                        { key: "brk", label: "BRK-B", fetch: () => fetchBenchmark("BRK-B") },
+                        { key: "jkse", label: "IDX Composite", fetch: () => fetchBenchmark("^JKSE") },
+                        { key: "eido", label: "EIDO", fetch: () => fetchBenchmark("EIDO") },
+                        { key: "vas", label: "VAS", fetch: () => fetchBenchmark("VAS.AX") },
+                    ];
+                    const results = await Promise.allSettled(BM_DEFS.map(b => b.fetch()));
+                    const successes = results.map((r, i) => r.status === "fulfilled" ? { ...BM_DEFS[i], data: r
+                            .value } : null).filter(Boolean);
+                    if (successes.length > 0) {
+                        const ref = successes.reduce((a, b) => a.data.labels.length > b.data.labels.length ? a : b);
+                        const series = {};
+                        results.forEach((r, i) => { series[BM_DEFS[i].key] = r.status === "fulfilled" ? r.value
+                                .pct : null; });
+                        const ok = BM_DEFS.map((b, i) => results[i].status === "fulfilled" ? b.label + "✓" : null)
+                            .filter(Boolean);
+                        const fail = BM_DEFS.map((b, i) => results[i].status === "rejected" ? b.label : null)
+                            .filter(Boolean);
+                        bmStatus =
+                            `${ok.length}/${BM_DEFS.length} loaded${fail.length ? ` · failed: ${fail.join(", ")}` : ""}`;
+                        const fetchable = portfolio.filter(h => h.yahooSymbol);
+                        const holdingPriceMaps = {};
+                        const CONCURRENCY = 4;
+                        const resultsHist = new Array(fetchable.length);
+                        async function fetchOne(h, idx) {
+                            try {
+                                const hist = await fetchHoldingHistory(h.yahooSymbol);
+                                if (hist?.priceMap) holdingPriceMaps[h.ticker] = hist.priceMap;
+                                else holdingPriceMaps[h.ticker] = null;
+                                resultsHist[idx] = { status: "fulfilled" };
+                            } catch (e) { resultsHist[idx] = { status: "rejected", reason: e.message }; }
+                        }
+                        let qi = 0;
+                        while (qi < fetchable.length) {
+                            const batch = fetchable.slice(qi, qi + CONCURRENCY);
+                            await Promise.allSettled(batch.map((h, bi) => fetchOne(h, qi + bi)));
+                            qi += CONCURRENCY;
+                        }
+                        setBenchmarks(prev => ({
+                            ...prev,
+                            labels: ref.data.labels,
+                            series,
+                            holdingPrices: { ...prev.holdingPrices, ...holdingPriceMaps }
+                        }));
+                    } else {
+                        bmStatus = "failed — all benchmarks unavailable";
+                        setBenchmarks(prev => ({ ...prev, holdingPrices: {} }));
+                    }
+                } catch (e) { bmStatus = "error: " + e.message; }
+
+                const fetchablePrices = portfolio.filter(h => {
+                    if (h.yahooSymbol) return true;
+                    if (/^(PBS|SBN|SR|ST|FR|ORI|SUKUK)\d/i.test(h.ticker)) return true;
+                    if (/^[A-Z]{3}\d{4}[A-Z]{2}$/i.test(h.ticker)) return true;
+                    return false;
+                });
+                const newP = { ...prices },
+                    newPP = { ...prevPrices };
+                const errors = {};
+                let successes = 0;
+
+                function fetchPriceFor(h) {
+                    if (h.yahooSymbol) return fetchYahooPrice(h.yahooSymbol);
+                    const tk = h.ticker.toUpperCase();
+                    if (/^(PBS|SBN|SR|ST|FR|ORI)\d/i.test(tk)) return fetchDJPPRPrice(tk);
+                    if (/^[A-Z]{3}\d{4}[A-Z]{2}$/i.test(tk)) return fetchAUFundPrice(tk);
+                    return Promise.reject(new Error("No price source"));
+                }
+                const CONCURRENCY_PRICE = 8;
+                const priceResults = new Array(fetchablePrices.length);
+                async function fetchOnePrice(h, idx) {
+                    try {
+                        const p = await fetchPriceFor(h);
+                        priceResults[idx] = { status: "fulfilled", value: { h, p } };
+                    } catch (e) { priceResults[idx] = { status: "rejected", reason: e }; }
+                }
+                let qiPrice = 0;
+                while (qiPrice < fetchablePrices.length) {
+                    const batch = fetchablePrices.slice(qiPrice, qiPrice + CONCURRENCY_PRICE);
+                    await Promise.allSettled(batch.map((h, bi) => fetchOnePrice(h, qiPrice + bi)));
+                    qiPrice += CONCURRENCY_PRICE;
+                    const done = priceResults.filter(Boolean).length;
+                    setFetchSt(s => ({ ...s, fetched: done, total: fetchablePrices.length }));
+                }
+                priceResults.forEach((r, i) => {
+                    const h = fetchablePrices[i];
+                    if (r?.status === "fulfilled") {
+                        const isDJPPR = !h.yahooSymbol && /^(PBS|SBN|SR|ST|FR|ORI)\d/i.test(h.ticker);
+                        const mult = (h.isBondPct || isDJPPR) ? (h.faceValue ?? 1000000) / 100 : 1;
+                        newP[h.ticker] = r.value.p.current * mult;
+                        newPP[h.ticker] = r.value.p.prev * mult;
+                        successes++;
+                    } else {
+                        errors[h.ticker] = r?.reason?.message || "Failed";
+                    }
+                });
+                setPrices(newP);
+                setPrevPrices(newPP);
+                const now = new Date();
+                const date = now.toISOString().slice(0, 10);
+                const hs = portfolio.map(h => computeHolding(h, newP, newPP, newRates)).filter(h => h.qty > 0);
+                const snap = { date, totalValueAUD: hs.reduce((s, h) => s + h.currentValue, 0),
+                    totalDividendsAUD: hs.reduce((s, h) => s + h.totalDividends, 0) };
+                setHistory(prev => [...prev.filter(s => s.date !== date), snap].sort((a, b) => new Date(a.date) - new Date(
+                    b.date)).slice(-90));
+                setFetchSt({
+                    loading: false,
+                    lastUpdate: now,
+                    errors,
+                    successes,
+                    total: fetchablePrices.length,
+                    fetched: fetchablePrices.length,
+                    rateOk,
+                    bmStatus,
+                });
+            }, [portfolio, prices, prevPrices, rates]);
+
             // ─── What-If Render ────────────────────────────────────────────────────────
             const renderWhatIf = () => {
                 if (!holdings.length) {
