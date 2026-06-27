@@ -458,7 +458,6 @@
             background: linear-gradient(to right, #ea4335, #9aa0a6, #34a853);
             margin: 0 6px;
         }
-        /* Sticky Table Styles */
         .table-container {
             overflow: auto;
             max-height: 600px;
@@ -506,7 +505,6 @@
         .light .table-container tbody tr:hover td:first-child {
             background: var(--hover-bg, #f1f3f4);
         }
-        /* What-If Styles */
         .whatif-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -531,7 +529,6 @@
             border-color: var(--green-btn, #34a853);
             box-shadow: 0 0 0 2px var(--green-btn, #34a853);
         }
-        /* Compact What-If adjustment rows */
         .adj-row {
             display: flex;
             align-items: center;
@@ -598,8 +595,6 @@
             font-weight: 600;
             flex-shrink: 0;
         }
-
-        /* What-If layout */
         .whatif-layout {
             display: flex;
             gap: 14px;
@@ -677,8 +672,6 @@
             height: 100%;
             min-height: 180px;
         }
-
-        /* Income Risk styles */
         .income-risk-grid {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
@@ -723,8 +716,6 @@
             border-radius: 2px;
             transition: width .4s;
         }
-
-        /* Adjust for mobile */
         @media(max-width:768px) {
             .whatif-layout {
                 flex-direction: column;
@@ -920,7 +911,6 @@
             "REIT / Property", "Bond – Government", "Bond – Corporate", "Bond – Indonesia (SBN)", "Bond – Sharia (Sukuk)"
         ]);
 
-        // Holdings to EXCLUDE from income risk (non-dividend or special cases)
         const INCOME_RISK_EXCLUDED_TICKERS = new Set(["SHIB", "BTC", "GOLD", "NUL5339AU", "NUL7270AU"]);
 
         // ─── Themes ───────────────────────────────────────────────────────────────
@@ -1688,44 +1678,6 @@
 
         // ─── Seed Data ────────────────────────────────────────────────────────────────
         const INIT_RATES = { AUD_IDR: 10550, AUD_USD: 0.645 };
-        // Extended seed history that covers all transaction dates
-        function makeSeedHistory() {
-            const now = new Date();
-            // Generate monthly snapshots from 5 years ago to now
-            const start = new Date(now);
-            start.setFullYear(start.getFullYear() - 5);
-            const history = [];
-            let val = 65000;
-            let divs = 0;
-            const dates = [];
-            for (let d = new Date(start); d <= now; d.setMonth(d.getMonth() + 1)) {
-                const dateStr = d.toISOString().slice(0, 10);
-                dates.push(dateStr);
-            }
-            // Ensure specific transaction dates are included
-            const txDates = [
-                "2022-06-10", "2023-01-15", "2022-08-01", "2023-04-10", "2023-07-01",
-                "2022-09-01", "2023-06-15", "2023-06-01", "2023-09-01", "2023-01-10", "2023-11-20",
-                "2022-10-01"
-            ];
-            const allDates = [...dates, ...txDates].sort();
-            const uniqueDates = [...new Set(allDates)].sort();
-            // Build history with approximate values
-            for (let i = 0; i < uniqueDates.length; i++) {
-                const date = uniqueDates[i];
-                // Simulate some growth and volatility
-                val += 800 + Math.random() * 1500 - 300;
-                if (val < 60000) val = 60000 + Math.random() * 5000;
-                if (i % 3 === 0) divs += 600 + Math.random() * 800;
-                history.push({
-                    date: date,
-                    totalValueAUD: Math.round(val),
-                    totalDividendsAUD: Math.round(divs)
-                });
-            }
-            return history;
-        }
-
         const SEED = [
             { id: 1, ticker: "BHP", name: "BHP Group Ltd", currency: "AUD", assetType: "Shares / Stocks",
                 exchange: "ASX", yahooSymbol: "BHP.AX", transactions: [
@@ -1784,6 +1736,22 @@
             GOLD: 4200 };
         const INIT_PREV = { BHP: 45.8, CBA: 126.5, VAS: 97.2, BBCA: 9950, PBS032: 1008000, PBS033: 1004000, BTC: 128000,
             GOLD: 4180 };
+
+        function makeSeedHistory() {
+            const h = [];
+            const now = new Date();
+            let val = 85000,
+                divs = 0;
+            for (let i = 11; i >= 0; i--) {
+                const d = new Date(now);
+                d.setMonth(d.getMonth() - i);
+                val += 1800 + Math.random() * 2200 - (i > 8 ? 500 : 0);
+                divs += (i % 3 === 0 ? 600 + Math.random() * 500 : Math.random() * 60);
+                h.push({ date: d.toISOString().slice(0, 10), totalValueAUD: Math.max(val, 60000), totalDividendsAUD: Math
+                        .round(divs) });
+            }
+            return h;
+        }
 
         function useWindowSize() {
             const [w, setW] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
@@ -2400,9 +2368,8 @@
             };
         }
 
-        // ─── Income Risk Metrics (FIXED) ─────────────────────────────────────────────
+        // ─── Income Risk Metrics ─────────────────────────────────────────────────────
         function computeIncomeRiskMetrics(portfolio, rates, displayCur) {
-            // Filter to dividend-paying holdings that are NOT excluded
             const divHoldings = portfolio.filter(h =>
                 DIVIDEND_PAYING_TYPES.has(h.assetType) &&
                 !INCOME_RISK_EXCLUDED_TICKERS.has(h.ticker)
@@ -2412,7 +2379,6 @@
                     incomeVolatility: null, incomeDrawdown: null, dividendGrowth: null };
             }
 
-            // Collect monthly dividend income per holding
             const monthlyIncome = {};
             const monthlyByHolding = {};
             const holdingTotalIncome = {};
@@ -2421,7 +2387,7 @@
             for (const h of divHoldings) {
                 const divTxs = h.transactions.filter(t => t.type === "dividend" && t.date);
                 for (const tx of divTxs) {
-                    const date = tx.date.slice(0, 7); // YYYY-MM
+                    const date = tx.date.slice(0, 7);
                     const year = tx.date.slice(0, 4);
                     const amountAUD = toAUD(tx.totalAmount || 0, h.currency, rates);
                     if (!monthlyIncome[date]) monthlyIncome[date] = 0;
@@ -2445,15 +2411,11 @@
             const incomeValues = dates.map(d => monthlyIncome[d]);
             const mean = incomeValues.reduce((a, b) => a + b, 0) / incomeValues.length;
             const stdDev = Math.sqrt(incomeValues.reduce((s, v) => s + (v - mean) ** 2, 0) / incomeValues.length);
-            // Stability: 1 - coefficient of variation (capped at 0)
             const cv = mean > 0 ? stdDev / mean : 1;
             const stability = Math.max(0, Math.min(1, 1 - Math.min(cv, 1)));
-
-            // Payout Risk: based on dividend volatility and stability
             const rawPayoutRisk = cv;
             const payoutRisk = Math.min(1, Math.max(0, rawPayoutRisk * 0.8 + 0.1));
 
-            // Cut Probability: based on payout risk and stability
             let cutProb;
             if (payoutRisk < 0.3 && stability > 0.7) cutProb = "Low";
             else if (payoutRisk < 0.5 && stability > 0.5) cutProb = "Low–Medium";
@@ -2461,16 +2423,12 @@
             else if (payoutRisk < 0.75) cutProb = "Medium–High";
             else cutProb = "High";
 
-            // Concentration: top 3 holdings % of total income
             const sortedIncome = Object.values(holdingTotalIncome).sort((a, b) => b - a);
             const top3 = sortedIncome.slice(0, 3).reduce((s, v) => s + v, 0);
             const totalIncome = sortedIncome.reduce((s, v) => s + v, 0);
             const concentration = totalIncome > 0 ? top3 / totalIncome : 0;
 
-            // Income Volatility (coefficient of variation of monthly income)
             const incomeVolatility = mean > 0 ? stdDev / mean : 0;
-
-            // Income Drawdown (max decline from peak monthly income)
             let peakIncome = -Infinity;
             let maxIncomeDrawdown = 0;
             for (const v of incomeValues) {
@@ -2481,7 +2439,6 @@
                 }
             }
 
-            // Dividend Growth: CAGR of annual dividend income
             const years = Object.keys(yearlyIncome).sort();
             let dividendGrowth = null;
             if (years.length >= 2) {
@@ -2511,201 +2468,6 @@
                 monthlyByHolding,
                 holdingTotalIncome,
                 yearlyIncome,
-            };
-        }
-
-        // ─── Chart Annotations Plugin — FIXED ──────────────────────────────────────
-        function createAnnotationPlugin(annotationData, T) {
-            return {
-                id: 'customAnnotations',
-                afterDraw(chart) {
-                    const ctx = chart.ctx;
-                    const xAxis = chart.scales.x;
-                    const yAxis = chart.scales.y;
-                    if (!xAxis || !yAxis) return;
-
-                    const rawDates = chart.data.rawDates || [];
-                    const labels = chart.data.labels || [];
-
-                    // Build multiple lookup maps
-                    const dateToIndex = {};
-                    const monthToIndex = {};
-                    const labelToIndex = {};
-
-                    rawDates.forEach((d, i) => {
-                        if (d) {
-                            dateToIndex[d] = i;
-                            const short = d.slice(0, 7);
-                            if (!monthToIndex[short]) monthToIndex[short] = i;
-                        }
-                    });
-
-                    labels.forEach((l, i) => {
-                        if (l) labelToIndex[l] = i;
-                    });
-
-                    const findIndex = (dateStr) => {
-                        if (!dateStr) return -1;
-                        // 1. Exact raw date
-                        if (dateToIndex[dateStr] !== undefined) return dateToIndex[dateStr];
-                        // 2. YYYY-MM
-                        const short = dateStr.slice(0, 7);
-                        if (monthToIndex[short] !== undefined) return monthToIndex[short];
-                        // 3. Formatted label
-                        const label = fmtMonShort(dateStr);
-                        if (labelToIndex[label] !== undefined) return labelToIndex[label];
-                        // 4. Fuzzy: match by month+day within same year
-                        const d = new Date(dateStr + "T12:00:00");
-                        if (isNaN(d.getTime())) return -1;
-                        const txDay = d.getDate();
-                        const txMonth = d.getMonth();
-                        const txYear = d.getFullYear();
-                        let best = -1,
-                            bestScore = Infinity;
-                        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov",
-                            "Dec"
-                        ];
-                        for (let i = 0; i < labels.length; i++) {
-                            const parts = labels[i].split(' ');
-                            if (parts.length < 2) continue;
-                            const day = parseInt(parts[0]);
-                            const month = monthNames.indexOf(parts[1]);
-                            if (isNaN(day) || month === -1) continue;
-                            // Check raw date year if available
-                            const rawDate = rawDates[i];
-                            if (rawDate) {
-                                const rawYear = parseInt(rawDate.slice(0, 4));
-                                if (rawYear !== txYear) continue; // must be same year
-                            }
-                            const score = Math.abs(month - txMonth) * 30 + Math.abs(day - txDay);
-                            if (score < bestScore) { bestScore = score;
-                                best = i; }
-                        }
-                        return (bestScore < 90) ? best : -1;
-                    };
-
-                    const drawMarker = (item, drawFn) => {
-                        if (!item) return;
-                        const idx = findIndex(item.date);
-                        if (idx === -1) return;
-                        const x = xAxis.getPixelForValue(idx);
-                        if (x === undefined || isNaN(x)) return;
-                        let y = yAxis.getPixelForValue(item.value);
-                        if (y === undefined || !isFinite(y) || y < yAxis.top || y > yAxis.bottom) {
-                            y = (item.value > 0) ? yAxis.top + 12 : yAxis.bottom - 12;
-                        }
-                        y = Math.max(yAxis.top + 4, Math.min(yAxis.bottom - 4, y));
-                        drawFn(ctx, x, y, yAxis);
-                    };
-
-                    // Buy markers
-                    (annotationData.buys || []).forEach(item => {
-                        drawMarker(item, (ctx, x, y, ya) => {
-                            ctx.save();
-                            const size = 8;
-                            const yPos = y - size - 4;
-                            const grad = ctx.createRadialGradient(x, yPos, 0, x, yPos, size * 2);
-                            grad.addColorStop(0, 'rgba(52,168,83,0.3)');
-                            grad.addColorStop(1, 'rgba(52,168,83,0)');
-                            ctx.fillStyle = grad;
-                            ctx.beginPath();
-                            ctx.arc(x, yPos, size * 2, 0, Math.PI * 2);
-                            ctx.fill();
-                            ctx.fillStyle = '#34a853';
-                            ctx.shadowColor = 'rgba(52,168,83,0.4)';
-                            ctx.shadowBlur = 10;
-                            ctx.beginPath();
-                            ctx.moveTo(x, yPos - 7);
-                            ctx.lineTo(x - 6, yPos + 4);
-                            ctx.lineTo(x + 6, yPos + 4);
-                            ctx.closePath();
-                            ctx.fill();
-                            ctx.shadowBlur = 0;
-                            ctx.fillStyle = '#ffffff';
-                            ctx.font = 'bold 5px sans-serif';
-                            ctx.textAlign = 'center';
-                            ctx.textBaseline = 'middle';
-                            ctx.fillText('B', x, yPos + 1);
-                            ctx.restore();
-                        });
-                    });
-
-                    // Dividend markers
-                    (annotationData.dividends || []).forEach(item => {
-                        drawMarker(item, (ctx, x, y, ya) => {
-                            ctx.save();
-                            const size = 7;
-                            const yPos = y - size - 4;
-                            const grad = ctx.createRadialGradient(x, yPos, 0, x, yPos, size * 1.8);
-                            grad.addColorStop(0, 'rgba(249,168,37,0.3)');
-                            grad.addColorStop(1, 'rgba(249,168,37,0)');
-                            ctx.fillStyle = grad;
-                            ctx.beginPath();
-                            ctx.arc(x, yPos, size * 1.8, 0, Math.PI * 2);
-                            ctx.fill();
-                            ctx.fillStyle = '#f9a825';
-                            ctx.shadowColor = 'rgba(249,168,37,0.4)';
-                            ctx.shadowBlur = 10;
-                            ctx.beginPath();
-                            ctx.arc(x, yPos, size * 0.5, 0, Math.PI * 2);
-                            ctx.fill();
-                            ctx.shadowBlur = 0;
-                            ctx.fillStyle = '#ffffff';
-                            ctx.font = 'bold 5px sans-serif';
-                            ctx.textAlign = 'center';
-                            ctx.textBaseline = 'middle';
-                            ctx.fillText('D', x, yPos + 0.5);
-                            ctx.restore();
-                        });
-                    });
-
-                    // Event markers
-                    (annotationData.events || []).forEach(event => {
-                        drawMarker(event, (ctx, x, y, ya) => {
-                            const yMin = ya.top;
-                            const yMax = ya.bottom;
-                            ctx.save();
-                            ctx.setLineDash([3, 4]);
-                            ctx.strokeStyle = event.color || '#fdd663';
-                            ctx.lineWidth = 1.5;
-                            ctx.globalAlpha = 0.5;
-                            ctx.beginPath();
-                            ctx.moveTo(x, yMin);
-                            ctx.lineTo(x, yMax);
-                            ctx.stroke();
-                            ctx.globalAlpha = 1;
-                            ctx.setLineDash([]);
-                            ctx.fillStyle = event.color || '#fdd663';
-                            ctx.font = 'bold 7px sans-serif';
-                            ctx.textAlign = 'center';
-                            ctx.textBaseline = 'top';
-                            const label = event.label || '';
-                            const tw = ctx.measureText(label).width;
-                            const pad = 5;
-                            const rectX = x - tw / 2 - pad;
-                            const rectY = yMin + 3;
-                            ctx.fillStyle = T.bg2 + 'dd';
-                            ctx.shadowColor = 'rgba(0,0,0,0.3)';
-                            ctx.shadowBlur = 6;
-                            const r = 3;
-                            const w = tw + pad * 2;
-                            const h = 13;
-                            ctx.beginPath();
-                            ctx.moveTo(rectX + r, rectY);
-                            ctx.arcTo(rectX + w, rectY, rectX + w, rectY + h, r);
-                            ctx.arcTo(rectX + w, rectY + h, rectX, rectY + h, r);
-                            ctx.arcTo(rectX, rectY + h, rectX, rectY, r);
-                            ctx.arcTo(rectX, rectY, rectX + w, rectY, r);
-                            ctx.closePath();
-                            ctx.fill();
-                            ctx.shadowBlur = 0;
-                            ctx.fillStyle = event.color || '#fdd663';
-                            ctx.textBaseline = 'middle';
-                            ctx.fillText(label, x, rectY + 6.5);
-                            ctx.restore();
-                        });
-                    });
-                }
             };
         }
 
@@ -2746,23 +2508,22 @@
             const [showPassiveModal, setShowPassiveModal] = useState(false);
             const [avgSuperBalanceAud, setAvgSuperBalanceAud] = useState(() => ld("f6_avgSuper", 0));
 
-            // What-If State
+            // ─── What-If State ──────────────────────────────────────────────────────
             const [whatIf, setWhatIf] = useState({
                 growthRate: 5.0,
-                reinvestRatio: 50,
+                reinvestDividends: true,
                 fxRate: 0.0,
                 simulationYears: 5,
-                adjustments: {},
+                targetPct: {}, // ticker -> target %
                 scenarios: [],
                 activeScenario: null,
                 scenarioName: "",
             });
 
-            // Treemap state for What-If — with robust size tracking
+            // ─── Treemap state for What-If ──────────────────────────────────────────
             const [whatIfTmSize, setWhatIfTmSize] = useState({ w: 400, h: 350 });
             const whatIfTmRef = useRef(null);
 
-            // Measure container size using ResizeObserver + fallback
             useLayoutEffect(() => {
                 const el = whatIfTmRef.current;
                 if (!el) return;
@@ -3089,13 +2850,10 @@
             const pColor = n => n >= 0 ? T.green : T.red;
 
             const riskMetrics = useMemo(() => computeRiskMetrics(history), [history]);
-
-            // ─── Income Risk Metrics ────────────────────────────────────────────────────
             const incomeRiskMetrics = useMemo(() => {
                 return computeIncomeRiskMetrics(portfolio, rates, displayCur);
             }, [portfolio, rates, displayCur]);
 
-            // ─── Y-axis formatter that converts AUD to display currency ──────────────
             const yFmtD = useCallback((v) => {
                 const val = fromAUD(v, displayCur, rates);
                 if (displayCur === "IDR") {
@@ -3212,428 +2970,153 @@
                 return new Date(0);
             }, []);
 
-            // ─── ANNOTATION DATA ──────────────────────────────────────────────────────
-            // Include ALL transactions. The plugin will only draw markers for dates that exist in the chart data.
-            const annotationData = useMemo(() => {
-                const historyMap = {};
-                for (const snap of history) {
-                    historyMap[snap.date] = snap.totalValueAUD;
+            // ─── What-If Simulation ─────────────────────────────────────────────────
+            const runSimulation = useCallback(() => {
+                if (!holdings.length) return null;
+                const { growthRate, reinvestDividends, fxRate, simulationYears, targetPct } = whatIf;
+
+                // Compute current total value and dividend yields
+                const totalValue = holdings.reduce((s, h) => s + h.currentValue, 0);
+                if (totalValue <= 0) return null;
+
+                // Compute dividend yield for each holding
+                const holdingData = holdings.map(h => {
+                    const divYield = h.currentValue > 0 ? h.totalDividends / h.currentValue : 0;
+                    return { ...h, divYield };
+                });
+
+                // Use target percentages, fallback to current percentages if not set
+                const totalPct = Object.values(targetPct).reduce((s, v) => s + v, 0);
+                let pctMap = { ...targetPct };
+                if (totalPct === 0 || totalPct < 99.9 || totalPct > 100.1) {
+                    // Initialize or normalize
+                    const currentPct = {};
+                    holdings.forEach(h => {
+                        currentPct[h.ticker] = (h.currentValue / totalValue) * 100;
+                    });
+                    pctMap = currentPct;
                 }
 
-                const getPortfolioValueAtDate = (dateStr) => {
-                    let valAUD = historyMap[dateStr];
-                    if (valAUD !== undefined) return fromAUD(valAUD, displayCur, rates);
-                    const dates = Object.keys(historyMap).sort();
-                    let best = null,
-                        bestDiff = Infinity;
-                    const target = new Date(dateStr).getTime();
-                    for (const d of dates) {
-                        const diff = Math.abs(new Date(d).getTime() - target);
-                        if (diff < bestDiff) { bestDiff = diff;
-                            best = d; }
+                // Normalize to sum to 100%
+                const sum = Object.values(pctMap).reduce((s, v) => s + v, 0);
+                if (Math.abs(sum - 100) > 0.01 && sum > 0) {
+                    const factor = 100 / sum;
+                    Object.keys(pctMap).forEach(k => { pctMap[k] = pctMap[k] * factor; });
+                }
+
+                // Compute adjusted values based on target percentages
+                let adjustedValue = 0;
+                const adjustedHoldings = holdingData.map(h => {
+                    const pct = pctMap[h.ticker] || 0;
+                    const adjVal = (pct / 100) * totalValue;
+                    adjustedValue += adjVal;
+                    const adjDiv = adjVal * h.divYield;
+                    return { ...h, adjustedValue: adjVal, adjustedDividends: adjDiv, targetPct: pct };
+                });
+
+                // Weighted average dividend yield
+                const weightedAvgYield = adjustedHoldings.reduce((s, h) => s + (h.targetPct / 100) * h.divYield, 0);
+
+                // Project forward
+                let portfolioValue = totalValue; // start with current total
+                let annualDividend = 0;
+                const dividendHistory = [];
+
+                for (let i = 0; i < simulationYears; i++) {
+                    // Grow portfolio
+                    portfolioValue *= (1 + growthRate / 100);
+                    // Apply FX change (simplified: adjust portfolio value)
+                    if (fxRate !== 0) {
+                        portfolioValue *= (1 + fxRate / 100);
                     }
-                    if (best && bestDiff < 60 * 24 * 60 * 60 * 1000) {
-                        valAUD = historyMap[best];
-                        return fromAUD(valAUD, displayCur, rates);
-                    }
-                    return fromAUD(totVal, displayCur, rates);
-                };
-
-                const buys = [];
-                const dividends = [];
-                const events = [];
-
-                for (const h of portfolio) {
-                    for (const tx of h.transactions) {
-                        if (tx.type === "buy") {
-                            const val = getPortfolioValueAtDate(tx.date);
-                            buys.push({ date: tx.date, value: val, ticker: h.ticker });
-                        } else if (tx.type === "dividend" && tx.date) {
-                            const val = getPortfolioValueAtDate(tx.date);
-                            dividends.push({ date: tx.date, value: val, ticker: h.ticker });
-                        }
+                    // Generate dividends
+                    const div = portfolioValue * weightedAvgYield;
+                    annualDividend = div;
+                    dividendHistory.push(div);
+                    if (reinvestDividends) {
+                        portfolioValue += div;
                     }
                 }
 
-                const buyMap = {};
-                for (const b of buys) {
-                    if (!buyMap[b.date]) buyMap[b.date] = b;
-                }
-                const divMap = {};
-                for (const d of dividends) {
-                    if (!divMap[d.date]) divMap[d.date] = d;
+                const finalPortfolioValue = portfolioValue;
+                const totalDividendsReceived = dividendHistory.reduce((s, v) => s + v, 0);
+                const avgAnnualDividend = dividendHistory.length > 0 ? totalDividendsReceived / dividendHistory.length :
+                    0;
+
+                // Dividend CAGR
+                let dividendCAGR = null;
+                if (dividendHistory.length >= 2 && dividendHistory[0] > 0 && dividendHistory[dividendHistory.length - 1] >
+                    0) {
+                    const firstDiv = dividendHistory[0];
+                    const lastDiv = dividendHistory[dividendHistory.length - 1];
+                    dividendCAGR = (Math.pow(lastDiv / firstDiv, 1 / (dividendHistory.length - 1)) - 1) * 100;
                 }
 
-                const sortedHist = [...history].sort((a, b) => new Date(a.date) - new Date(b.date));
-                for (let i = 1; i < sortedHist.length; i++) {
-                    const prev = sortedHist[i - 1].totalValueAUD;
-                    const curr = sortedHist[i].totalValueAUD;
-                    if (prev > 0) {
-                        const pct = (curr - prev) / prev * 100;
-                        const date = sortedHist[i].date;
-                        const val = fromAUD(curr, displayCur, rates);
-                        if (pct < -5) {
-                            events.push({ date, label: `▼${pct.toFixed(1)}%`, color: '#ea4335', value: val });
-                        } else if (pct > 5) {
-                            events.push({ date, label: `▲${pct.toFixed(1)}%`, color: '#34a853', value: val });
-                        }
-                    }
-                }
-
-                const sortedEvents = events.sort((a, b) => new Date(a.date) - new Date(b.date));
-                const recentEvents = sortedEvents.slice(-8);
+                // Risk concentration
+                const maxPct = Math.max(...adjustedHoldings.map(h => h.targetPct || 0));
+                const riskConcentration = maxPct;
 
                 return {
-                    buys: Object.values(buyMap).slice(0, 15),
-                    dividends: Object.values(divMap).slice(0, 15),
-                    events: recentEvents,
+                    finalPortfolioValue,
+                    avgAnnualDividend,
+                    totalDividendsReceived,
+                    dividendCAGR,
+                    riskConcentration,
+                    adjustedHoldings,
+                    weightedAvgYield,
+                    targetPct: pctMap,
+                    totalValue,
+                    growthRate,
+                    reinvestDividends,
+                    fxRate,
+                    simulationYears,
                 };
-            }, [portfolio, history, displayCur, rates, totVal]);
+            }, [holdings, whatIf]);
 
-            const autoRefresh = useCallback(async () => {
-                setFetchSt(s => ({ ...s, loading: true, fetched: 0 }));
-                let newRates = rates,
-                    rateOk = false;
-                try {
-                    newRates = await fetchExchangeRates();
-                    setRates(newRates);
-                    rateOk = true;
-                } catch (e) { console.warn("Rate fetch failed:", e.message); }
+            const simulationResult = useMemo(() => runSimulation(), [runSimulation]);
 
-                let bmStatus = "no benchmark data";
-                try {
-                    const BM_DEFS = [
-                        { key: "sp500", label: "S&P 500", fetch: () => fetchBenchmark("^GSPC") },
-                        { key: "brk", label: "BRK-B", fetch: () => fetchBenchmark("BRK-B") },
-                        { key: "jkse", label: "IDX Composite", fetch: () => fetchBenchmark("^JKSE") },
-                        { key: "eido", label: "EIDO", fetch: () => fetchBenchmark("EIDO") },
-                        { key: "vas", label: "VAS", fetch: () => fetchBenchmark("VAS.AX") },
-                    ];
-                    const results = await Promise.allSettled(BM_DEFS.map(b => b.fetch()));
-                    const successes = results.map((r, i) => r.status === "fulfilled" ? { ...BM_DEFS[i], data: r
-                            .value } : null).filter(Boolean);
-                    if (successes.length > 0) {
-                        const ref = successes.reduce((a, b) => a.data.labels.length > b.data.labels.length ? a : b);
-                        const series = {};
-                        results.forEach((r, i) => { series[BM_DEFS[i].key] = r.status === "fulfilled" ? r.value
-                                .pct : null; });
-                        const ok = BM_DEFS.map((b, i) => results[i].status === "fulfilled" ? b.label + "✓" : null)
-                            .filter(Boolean);
-                        const fail = BM_DEFS.map((b, i) => results[i].status === "rejected" ? b.label : null)
-                            .filter(Boolean);
-                        bmStatus =
-                            `${ok.length}/${BM_DEFS.length} loaded${fail.length ? ` · failed: ${fail.join(", ")}` : ""}`;
-                        const fetchable = portfolio.filter(h => h.yahooSymbol);
-                        const holdingPriceMaps = {};
-                        const CONCURRENCY = 4;
-                        const resultsHist = new Array(fetchable.length);
-                        async function fetchOne(h, idx) {
-                            try {
-                                const hist = await fetchHoldingHistory(h.yahooSymbol);
-                                if (hist?.priceMap) holdingPriceMaps[h.ticker] = hist.priceMap;
-                                else holdingPriceMaps[h.ticker] = null;
-                                resultsHist[idx] = { status: "fulfilled" };
-                            } catch (e) { resultsHist[idx] = { status: "rejected", reason: e.message }; }
-                        }
-                        let qi = 0;
-                        while (qi < fetchable.length) {
-                            const batch = fetchable.slice(qi, qi + CONCURRENCY);
-                            await Promise.allSettled(batch.map((h, bi) => fetchOne(h, qi + bi)));
-                            qi += CONCURRENCY;
-                        }
-                        setBenchmarks(prev => ({
-                            ...prev,
-                            labels: ref.data.labels,
-                            series,
-                            holdingPrices: { ...prev.holdingPrices, ...holdingPriceMaps }
-                        }));
-                    } else {
-                        bmStatus = "failed — all benchmarks unavailable";
-                        setBenchmarks(prev => ({ ...prev, holdingPrices: {} }));
-                    }
-                } catch (e) { bmStatus = "error: " + e.message; }
+            const whatIfItems = useMemo(() => {
+                if (!simulationResult) return [];
+                return simulationResult.adjustedHoldings.map(h => ({ ...h, value: h.adjustedValue }));
+            }, [simulationResult]);
 
-                const fetchablePrices = portfolio.filter(h => {
-                    if (h.yahooSymbol) return true;
-                    if (/^(PBS|SBN|SR|ST|FR|ORI|SUKUK)\d/i.test(h.ticker)) return true;
-                    if (/^[A-Z]{3}\d{4}[A-Z]{2}$/i.test(h.ticker)) return true;
-                    return false;
-                });
-                const newP = { ...prices },
-                    newPP = { ...prevPrices };
-                const errors = {};
-                let successes = 0;
+            const whatIfRects = useMemo(() => {
+                const sorted = [...whatIfItems].filter(item => item.value > 0).sort((a, b) => b.value - a.value);
+                if (!sorted.length) return [];
+                const w = Math.max(whatIfTmSize.w, 120);
+                const h = Math.max(whatIfTmSize.h, 120);
+                return squarify(sorted, 0, 0, w, h);
+            }, [whatIfItems, whatIfTmSize]);
 
-                function fetchPriceFor(h) {
-                    if (h.yahooSymbol) return fetchYahooPrice(h.yahooSymbol);
-                    const tk = h.ticker.toUpperCase();
-                    if (/^(PBS|SBN|SR|ST|FR|ORI)\d/i.test(tk)) return fetchDJPPRPrice(tk);
-                    if (/^[A-Z]{3}\d{4}[A-Z]{2}$/i.test(tk)) return fetchAUFundPrice(tk);
-                    return Promise.reject(new Error("No price source"));
-                }
-                const CONCURRENCY_PRICE = 8;
-                const priceResults = new Array(fetchablePrices.length);
-                async function fetchOnePrice(h, idx) {
-                    try {
-                        const p = await fetchPriceFor(h);
-                        priceResults[idx] = { status: "fulfilled", value: { h, p } };
-                    } catch (e) { priceResults[idx] = { status: "rejected", reason: e }; }
-                }
-                let qiPrice = 0;
-                while (qiPrice < fetchablePrices.length) {
-                    const batch = fetchablePrices.slice(qiPrice, qiPrice + CONCURRENCY_PRICE);
-                    await Promise.allSettled(batch.map((h, bi) => fetchOnePrice(h, qiPrice + bi)));
-                    qiPrice += CONCURRENCY_PRICE;
-                    const done = priceResults.filter(Boolean).length;
-                    setFetchSt(s => ({ ...s, fetched: done, total: fetchablePrices.length }));
-                }
-                priceResults.forEach((r, i) => {
-                    const h = fetchablePrices[i];
-                    if (r?.status === "fulfilled") {
-                        const isDJPPR = !h.yahooSymbol && /^(PBS|SBN|SR|ST|FR|ORI)\d/i.test(h.ticker);
-                        const mult = (h.isBondPct || isDJPPR) ? (h.faceValue ?? 1000000) / 100 : 1;
-                        newP[h.ticker] = r.value.p.current * mult;
-                        newPP[h.ticker] = r.value.p.prev * mult;
-                        successes++;
-                    } else {
-                        errors[h.ticker] = r?.reason?.message || "Failed";
-                    }
-                });
-                setPrices(newP);
-                setPrevPrices(newPP);
-                const now = new Date();
-                const date = now.toISOString().slice(0, 10);
-                const hs = portfolio.map(h => computeHolding(h, newP, newPP, newRates)).filter(h => h.qty > 0);
-                const snap = { date, totalValueAUD: hs.reduce((s, h) => s + h.currentValue, 0),
-                    totalDividendsAUD: hs.reduce((s, h) => s + h.totalDividends, 0) };
-                setHistory(prev => [...prev.filter(s => s.date !== date), snap].sort((a, b) => new Date(a.date) - new Date(
-                    b.date)).slice(-90));
-                setFetchSt({
-                    loading: false,
-                    lastUpdate: now,
-                    errors,
-                    successes,
-                    total: fetchablePrices.length,
-                    fetched: fetchablePrices.length,
-                    rateOk,
-                    bmStatus,
-                });
-            }, [portfolio, prices, prevPrices, rates]);
-
-            const chartData = useMemo(() => {
-                const cutoff = periodCutoff(chartPeriod);
-                const allSorted = [...history].sort((a, b) => new Date(a.date) - new Date(b.date));
-                const hasPriceMaps = Object.keys(benchmarks.holdingPrices || {}).length > 0;
-                const hasBenchmarkLabels = benchmarks.labels && benchmarks.labels.length > 0;
-                let labels = [],
-                    vals = [],
-                    divCumul = [];
-                let rawDates = [];
-                let bmLabels = [],
-                    bmSeries = {},
-                    bmPortfolio = [];
-                if (hasPriceMaps && hasBenchmarkLabels) {
-                    const allBenchmarkDates = benchmarks.labels;
-                    const bCutoff = periodCutoff(chartPeriod);
-                    const filtIdx = allBenchmarkDates.map((l, i) => new Date(l) >= bCutoff ? i : -1).filter(i => i >=
-                    0);
-                    if (filtIdx.length > 1) {
-                        bmLabels = filtIdx.map(i => fmtMonShort(allBenchmarkDates[i]));
-                        const i0 = filtIdx[0];
-                        const BM_KEYS = ["sp500", "brk", "jkse", "eido", "vas"];
-                        BM_KEYS.forEach(k => {
-                            const s = benchmarks.series[k];
-                            if (!s) { bmSeries[k] = filtIdx.map(() => null); return; }
-                            const base = s[i0] ?? null;
-                            bmSeries[k] = filtIdx.map(i => s[i] != null && base != null ? s[i] - base :
-                                null);
-                        });
-                        const findPrice = (priceMap, dateStr) => {
-                            if (!priceMap) return null;
-                            if (priceMap[dateStr]) return priceMap[dateStr];
-                            const target = new Date(dateStr).getTime();
-                            let best = null,
-                                bestDiff = 35 * 86400000;
-                            for (const [d, p] of Object.entries(priceMap)) {
-                                const diff = Math.abs(new Date(d).getTime() - target);
-                                if (diff < bestDiff) { bestDiff = diff;
-                                    best = p; }
-                            }
-                            return best;
-                        };
-                        const portfolioValAtDate = (dateStr) => {
-                            let totalAUD = 0;
-                            for (const h of portfolio) {
-                                let units = 0;
-                                for (const tx of h.transactions) {
-                                    if (tx.date > dateStr) continue;
-                                    if (tx.type === "buy") units += tx.qty;
-                                    else if (tx.type === "sell") units -= tx.qty;
-                                }
-                                if (units <= 0) continue;
-                                let priceInNative = null;
-                                const hp = benchmarks.holdingPrices[h.ticker];
-                                if (hp) {
-                                    priceInNative = findPrice(hp, dateStr);
-                                    if (h.isBondPct && priceInNative) priceInNative = priceInNative * (h
-                                        .faceValue || 1000000) / 100;
-                                }
-                                if (!priceInNative) priceInNative = prices[h.ticker];
-                                if (!priceInNative || priceInNative <= 0) continue;
-                                const currency = h.currency || "AUD";
-                                let valueAUD = units * priceInNative;
-                                if (currency === "IDR") valueAUD /= rates.AUD_IDR;
-                                else if (currency === "USD") valueAUD /= rates.AUD_USD;
-                                totalAUD += valueAUD;
-                            }
-                            return totalAUD > 0 ? totalAUD : null;
-                        };
-                        const cumulativeDividendsAtDate = (dateStr) => {
-                            let divAUD = 0;
-                            for (const h of portfolio) {
-                                h.transactions.filter(t => t.type === "dividend" && t.date <= dateStr).forEach(
-                                t => {
-                                    divAUD += toAUD(t.totalAmount || 0, h.currency, rates);
-                                });
-                            }
-                            return divAUD;
-                        };
-                        const bmDates = filtIdx.map(i => allBenchmarkDates[i]);
-                        const portVals = bmDates.map(date => portfolioValAtDate(date));
-                        const baseIdx = portVals.findIndex(v => v != null);
-                        if (baseIdx >= 0) {
-                            const baseVal = portVals[baseIdx];
-                            bmPortfolio = portVals.map((v, j) => v == null || j < baseIdx ? null : ((v -
-                                baseVal) / baseVal) * 100);
-                        }
-                        labels = bmLabels;
-                        rawDates = bmDates;
-                        vals = portVals.map(v => fromAUD(v || 0, displayCur, rates));
-                        divCumul = bmDates.map(d => fromAUD(cumulativeDividendsAtDate(d), displayCur, rates));
-                    }
-                } else {
-                    const periodSnaps = allSorted.filter(s => new Date(s.date) >= cutoff);
-                    labels = periodSnaps.map(s => fmtMonShort(s.date));
-                    rawDates = periodSnaps.map(s => s.date);
-                    vals = periodSnaps.map(s => fromAUD(s.totalValueAUD, displayCur, rates));
-                    divCumul = periodSnaps.map(s => {
-                        let divAUD = 0;
-                        portfolio.forEach(h => {
-                            h.transactions.filter(t => t.type === "dividend" && t.date <= s.date)
-                                .forEach(t => {
-                                    divAUD += toAUD(t.totalAmount || 0, h.currency, rates);
-                                });
-                        });
-                        return fromAUD(divAUD, displayCur, rates);
-                    });
-                }
-                const baseSnap = allSorted.filter(s => new Date(s.date) < cutoff).slice(-1)[0];
-                const monthly = {};
-                const monthlyByTicker = {};
-                const palette = ["#6366f1", "#34a853", "#1a73e8", "#f59e0b", "#ea4335", "#8b5cf6", "#ec4899",
-                    "#14b8a6", "#f97316", "#84cc16", "#3b82f6", "#a78bfa"
-                ];
-                portfolio.forEach(h => {
-                    h.transactions.filter(t => t.type === "dividend" && new Date(t.date) >= cutoff).forEach(
-                    t => {
-                        const m = t.date.slice(0, 7);
-                        const val = fromAUD(toAUD(t.totalAmount || 0, h.currency, rates), displayCur,
-                            rates);
-                        monthly[m] = (monthly[m] || 0) + val;
-                        if (!monthlyByTicker[h.ticker]) monthlyByTicker[h.ticker] = {};
-                        monthlyByTicker[h.ticker][m] = (monthlyByTicker[h.ticker][m] || 0) + val;
-                    });
-                });
-                const mKeys = Object.keys(monthly).sort();
-                const divTickers = Object.keys(monthlyByTicker).sort((a, b) => {
-                    const totA = Object.values(monthlyByTicker[a]).reduce((s, v) => s + v, 0);
-                    const totB = Object.values(monthlyByTicker[b]).reduce((s, v) => s + v, 0);
-                    return totB - totA;
-                });
-                const mDatasets = divTickers.map((ticker, i) => ({
-                    label: ticker,
-                    data: mKeys.map(m => monthlyByTicker[ticker][m] || 0),
-                    backgroundColor: palette[i % palette.length] + "aa",
-                    borderColor: palette[i % palette.length],
-                    borderWidth: 1,
-                    borderRadius: 3,
-                }));
-                const byType = {};
-                holdings.forEach(h => { const k = h.assetType || "Other";
-                    byType[k] = (byType[k] || 0) + fromAUD(h.currentValue, displayCur, rates); });
-                const byCur = {};
-                holdings.forEach(h => { byCur[h.currency] = (byCur[h.currency] || 0) + fromAUD(h.currentValue,
-                        displayCur, rates); });
-                const startVal = vals.length ? vals[0] : (baseSnap ? fromAUD(baseSnap.totalValueAUD, displayCur,
-                    rates) : 0);
-                const endVal = vals.length ? vals[vals.length - 1] : fromAUD(totVal, displayCur, rates);
-                const topUps = portfolio.reduce((s, h) => s + h.transactions.filter(t => t.type === "buy" && new Date(t
-                        .date) >= cutoff).reduce((ss, t) => ss + fromAUD(toAUD(t.qty * t.price, h.currency, rates),
-                        displayCur, rates), 0), 0);
-                const divInPeriod = portfolio.reduce((s, h) => s + h.transactions.filter(t => t.type === "dividend" &&
-                    new Date(t.date) >= cutoff).reduce((ss, t) => ss + fromAUD(toAUD(t.totalAmount || 0, h.currency,
-                        rates), displayCur, rates), 0), 0);
-                const netSales = portfolio.reduce((s, h) => s + h.transactions.filter(t => t.type === "sell" && new Date(
-                        t.date) >= cutoff).reduce((ss, t) => ss + fromAUD(toAUD(t.qty * t.price, h.currency, rates),
-                        displayCur, rates), 0), 0);
-                const capitalGain = endVal - startVal - topUps + netSales - divInPeriod;
-                const waterfallData = [
-                    { label: "Start Value", value: startVal, type: "start" },
-                    capitalGain >= 0 ? { label: "Capital Gain", value: capitalGain, type: "pos" } : { label: "Capital Loss",
-                        value: capitalGain, type: "neg" },
-                    { label: "Top-Ups", value: topUps, type: "pos" },
-                    { label: "Dividends", value: divInPeriod, type: "pos" },
-                    netSales > 0 ? { label: "Sales", value: -netSales, type: "neg" } : null,
-                    { label: "End Value", value: endVal, type: "total" },
-                ].filter(Boolean);
-                const divByYear = {};
-                portfolio.forEach(h => {
-                    h.transactions.filter(t => t.type === "dividend").forEach(t => {
-                        const y = t.date.slice(0, 4);
-                        const val = fromAUD(toAUD(t.totalAmount || 0, h.currency, rates), displayCur,
-                            rates);
-                        divByYear[y] = (divByYear[y] || 0) + val;
-                    });
-                });
-                const divYears = Object.keys(divByYear).sort();
-                let divCAGR_ = null,
-                    divCAGRYears = 0;
-                if (divYears.length >= 2) {
-                    const firstY = divYears[0],
-                        lastY = divYears[divYears.length - 1];
-                    const firstVal = divByYear[firstY],
-                        lastVal = divByYear[lastY];
-                    divCAGRYears = parseInt(lastY) - parseInt(firstY);
-                    if (divCAGRYears > 0 && firstVal > 0 && lastVal > 0) {
-                        divCAGR_ = (Math.pow(lastVal / firstVal, 1 / divCAGRYears) - 1) * 100;
+            // Force re-measure when view changes to "whatif"
+            useEffect(() => {
+                if (view === "whatif" && whatIfTmRef.current) {
+                    const rect = whatIfTmRef.current.getBoundingClientRect();
+                    if (rect.width > 10 && rect.height > 10) {
+                        setWhatIfTmSize({ w: rect.width, h: rect.height });
                     }
                 }
-                return {
-                    labels,
-                    rawDates,
-                    vals,
-                    divCumul,
-                    mLabels: mKeys.map(fmtMon),
-                    mVals: mKeys.map(k => monthly[k]),
-                    mDatasets,
-                    divCAGR: divCAGR_,
-                    divCAGRYears,
-                    tLabels: Object.keys(byType),
-                    tVals: Object.values(byType),
-                    palette,
-                    byCurLabels: Object.keys(byCur),
-                    byCurVals: Object.values(byCur),
-                    byCurColors: ["#34a853", "#1a73e8", "#f59e0b", "#8b5cf6"],
-                    waterfallData,
-                    startVal,
-                    endVal,
-                    bmLabels,
-                    bmSeries,
-                    bmPortfolio,
-                };
-            }, [history, holdings, displayCur, rates, portfolio, chartPeriod, periodCutoff, benchmarks, totVal, dark,
-                prices
-            ]);
+            }, [view]);
+
+            // Initialize target percentages from holdings when they change
+            useEffect(() => {
+                const totalValue = holdings.reduce((s, h) => s + h.currentValue, 0);
+                if (totalValue <= 0) return;
+                const pctMap = {};
+                holdings.forEach(h => {
+                    pctMap[h.ticker] = (h.currentValue / totalValue) * 100;
+                });
+                setWhatIf(w => {
+                    // Only update if targetPct is empty or we need to add new holdings
+                    const currentKeys = Object.keys(w.targetPct);
+                    const holdingKeys = holdings.map(h => h.ticker);
+                    const needsUpdate = holdingKeys.some(k => !currentKeys.includes(k));
+                    if (needsUpdate || currentKeys.length === 0) {
+                        return { ...w, targetPct: pctMap };
+                    }
+                    return w;
+                });
+            }, [holdings]);
 
             const closeModal = () => { setModal(null);
                 setForm({}); };
@@ -3811,94 +3294,6 @@
             const fetchBarColor = fetchSt.loading ? T.amber : Object.keys(fetchSt.errors).length > 0 ? T.amber : fetchSt
                 .lastUpdate ? T.green : T.text3;
 
-            // ─── What-If Logic ──────────────────────────────────────────────────────
-            const runSimulation = useCallback(() => {
-                if (!holdings.length) return null;
-                const { growthRate, reinvestRatio, fxRate, simulationYears, adjustments } = whatIf;
-
-                let adjustedDivs = 0;
-                let adjustedValue = 0;
-                let totalAdjValue = 0;
-                const adjustedHoldings = holdings.map(h => {
-                    const factor = adjustments[h.ticker] || 1.0;
-                    const adjVal = h.currentValue * factor;
-                    const adjDiv = h.totalDividends * factor;
-                    totalAdjValue += adjVal;
-                    return { ...h, adjustedValue: adjVal, adjustedDividends: adjDiv };
-                });
-
-                let divPortValue = 0,
-                    divPortDivs = 0;
-                adjustedHoldings.forEach(h => {
-                    if (h.assetType && DIVIDEND_PAYING_TYPES.has(h.assetType)) {
-                        divPortValue += h.adjustedValue;
-                        divPortDivs += h.adjustedDividends;
-                    }
-                });
-                const currentYield = divPortValue > 0 ? (divPortDivs / divPortValue) * 100 : 0;
-
-                const totalAdjustedDivs = adjustedHoldings.reduce((s, h) => s + h.adjustedDividends, 0);
-                const totalAdjustedValue = adjustedHoldings.reduce((s, h) => s + h.adjustedValue, 0);
-
-                const years = [];
-                const projectedDivs = [];
-                const projectedReinvested = [];
-                let div = totalAdjustedDivs;
-
-                for (let i = 0; i <= simulationYears; i++) {
-                    years.push(new Date().getFullYear() + i);
-                    projectedDivs.push(div);
-                    const reinvested = div * (reinvestRatio / 100);
-                    projectedReinvested.push(reinvested);
-                    div = div * (1 + growthRate / 100) + reinvested * (growthRate / 100) * 0.5;
-                }
-
-                const finalDiv = projectedDivs[projectedDivs.length - 1] || totalAdjustedDivs;
-                const cagr = totalAdjustedDivs > 0 ? (Math.pow(finalDiv / totalAdjustedDivs, 1 / simulationYears) - 1) *
-                100 : 0;
-
-                const maxHolding = adjustedHoldings.reduce((max, h) => h.adjustedValue > max ? h.adjustedValue : max, 0);
-                const riskConcentration = totalAdjustedValue > 0 ? (maxHolding / totalAdjustedValue) * 100 : 0;
-
-                return {
-                    adjustedDivs: totalAdjustedDivs,
-                    adjustedValue: totalAdjustedValue,
-                    currentYield,
-                    finalDiv,
-                    cagr,
-                    riskConcentration,
-                    years,
-                    projectedDivs,
-                    projectedReinvested,
-                    adjustedHoldings,
-                };
-            }, [holdings, whatIf]);
-
-            const simulationResult = useMemo(() => runSimulation(), [runSimulation]);
-
-            const whatIfItems = useMemo(() => {
-                if (!simulationResult) return [];
-                return simulationResult.adjustedHoldings.map(h => ({ ...h, value: h.adjustedValue }));
-            }, [simulationResult]);
-
-            const whatIfRects = useMemo(() => {
-                const sorted = [...whatIfItems].filter(item => item.value > 0).sort((a, b) => b.value - a.value);
-                if (!sorted.length) return [];
-                const w = Math.max(whatIfTmSize.w, 120);
-                const h = Math.max(whatIfTmSize.h, 120);
-                return squarify(sorted, 0, 0, w, h);
-            }, [whatIfItems, whatIfTmSize]);
-
-            // Force re-measure when view changes to "whatif"
-            useEffect(() => {
-                if (view === "whatif" && whatIfTmRef.current) {
-                    const rect = whatIfTmRef.current.getBoundingClientRect();
-                    if (rect.width > 10 && rect.height > 10) {
-                        setWhatIfTmSize({ w: rect.width, h: rect.height });
-                    }
-                }
-            }, [view]);
-
             // ─── What-If Render ────────────────────────────────────────────────────────
             const renderWhatIf = () => {
                 if (!holdings.length) {
@@ -3910,243 +3305,246 @@
                 if (!sr) return null;
 
                 const {
-                    adjustedDivs,
-                    adjustedValue,
-                    currentYield,
-                    finalDiv,
-                    cagr,
+                    finalPortfolioValue,
+                    avgAnnualDividend,
+                    totalDividendsReceived,
+                    dividendCAGR,
                     riskConcentration,
-                    years,
-                    projectedDivs,
-                    projectedReinvested,
+                    adjustedHoldings,
+                    weightedAvgYield,
+                    targetPct,
+                    totalValue,
+                    growthRate,
+                    reinvestDividends,
+                    fxRate,
+                    simulationYears,
                 } = sr;
 
-                const chartLabels = years.map(y => String(y));
-                const currentDivs = projectedDivs.map(() => adjustedDivs);
+                const treemapHeight = isMob ? 180 : 260;
 
-                const divDatasets = [
-                    { label: "Current", data: currentDivs, borderColor: T.text3, borderDash: [5, 4], borderWidth: 1.5,
-                        pointRadius: 0 },
-                    { label: "Projected", data: projectedDivs, borderColor: T.green, backgroundColor: dark ?
-                            "rgba(52,168,83,.1)" : "rgba(30,142,62,.08)", fill: true, borderWidth: 2.5 },
-                ];
-
-                const chartHeight = isMob ? 150 : 180;
-                const treemapHeight = isMob ? 160 : 190;
-
-                // Dynamically adjust max adjustment based on years
-                const maxAdjust = 100 + whatIf.simulationYears * 20; // e.g., 5 years => 200%, 10 years => 300%
-                const step = 5;
+                // Update target percentages when sliders change
+                const updateTargetPct = (ticker, value) => {
+                    const newPct = parseFloat(value);
+                    if (isNaN(newPct) || newPct < 0) return;
+                    const current = { ...whatIf.targetPct };
+                    current[ticker] = newPct;
+                    // Normalize
+                    const sum = Object.values(current).reduce((s, v) => s + v, 0);
+                    if (sum > 0) {
+                        const factor = 100 / sum;
+                        Object.keys(current).forEach(k => { current[k] = current[k] * factor; });
+                    }
+                    setWhatIf(w => ({ ...w, targetPct: current }));
+                };
 
                 return (
                     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                        {/* Top row: Input sliders */}
-                        <div className="whatif-grid" style={{ display: "grid", gridTemplateColumns: isMob ? "1fr 1fr" :
-                                "1fr 1fr 1fr 1fr", gap: 6 }}>
-                            <div style={card({ padding: 8 })}>
-                                <label style={lbl({ fontSize: 7 })}>Growth Rate</label>
-                                <input type="range" className="whatif-slider" min="0" max="15" step="0.5"
-                                    value={whatIf.growthRate}
-                                    onChange={e => setWhatIf(w => ({ ...w, growthRate: parseFloat(e.target.value) }))} />
-                                <div style={{ textAlign: "center", fontWeight: 700, fontSize: 12, color: T.text }}>{whatIf
-                                        .growthRate}%</div>
-                            </div>
-                            <div style={card({ padding: 8 })}>
-                                <label style={lbl({ fontSize: 7 })}>Reinvest</label>
-                                <input type="range" className="whatif-slider" min="0" max="100" step="5"
-                                    value={whatIf.reinvestRatio}
-                                    onChange={e => setWhatIf(w => ({ ...w, reinvestRatio: parseFloat(e.target.value) }))} />
-                                <div style={{ textAlign: "center", fontWeight: 700, fontSize: 12, color: T.text }}>{whatIf
-                                        .reinvestRatio}%</div>
-                            </div>
-                            <div style={card({ padding: 8 })}>
-                                <label style={lbl({ fontSize: 7 })}>FX Change</label>
-                                <input type="range" className="whatif-slider" min="-5" max="5" step="0.5"
-                                    value={whatIf.fxRate}
-                                    onChange={e => setWhatIf(w => ({ ...w, fxRate: parseFloat(e.target.value) }))} />
-                                <div style={{ textAlign: "center", fontWeight: 700, fontSize: 12, color: T.text }}>{whatIf
-                                        .fxRate}%</div>
-                            </div>
-                            <div style={card({ padding: 8 })}>
-                                <label style={lbl({ fontSize: 7 })}>Years</label>
-                                <input type="range" className="whatif-slider" min="1" max="10" step="1"
-                                    value={whatIf.simulationYears}
-                                    onChange={e => setWhatIf(w => ({ ...w, simulationYears: parseInt(e.target.value) }))} />
-                                <div style={{ textAlign: "center", fontWeight: 700, fontSize: 12, color: T.text }}>{whatIf
-                                        .simulationYears}</div>
-                            </div>
-                        </div>
-
-                        {/* Middle: two halves */}
-                        <div className="whatif-layout" style={{ display: "flex", gap: 12, flexWrap: isMob ? "wrap" :
-                                "nowrap", alignItems: "stretch", minHeight: isMob ? 'auto' : 420 }}>
-                            {/* Left: Modify Holdings */}
-                            <div className="whatif-left" style={{ flex: 1, minWidth: 0, display: "flex",
-                                    flexDirection: "column" }}>
-                                <div className="left-card" style={{ ...card({ padding: 8 }), flex: 1, display: "flex",
-                                        flexDirection: "column", height: "100%", minHeight: 0 }}>
-                                    <div style={{ fontSize: 11, fontWeight: 600, color: T.text, marginBottom: 4 }}>
-                                        Modify Holdings
-                                        <span style={{ fontSize: 8, color: T.text3, fontWeight: 400, marginLeft: 4 }}>(max: {maxAdjust}%)</span>
-                                    </div>
-                                    <div className="holdings-wrap" style={{ flex: 1, overflowY: "auto", paddingRight: 2,
-                                            minHeight: 0 }}>
-                                        <div className="whatif-holdings" style={{ display: "grid", gridTemplateColumns: "1fr 1fr",
-                                                gap: 4 }}>
-                                            {holdings.map(h => {
-                                                const factor = whatIf.adjustments[h.ticker] || 1.0;
-                                                const pct = Math.round(factor * 100);
-                                                return (
-                                                    <div key={h.ticker} className="adj-row" style={{ background: T.bg4,
-                                                            borderRadius: 5, padding: "4px 7px", border: "1px solid " + T.border,
-                                                            minHeight: 34 }}>
-                                                        <span className="ticker" style={{ fontSize: 11,
-                                                                minWidth: 44, fontWeight: 700, color: T
-                                                                .text, flexShrink: 0 }}>{h.ticker}</span>
-                                                        <span className="value" style={{ fontSize: 10,
-                                                                minWidth: 50, textAlign: "right",
-                                                            color: T.text2, fontWeight: 500, flexShrink: 0 }}>{FC(
-                                                                h.currentValue, true)}</span>
-                                                        <button className="adj-btn" style={{ background: T
-                                                                .bg2, border: "1px solid " + T.border,
-                                                                borderRadius: 4, width: 24, height: 24,
-                                                                display: "flex", alignItems: "center",
-                                                                justifyContent: "center", color: T.text,
-                                                                cursor: "pointer", fontSize: 15,
-                                                                fontWeight: 700, flexShrink: 0 }}
-                                                            onClick={() => {
-                                                                const newVal = Math.max(0, factor - step / 100);
-                                                                setWhatIf(w => ({ ...w, adjustments: { ...w.adjustments, [h.ticker]: newVal } }));
-                                                            }}>−</button>
-                                                        <input type="number" style={{ width: 48, background: T
-                                                                .bg, border: "1px solid " + T.border,
-                                                                borderRadius: 4, padding: "2px 3px",
-                                                                fontSize: 11, color: T.text, textAlign: "center",
-                                                                fontWeight: 600, flexShrink: 0 }}
-                                                            value={pct}
-                                                            min="0"
-                                                            max={maxAdjust}
-                                                            onChange={e => {
-                                                                const val = parseFloat(e.target.value);
-                                                                if (!isNaN(val) && val >= 0 && val <= maxAdjust) {
-                                                                    setWhatIf(w => ({ ...w, adjustments: { ...w.adjustments, [h.ticker]: val / 100 } }));
-                                                                }
-                                                            }} />
-                                                        <button className="adj-btn" style={{ background: T
-                                                                .bg2, border: "1px solid " + T.border,
-                                                                borderRadius: 4, width: 24, height: 24,
-                                                                display: "flex", alignItems: "center",
-                                                                justifyContent: "center", color: T.text,
-                                                                cursor: "pointer", fontSize: 15,
-                                                                fontWeight: 700, flexShrink: 0 }}
-                                                            onClick={() => {
-                                                                const newVal = Math.min(maxAdjust / 100, factor + step / 100);
-                                                                setWhatIf(w => ({ ...w, adjustments: { ...w.adjustments, [h.ticker]: newVal } }));
-                                                            }}>+</button>
-                                                        <span className="diff-label" style={{ fontSize: 9,
-                                                                minWidth: 34, textAlign: "right",
-                                                                color: pct > 100 ? T.green : pct < 100 ?
-                                                                T.red : T.text3, fontWeight: 600,
-                                                                flexShrink: 0 }}>
-                                                            {pct > 100 ? `+${pct-100}%` : pct < 100 ? `${pct-100}%` : '0%'}
-                                                        </span>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                    <div style={{ display: "flex", gap: 4, marginTop: 5 }}>
-                                        <button onClick={() => setWhatIf(w => ({ ...w, adjustments: {} }))} style={bO(T
-                                            .text2, { fontSize: 9, padding: "2px 8px" })}>Reset</button>
+                        {/* Market Settings */}
+                        <div style={card({ padding: 12 })}>
+                            <div style={{ fontSize: 11, fontWeight: 600, color: T.text, marginBottom: 6 }}>📈 Market
+                                Settings</div>
+                            <div style={{ display: "grid", gridTemplateColumns: isMob ? "1fr 1fr" : "1fr 1fr 1fr 1fr",
+                                    gap: 8 }}>
+                                <div>
+                                    <label style={lbl({ fontSize: 7 })}>Growth Rate (annual)</label>
+                                    <input type="range" className="whatif-slider" min="0" max="15" step="0.5"
+                                        value={whatIf.growthRate}
+                                        onChange={e => setWhatIf(w => ({ ...w, growthRate: parseFloat(e.target.value) }))} />
+                                    <div style={{ textAlign: "center", fontWeight: 700, fontSize: 11, color: T.text }}>{whatIf
+                                            .growthRate}%</div>
+                                </div>
+                                <div>
+                                    <label style={lbl({ fontSize: 7 })}>Reinvest Dividends</label>
+                                    <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+                                        <button onClick={() => setWhatIf(w => ({ ...w, reinvestDividends: true }))}
+                                            style={{ padding: "4px 12px", borderRadius: 12, border: "1px solid " + (whatIf
+                                                    .reinvestDividends ? T.greenBtn : T.border), background: whatIf
+                                                    .reinvestDividends ? T.greenBtn : "transparent", color: whatIf
+                                                    .reinvestDividends ? "#fff" : T.text3, fontSize: 10,
+                                                fontWeight: 600 }}>Yes</button>
+                                        <button onClick={() => setWhatIf(w => ({ ...w, reinvestDividends: false }))}
+                                            style={{ padding: "4px 12px", borderRadius: 12, border: "1px solid " + (!whatIf
+                                                    .reinvestDividends ? T.redBtn : T.border), background: !whatIf
+                                                    .reinvestDividends ? T.redBtn : "transparent", color: !whatIf
+                                                    .reinvestDividends ? "#fff" : T.text3, fontSize: 10,
+                                                fontWeight: 600 }}>No</button>
                                     </div>
                                 </div>
-                            </div>
-
-                            {/* Right: Chart + Treemap stacked */}
-                            <div className="whatif-right" style={{ flex: 1, minWidth: 0, display: "flex",
-                                    flexDirection: "column", gap: 12, minHeight: isMob ? 'auto' : 420 }}>
-                                {/* Chart block */}
-                                <div className="chart-block" style={{ flex: "1 1 40%", minHeight: chartHeight,
-                                        display: "flex", flexDirection: "column" }}>
-                                    <div style={{ ...card({ padding: 10 }), flex: 1, display: "flex",
-                                            flexDirection: "column" }}>
-                                        <div style={{ fontSize: 11, fontWeight: 600, color: T.text, marginBottom: 2 }}>
-                                            Dividend Income Projection
-                                        </div>
-                                        <div style={{ flex: 1 }}>
-                                            <ChartLine labels={chartLabels} datasets={divDatasets} T={T} yFmt={yFmtD}
-                                                height={chartHeight} />
-                                        </div>
-                                    </div>
+                                <div>
+                                    <label style={lbl({ fontSize: 7 })}>FX Change (%)</label>
+                                    <input type="range" className="whatif-slider" min="-10" max="10" step="0.5"
+                                        value={whatIf.fxRate}
+                                        onChange={e => setWhatIf(w => ({ ...w, fxRate: parseFloat(e.target.value) }))} />
+                                    <div style={{ textAlign: "center", fontWeight: 700, fontSize: 11, color: T.text }}>{whatIf
+                                            .fxRate >= 0 ? "+" : ""}{whatIf.fxRate}%</div>
                                 </div>
-
-                                {/* Treemap block */}
-                                <div className="treemap-block" style={{ flex: "1 1 60%", minHeight: treemapHeight,
-                                        display: "flex", flexDirection: "column" }}>
-                                    <div style={{ ...card({ padding: 10 }), flex: 1, display: "flex",
-                                            flexDirection: "column", height: "100%" }}>
-                                        <div style={{ fontSize: 11, fontWeight: 600, color: T.text, marginBottom: 2 }}>
-                                            Adjusted Allocation
-                                        </div>
-                                        <div className="treemap-container" ref={whatIfTmRef} style={{ flex: 1,
-                                                width: "100%", minHeight: treemapHeight, position: "relative",
-                                                borderRadius: 10, overflow: "hidden", border: "1px solid " + T.border,
-                                                background: T.bg3 }}>
-                                            {whatIfRects.map(r => {
-                                                const c = getPerformanceColor(r.gainPct || 0, dark);
-                                                const minDim = Math.min(r.w, r.h);
-                                                const fontSize = Math.max(8, Math.min(14, minDim / 6));
-                                                return (
-                                                    <div key={r.ticker} style={{ position: "absolute", left: r.x,
-                                                            top: r.y, width: r.w, height: r.h,
-                                                            background: c.bg, border: "1px solid " + c
-                                                            .border, display: "flex", flexDirection: "column",
-                                                            alignItems: "center", justifyContent: "center",
-                                                            fontSize: fontSize, fontWeight: 700, color: c
-                                                            .text, padding: 2, textAlign: "center",
-                                                            overflow: "hidden" }}>
-                                                        <span style={{ fontSize: fontSize, fontWeight: 700 }}>{r
-                                                            .ticker}</span>
-                                                        <span style={{ fontSize: fontSize * 0.8, opacity: 0.9 }}>{FC(
-                                                                r.adjustedValue, true)}</span>
-                                                        <span style={{ fontSize: fontSize * 0.7, opacity: 0.7 }}>{fmtPct(
-                                                                r.gainPct || 0)}</span>
-                                                    </div>
-                                                );
-                                            })}
-                                            {whatIfRects.length === 0 && <div style={{ position: "absolute",
-                                                    inset: 0, display: "flex", alignItems: "center",
-                                                    justifyContent: "center", color: T.text3,
-                                                fontSize: 11 }}>No holdings</div>}
-                                        </div>
-                                    </div>
+                                <div>
+                                    <label style={lbl({ fontSize: 7 })}>Years</label>
+                                    <input type="range" className="whatif-slider" min="5" max="10" step="1"
+                                        value={whatIf.simulationYears}
+                                        onChange={e => setWhatIf(w => ({ ...w, simulationYears: parseInt(e.target.value) }))} />
+                                    <div style={{ textAlign: "center", fontWeight: 700, fontSize: 11, color: T.text }}>{whatIf
+                                            .simulationYears}y</div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Bottom: KPIs and Scenarios */}
-                        <div style={{ display: "grid", gridTemplateColumns: isMob ? "1fr 1fr" : "1fr 1fr 1fr 1fr",
-                                gap: 6 }}>
-                            <div style={card({ padding: 8, textAlign: "center" })}>
-                                <div style={{ fontSize: 7, color: T.text3, textTransform: "uppercase", fontWeight: 600 }}>Proj. Annual Div</div>
-                                <div style={{ fontSize: 14, fontWeight: 700, color: T.text, fontFamily: "'Space Mono',monospace" }}>{FC(adjustedDivs, true)}</div>
-                                <div style={{ fontSize: 8, color: T.text3 }}>→ {FC(finalDiv, true)} in {whatIf.simulationYears}y</div>
+                        {/* Asset Modifiers */}
+                        <div style={card({ padding: 12 })}>
+                            <div style={{ fontSize: 11, fontWeight: 600, color: T.text, marginBottom: 6 }}>📊 Asset Modifiers
+                                <span style={{ fontSize: 8, color: T.text3, fontWeight: 400, marginLeft: 6 }}>Adjust
+                                    allocation %</span></div>
+                            <div className="holdings-wrap" style={{ display: "grid", gridTemplateColumns: isMob ?
+                                        "1fr" : "1fr 1fr", gap: 4 }}>
+                                {holdings.map(h => {
+                                    const currentPct = (h.currentValue / totalValue) * 100;
+                                    const target = whatIf.targetPct[h.ticker] !== undefined ? whatIf.targetPct[
+                                        h.ticker] : currentPct;
+                                    const pct = Math.round(target);
+                                    const diff = pct - currentPct;
+                                    return (
+                                        <div key={h.ticker} className="adj-row" style={{ background: T.bg4,
+                                                borderRadius: 5, padding: "4px 7px", border: "1px solid " + T.border,
+                                                minHeight: 34 }}>
+                                            <span className="ticker" style={{ fontSize: 11, minWidth: 40,
+                                                    fontWeight: 700, color: T.text, flexShrink: 0 }}>{h.ticker}</span>
+                                            <span className="value" style={{ fontSize: 9, minWidth: 46,
+                                                    textAlign: "right", color: T.text2, fontWeight: 500,
+                                                    flexShrink: 0 }}>{currentPct.toFixed(0)}%</span>
+                                            <button className="adj-btn" style={{ background: T.bg2,
+                                                    border: "1px solid " + T.border, borderRadius: 4,
+                                                    width: 22, height: 22, display: "flex", alignItems: "center",
+                                                    justifyContent: "center", color: T.text, cursor: "pointer",
+                                                    fontSize: 14, fontWeight: 700, flexShrink: 0 }}
+                                                onClick={() => {
+                                                    const newVal = Math.max(0, target - 2);
+                                                    updateTargetPct(h.ticker, newVal);
+                                                }}>−</button>
+                                            <input type="number" style={{ width: 44, background: T.bg,
+                                                    border: "1px solid " + T.border, borderRadius: 4,
+                                                    padding: "2px 3px", fontSize: 10, color: T.text,
+                                                    textAlign: "center", fontWeight: 600, flexShrink: 0 }}
+                                                value={pct} min="0" max="100"
+                                                onChange={e => {
+                                                    const val = parseFloat(e.target.value);
+                                                    if (!isNaN(val) && val >= 0 && val <= 100) {
+                                                        updateTargetPct(h.ticker, val);
+                                                    }
+                                                }} />
+                                            <button className="adj-btn" style={{ background: T.bg2,
+                                                    border: "1px solid " + T.border, borderRadius: 4,
+                                                    width: 22, height: 22, display: "flex", alignItems: "center",
+                                                    justifyContent: "center", color: T.text, cursor: "pointer",
+                                                    fontSize: 14, fontWeight: 700, flexShrink: 0 }}
+                                                onClick={() => {
+                                                    const newVal = Math.min(100, target + 2);
+                                                    updateTargetPct(h.ticker, newVal);
+                                                }}>+</button>
+                                            <span className="diff-label" style={{ fontSize: 8, minWidth: 28,
+                                                    textAlign: "right", color: diff > 0 ? T.green : diff <
+                                                    0 ? T.red : T.text3, fontWeight: 600, flexShrink: 0 }}>
+                                                {diff > 0 ? `+${diff.toFixed(0)}` : diff < 0 ? diff.toFixed(0) : '0'}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
                             </div>
-                            <div style={card({ padding: 8, textAlign: "center" })}>
-                                <div style={{ fontSize: 7, color: T.text3, textTransform: "uppercase", fontWeight: 600 }}>Yield (div‑paying)</div>
-                                <div style={{ fontSize: 14, fontWeight: 700, color: T.text, fontFamily: "'Space Mono',monospace" }}>{currentYield.toFixed(2)}%</div>
-                                <div style={{ fontSize: 8, color: T.text3 }}>{whatIf.reinvestRatio}% reinvested</div>
+                            <div style={{ display: "flex", gap: 4, marginTop: 5 }}>
+                                <button onClick={() => {
+                                        const pctMap = {};
+                                        holdings.forEach(h => {
+                                            pctMap[h.ticker] = (h.currentValue / totalValue) * 100;
+                                        });
+                                        setWhatIf(w => ({ ...w, targetPct: pctMap }));
+                                    }} style={bO(T.text2, { fontSize: 9, padding: "2px 8px" })}>Reset to Current</button>
                             </div>
-                            <div style={card({ padding: 8, textAlign: "center" })}>
-                                <div style={{ fontSize: 7, color: T.text3, textTransform: "uppercase", fontWeight: 600 }}>Reinvested Income</div>
-                                <div style={{ fontSize: 14, fontWeight: 700, color: T.teal, fontFamily: "'Space Mono',monospace" }}>{FC(projectedReinvested.reduce((a, b) => a + b, 0) / whatIf.simulationYears, true)}</div>
-                                <div style={{ fontSize: 8, color: T.text3 }}>avg per year</div>
+                        </div>
+
+                        {/* Projection Metrics */}
+                        <div style={card({ padding: 12 })}>
+                            <div style={{ fontSize: 11, fontWeight: 600, color: T.text, marginBottom: 6 }}>📈 Projected
+                                Outcome</div>
+                            <div style={{ display: "grid", gridTemplateColumns: isMob ? "1fr 1fr" : "1fr 1fr 1fr 1fr",
+                                    gap: 6 }}>
+                                <div style={{ textAlign: "center", background: T.bg4, border: "1px solid " + T.border,
+                                        borderRadius: 6, padding: "6px 8px" }}>
+                                    <div style={{ fontSize: 7, color: T.text3, textTransform: "uppercase",
+                                            fontWeight: 600 }}>Portfolio Value</div>
+                                    <div style={{ fontSize: 14, fontWeight: 700, color: T.text, fontFamily: "'Space Mono',monospace" }}>{FC(
+                                            finalPortfolioValue, true)}</div>
+                                    <div style={{ fontSize: 8, color: T.text3 }}>in {simulationYears} years</div>
+                                </div>
+                                <div style={{ textAlign: "center", background: T.bg4, border: "1px solid " + T.border,
+                                        borderRadius: 6, padding: "6px 8px" }}>
+                                    <div style={{ fontSize: 7, color: T.text3, textTransform: "uppercase",
+                                            fontWeight: 600 }}>Annual Income</div>
+                                    <div style={{ fontSize: 14, fontWeight: 700, color: T.teal, fontFamily: "'Space Mono',monospace" }}>{FC(
+                                            avgAnnualDividend, true)}</div>
+                                    <div style={{ fontSize: 8, color: T.text3 }}>avg dividend/coupon</div>
+                                </div>
+                                <div style={{ textAlign: "center", background: T.bg4, border: "1px solid " + T.border,
+                                        borderRadius: 6, padding: "6px 8px" }}>
+                                    <div style={{ fontSize: 7, color: T.text3, textTransform: "uppercase",
+                                            fontWeight: 600 }}>Dividend CAGR</div>
+                                    <div style={{ fontSize: 14, fontWeight: 700, color: dividendCAGR !== null && dividendCAGR >=
+                                            0 ? T.green : T.red, fontFamily: "'Space Mono',monospace" }}>{dividendCAGR !==
+                                            null ? fmtPct(dividendCAGR) : "—"}</div>
+                                    <div style={{ fontSize: 8, color: T.text3 }}>over {simulationYears} years</div>
+                                </div>
+                                <div style={{ textAlign: "center", background: T.bg4, border: "1px solid " + T.border,
+                                        borderRadius: 6, padding: "6px 8px" }}>
+                                    <div style={{ fontSize: 7, color: T.text3, textTransform: "uppercase",
+                                            fontWeight: 600 }}>Risk Concentration</div>
+                                    <div style={{ fontSize: 14, fontWeight: 700, color: riskConcentration > 30 ? T
+                                                .red : riskConcentration > 20 ? T.amber : T.green, fontFamily: "'Space Mono',monospace" }}>{riskConcentration
+                                            .toFixed(0)}%</div>
+                                    <div style={{ fontSize: 8, color: T.text3 }}>top holding</div>
+                                </div>
                             </div>
-                            <div style={card({ padding: 8, textAlign: "center" })}>
-                                <div style={{ fontSize: 7, color: T.text3, textTransform: "uppercase", fontWeight: 600 }}>Risk Concentration</div>
-                                <div style={{ fontSize: 14, fontWeight: 700, color: riskConcentration > 30 ? T.red :
-                                        riskConcentration > 20 ? T.amber : T.green, fontFamily: "'Space Mono',monospace" }}>{riskConcentration.toFixed(1)}%</div>
-                                <div style={{ fontSize: 8, color: T.text3 }}>top holding</div>
+                            <div style={{ display: "flex", gap: 8, marginTop: 6, fontSize: 8, color: T.text3,
+                                    justifyContent: "center", flexWrap: "wrap" }}>
+                                <span>Growth: {growthRate}%</span>
+                                <span>·</span>
+                                <span>Reinvest: {reinvestDividends ? "Yes" : "No"}</span>
+                                <span>·</span>
+                                <span>FX: {fxRate >= 0 ? "+" : ""}{fxRate}%</span>
+                                <span>·</span>
+                                <span>Yield: {(weightedAvgYield * 100).toFixed(2)}%</span>
+                            </div>
+                        </div>
+
+                        {/* Treemap */}
+                        <div style={card({ padding: 12 })}>
+                            <div style={{ fontSize: 11, fontWeight: 600, color: T.text, marginBottom: 6 }}>📊 Adjusted
+                                Allocation</div>
+                            <div className="treemap-container" ref={whatIfTmRef} style={{ flex: 1, width: "100%",
+                                    minHeight: treemapHeight, position: "relative", borderRadius: 10, overflow: "hidden",
+                                    border: "1px solid " + T.border, background: T.bg3, height: treemapHeight }}>
+                                {whatIfRects.map(r => {
+                                    const c = getPerformanceColor(r.gainPct || 0, dark);
+                                    const minDim = Math.min(r.w, r.h);
+                                    const fontSize = Math.max(8, Math.min(14, minDim / 6));
+                                    const pct = r.targetPct !== undefined ? r.targetPct : 0;
+                                    return (
+                                        <div key={r.ticker} style={{ position: "absolute", left: r.x, top: r
+                                                    .y, width: r.w, height: r.h, background: c.bg,
+                                                border: "1px solid " + c.border, display: "flex",
+                                                flexDirection: "column", alignItems: "center",
+                                                justifyContent: "center", fontSize: fontSize,
+                                                fontWeight: 700, color: c.text, padding: 2,
+                                                textAlign: "center", overflow: "hidden" }}>
+                                            <span style={{ fontSize: fontSize, fontWeight: 700 }}>{r
+                                                .ticker}</span>
+                                            <span style={{ fontSize: fontSize * 0.8, opacity: 0.9 }}>{FC(
+                                                    r.adjustedValue, true)}</span>
+                                            <span style={{ fontSize: fontSize * 0.7, opacity: 0.7 }}>{pct
+                                                    .toFixed(0)}%</span>
+                                        </div>
+                                    );
+                                })}
+                                {whatIfRects.length === 0 && <div style={{ position: "absolute", inset: 0,
+                                        display: "flex", alignItems: "center", justifyContent: "center",
+                                        color: T.text3, fontSize: 11 }}>No holdings</div>}
                             </div>
                         </div>
 
@@ -4155,8 +3553,8 @@
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
                                     marginBottom: 4, flexWrap: "wrap", gap: 3 }}>
                                 <div>
-                                    <div style={{ fontSize: 10, fontWeight: 600, color: T.text }}>📊 Scenarios</div>
-                                    <div style={{ fontSize: 8, color: T.text3 }}>Save and compare</div>
+                                    <div style={{ fontSize: 10, fontWeight: 600, color: T.text }}>💾 Scenarios</div>
+                                    <div style={{ fontSize: 8, color: T.text3 }}>Save current settings</div>
                                 </div>
                                 <div style={{ display: "flex", gap: 3 }}>
                                     <input style={{ ...inp(), padding: "4px 8px", fontSize: 10, width: 120 }}
@@ -4168,9 +3566,9 @@
                                                 id: Date.now(),
                                                 name: whatIf.scenarioName,
                                                 growthRate: whatIf.growthRate,
-                                                reinvestRatio: whatIf.reinvestRatio,
+                                                reinvestDividends: whatIf.reinvestDividends,
                                                 fxRate: whatIf.fxRate,
-                                                adjustments: whatIf.adjustments,
+                                                targetPct: whatIf.targetPct,
                                                 simulationYears: whatIf.simulationYears,
                                                 result: simulationResult,
                                             };
@@ -4196,16 +3594,16 @@
                                                         color: T.red, cursor: "pointer", fontSize: 9 }}>✕</button>
                                             </div>
                                             <div style={{ fontSize: 7, color: T.text3 }}>
-                                                Yield: {s.result.currentYield.toFixed(1)}% · CAGR: {s.result.cagr
-                                                    .toFixed(1)}% · Risk: {s.result.riskConcentration.toFixed(0)}%
+                                                Growth: {s.growthRate}% · Reinvest: {s.reinvestDividends ?
+                                                    "Yes" : "No"} · FX: {s.fxRate}%
                                             </div>
                                             <button onClick={() => {
                                                     setWhatIf(w => ({
                                                         ...w,
                                                         growthRate: s.growthRate,
-                                                        reinvestRatio: s.reinvestRatio,
+                                                        reinvestDividends: s.reinvestDividends,
                                                         fxRate: s.fxRate,
-                                                        adjustments: s.adjustments,
+                                                        targetPct: s.targetPct,
                                                         simulationYears: s.simulationYears,
                                                         activeScenario: s.id,
                                                     }));
@@ -5282,8 +4680,7 @@
                                                     borderDash: [5, 4], borderWidth: 1.5,
                                                     yAxisID: "y2" }
                                             ]} T={T} yFmt={yFmtMain} y2Fmt={yFmtMain} height={isMob ? 150 :
-                                                210} plugins={[createAnnotationPlugin(annotationData,
-                                                    T)]} />
+                                                210} plugins={[]} />
                                         </div>
                                         <div style={{ flex: "1 1 160px", ...card({ padding: 12 }) }}>
                                             <div style={{ fontSize: 11, fontWeight: 600, color: T
@@ -5949,7 +5346,7 @@
                             {view === "whatif" && renderWhatIf()}
                         </main>
 
-                        {/* Modals — same as before */}
+                        {/* Modals */}
                         {modal && (
                             <div onClick={closeModal} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.7)",
                                     backdropFilter: "blur(6px)", zIndex: 100, display: "flex", alignItems: "center",
