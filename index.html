@@ -1688,6 +1688,44 @@
 
         // ─── Seed Data ────────────────────────────────────────────────────────────────
         const INIT_RATES = { AUD_IDR: 10550, AUD_USD: 0.645 };
+        // Extended seed history that covers all transaction dates
+        function makeSeedHistory() {
+            const now = new Date();
+            // Generate monthly snapshots from 5 years ago to now
+            const start = new Date(now);
+            start.setFullYear(start.getFullYear() - 5);
+            const history = [];
+            let val = 65000;
+            let divs = 0;
+            const dates = [];
+            for (let d = new Date(start); d <= now; d.setMonth(d.getMonth() + 1)) {
+                const dateStr = d.toISOString().slice(0, 10);
+                dates.push(dateStr);
+            }
+            // Ensure specific transaction dates are included
+            const txDates = [
+                "2022-06-10", "2023-01-15", "2022-08-01", "2023-04-10", "2023-07-01",
+                "2022-09-01", "2023-06-15", "2023-06-01", "2023-09-01", "2023-01-10", "2023-11-20",
+                "2022-10-01"
+            ];
+            const allDates = [...dates, ...txDates].sort();
+            const uniqueDates = [...new Set(allDates)].sort();
+            // Build history with approximate values
+            for (let i = 0; i < uniqueDates.length; i++) {
+                const date = uniqueDates[i];
+                // Simulate some growth and volatility
+                val += 800 + Math.random() * 1500 - 300;
+                if (val < 60000) val = 60000 + Math.random() * 5000;
+                if (i % 3 === 0) divs += 600 + Math.random() * 800;
+                history.push({
+                    date: date,
+                    totalValueAUD: Math.round(val),
+                    totalDividendsAUD: Math.round(divs)
+                });
+            }
+            return history;
+        }
+
         const SEED = [
             { id: 1, ticker: "BHP", name: "BHP Group Ltd", currency: "AUD", assetType: "Shares / Stocks",
                 exchange: "ASX", yahooSymbol: "BHP.AX", transactions: [
@@ -1746,22 +1784,6 @@
             GOLD: 4200 };
         const INIT_PREV = { BHP: 45.8, CBA: 126.5, VAS: 97.2, BBCA: 9950, PBS032: 1008000, PBS033: 1004000, BTC: 128000,
             GOLD: 4180 };
-
-        function makeSeedHistory() {
-            const h = [];
-            const now = new Date();
-            let val = 85000,
-                divs = 0;
-            for (let i = 11; i >= 0; i--) {
-                const d = new Date(now);
-                d.setMonth(d.getMonth() - i);
-                val += 1800 + Math.random() * 2200 - (i > 8 ? 500 : 0);
-                divs += (i % 3 === 0 ? 600 + Math.random() * 500 : Math.random() * 60);
-                h.push({ date: d.toISOString().slice(0, 10), totalValueAUD: Math.max(val, 60000), totalDividendsAUD: Math
-                        .round(divs) });
-            }
-            return h;
-        }
 
         function useWindowSize() {
             const [w, setW] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
@@ -2492,7 +2514,7 @@
             };
         }
 
-        // ─── Chart Annotations Plugin — FIXED: robust date matching ─────────────────
+        // ─── Chart Annotations Plugin — FIXED ──────────────────────────────────────
         function createAnnotationPlugin(annotationData, T) {
             return {
                 id: 'customAnnotations',
@@ -3191,10 +3213,8 @@
             }, []);
 
             // ─── ANNOTATION DATA ──────────────────────────────────────────────────────
-            // Filter to include only transactions within the selected period
+            // Include ALL transactions. The plugin will only draw markers for dates that exist in the chart data.
             const annotationData = useMemo(() => {
-                const cutoff = periodCutoff(chartPeriod);
-                const now = new Date();
                 const historyMap = {};
                 for (const snap of history) {
                     historyMap[snap.date] = snap.totalValueAUD;
@@ -3225,8 +3245,6 @@
 
                 for (const h of portfolio) {
                     for (const tx of h.transactions) {
-                        const txDate = new Date(tx.date + "T12:00:00");
-                        if (txDate < cutoff || txDate > now) continue; // only include within period
                         if (tx.type === "buy") {
                             const val = getPortfolioValueAtDate(tx.date);
                             buys.push({ date: tx.date, value: val, ticker: h.ticker });
@@ -3262,11 +3280,7 @@
                     }
                 }
 
-                const filteredEvents = events.filter(e => {
-                    const d = new Date(e.date + "T12:00:00");
-                    return d >= cutoff && d <= now;
-                });
-                const sortedEvents = filteredEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
+                const sortedEvents = events.sort((a, b) => new Date(a.date) - new Date(b.date));
                 const recentEvents = sortedEvents.slice(-8);
 
                 return {
@@ -3274,7 +3288,7 @@
                     dividends: Object.values(divMap).slice(0, 15),
                     events: recentEvents,
                 };
-            }, [portfolio, history, displayCur, rates, totVal, chartPeriod, periodCutoff]);
+            }, [portfolio, history, displayCur, rates, totVal]);
 
             const autoRefresh = useCallback(async () => {
                 setFetchSt(s => ({ ...s, loading: true, fetched: 0 }));
