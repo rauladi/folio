@@ -5643,20 +5643,20 @@
                                                                 .value }))} /></div>
                                                 ))}
                                             </div>
-                                            {form.qty && form.price && <div style={{ background: T.bg4,
-                                                    border: "1px solid " + T.border, borderRadius: 6,
-                                                    padding: "6px 10px", fontSize: 11, color: T.text2,
-                                                    fontWeight: 500,
-                                                marginBottom: 10 }}>Total: <strong style={{ color: T
-                                                        .text, fontWeight: 700 }}>{modal.holding.currency === "IDR" ? `Rp ${fmtIDR(+form.qty*+form.price)}` :
-                                                        modal.holding.currency === "USD" ?
-                                                        `US$${(+form.qty*+form.price).toFixed(2)}` :
-                                                        `A$${(+form.qty*+form.price).toFixed(2)}`}</strong></div>
+                                            {form.qty && form.price && (
+                                                <div style={{ background: T.bg4, border: "1px solid " + T.border, borderRadius: 6, padding: "6px 10px", fontSize: 11, color: T.text2, fontWeight: 500, marginBottom: 10 }}>
+                                                    Total: <strong style={{ color: T.text, fontWeight: 700 }}>
+                                                        {modal.holding.currency === "IDR" ? `Rp ${fmtIDR(+form.qty * +form.price)}` :
+                                                        modal.holding.currency === "USD" ? `US$${(+form.qty * +form.price).toFixed(2)}` :
+                                                        `A$${(+form.qty * +form.price).toFixed(2)}`}
+                                                    </strong>
+                                                </div>
+                                            )}
                                             <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
                                                 <button style={bO(T.text2, { fontSize: 11 })} onClick={closeModal}>Cancel</button>
-                                                <button style={bS(modal.tradeType === "buy" ? T.greenBtn :
-                                                        T.redBtn, "#fff", { fontSize: 11 })} onClick={submitTrade}>Confirm {modal
-                                                        .tradeType === "buy" ? "Purchase" : "Sale"}</button>
+                                                <button style={bS(modal.tradeType === "buy" ? T.greenBtn : T.redBtn, "#fff", { fontSize: 11 })} onClick={submitTrade}>
+                                                    Confirm {modal.tradeType === "buy" ? "Purchase" : "Sale"}
+                                                </button>
                                             </div>
                                         </>
                                     )}
