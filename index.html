@@ -1325,8 +1325,8 @@
             ];
             for (const url of chartUrls) {
                 try {
-                    const chartData = await fetchWithProxy(url);
-                    const result = parseChartForPrevClose(chartData);
+                    const chartData2 = await fetchWithProxy(url);
+                    const result = parseChartForPrevClose(chartData2);
                     if (result && result.current > 0 && result.prev > 0) {
                         console.log(`✅ ${symbol}: price from Yahoo chart`);
                         return result;
@@ -2879,6 +2879,206 @@
                 return computeIncomeRiskMetrics(portfolio, rates, displayCur);
             }, [portfolio, rates, displayCur]);
 
+            // ─── CHART DATA ──────────────────────────────────────────────────────────
+            const chartData = useMemo(() => {
+                const cutoff = periodCutoff(chartPeriod);
+                const filtered = history.filter(d => new Date(d.date) >= cutoff);
+                const sorted = filtered.sort((a, b) => new Date(a.date) - new Date(b.date));
+                const labels = sorted.map(d => d.date);
+                const rawDates = sorted.map(d => d.date);
+                const vals = sorted.map(d => d.totalValueAUD);
+                const divCumul = sorted.map(d => d.totalDividendsAUD);
+                const startVal = vals.length > 0 ? vals[0] : 0;
+                const endVal = vals.length > 0 ? vals[vals.length - 1] : 0;
+
+                // Asset allocation by type
+                const typeMap = {};
+                holdings.forEach(h => {
+                    const key = h.assetType || "Other";
+                    if (!typeMap[key]) typeMap[key] = 0;
+                    typeMap[key] += h.currentValue;
+                });
+                const tLabels = Object.keys(typeMap);
+                const tVals = Object.values(typeMap);
+                const palette = tLabels.map((_, i) => {
+                    const colors = ["#34a853", "#1a73e8", "#f9a825", "#ea4335", "#8ab4f8", "#fdd663", "#f28b82", "#81c995"];
+                    return colors[i % colors.length];
+                });
+
+                // Currency split
+                const curMap = {};
+                holdings.forEach(h => {
+                    if (!curMap[h.currency]) curMap[h.currency] = 0;
+                    curMap[h.currency] += h.currentValue;
+                });
+                const byCurLabels = Object.keys(curMap);
+                const byCurVals = Object.values(curMap);
+                const byCurColors = byCurLabels.map(c => c === "AUD" ? "#34a853" : c === "IDR" ? "#f9a825" : "#1a73e8");
+
+                // Monthly income
+                const monthMap = {};
+                portfolio.forEach(h => {
+                    h.transactions.forEach(tx => {
+                        if (tx.type === "dividend" && tx.date) {
+                            const month = tx.date.slice(0, 7);
+                            const amt = toAUD(tx.totalAmount || 0, h.currency, rates);
+                            if (!monthMap[month]) monthMap[month] = 0;
+                            monthMap[month] += amt;
+                        }
+                    });
+                });
+                const monthKeys = Object.keys(monthMap).sort();
+                const mVals = monthKeys.map(m => monthMap[m]);
+                const mLabels = monthKeys.map(m => fmtMon(m));
+
+                // Dividend CAGR
+                const divYears = {};
+                portfolio.forEach(h => {
+                    h.transactions.forEach(tx => {
+                        if (tx.type === "dividend" && tx.date) {
+                            const year = tx.date.slice(0, 4);
+                            const amt = toAUD(tx.totalAmount || 0, h.currency, rates);
+                            if (!divYears[year]) divYears[year] = 0;
+                            divYears[year] += amt;
+                        }
+                    });
+                });
+                const yearKeys = Object.keys(divYears).sort();
+                let divCAGR_val = null,
+                    divCAGRYears = 0;
+                if (yearKeys.length >= 2) {
+                    const first = yearKeys[0],
+                        last = yearKeys[yearKeys.length - 1];
+                    const firstVal = divYears[first],
+                        lastVal = divYears[last];
+                    const numYears = parseInt(last) - parseInt(first);
+                    if (numYears > 0 && firstVal > 0) {
+                        divCAGR_val = (Math.pow(lastVal / firstVal, 1 / numYears) - 1) * 100;
+                        divCAGRYears = numYears;
+                    }
+                }
+
+                // Waterfall data
+                const waterfallData = [];
+                if (sorted.length >= 2) {
+                    const firstVal_water = sorted[0]?.totalValueAUD || 0;
+                    const lastVal_water = sorted[sorted.length - 1]?.totalValueAUD || 0;
+                    waterfallData.push({ label: "Start", value: firstVal_water, type: "start" });
+
+                    // Compute contributions
+                    const buys = {},
+                        sells = {},
+                        divs = {};
+                    portfolio.forEach(h => {
+                        h.transactions.forEach(tx => {
+                            if (tx.type === "buy") {
+                                const amt = toAUD(tx.qty * tx.price, h.currency, rates);
+                                const date = tx.date || "1900-01-01";
+                                if (date >= cutoff.toISOString().slice(0, 10)) {
+                                    if (!buys[h.ticker]) buys[h.ticker] = 0;
+                                    buys[h.ticker] += amt;
+                                }
+                            } else if (tx.type === "sell") {
+                                const amt = toAUD(tx.qty * tx.price, h.currency, rates);
+                                const date = tx.date || "1900-01-01";
+                                if (date >= cutoff.toISOString().slice(0, 10)) {
+                                    if (!sells[h.ticker]) sells[h.ticker] = 0;
+                                    sells[h.ticker] += amt;
+                                }
+                            } else if (tx.type === "dividend") {
+                                const amt = toAUD(tx.totalAmount || 0, h.currency, rates);
+                                const date = tx.date || "1900-01-01";
+                                if (date >= cutoff.toISOString().slice(0, 10)) {
+                                    if (!divs[h.ticker]) divs[h.ticker] = 0;
+                                    divs[h.ticker] += amt;
+                                }
+                            }
+                        });
+                    });
+                    const totalBuys = Object.values(buys).reduce((a, b) => a + b, 0);
+                    const totalSells = Object.values(sells).reduce((a, b) => a + b, 0);
+                    const totalDivs = Object.values(divs).reduce((a, b) => a + b, 0);
+                    const capitalGain = lastVal_water - firstVal_water - totalBuys + totalSells - totalDivs;
+
+                    if (Math.abs(totalBuys) > 0.01) waterfallData.push({ label: "Top-Ups", value: totalBuys,
+                        type: "pos" });
+                    if (Math.abs(totalSells) > 0.01) waterfallData.push({ label: "Withdrawals", value: -totalSells,
+                        type: "neg" });
+                    if (Math.abs(totalDivs) > 0.01) waterfallData.push({ label: "Dividends", value: totalDivs,
+                        type: "pos" });
+                    if (Math.abs(capitalGain) > 0.01) {
+                        waterfallData.push({ label: capitalGain >= 0 ? "Capital Gain" : "Capital Loss",
+                            value: capitalGain, type: capitalGain >= 0 ? "pos" : "neg" });
+                    }
+                    waterfallData.push({ label: "End", value: lastVal_water, type: "total" });
+                }
+
+                // Benchmark data
+                const bmLabels = benchmarks.labels || [];
+                const bmSeries = benchmarks.series || {};
+                const bmPortfolio = [];
+                // Compute portfolio value at each benchmark date
+                if (bmLabels.length > 1 && holdings.length > 0) {
+                    const audIdr = rates.AUD_IDR || 12000;
+                    const audUsd = rates.AUD_USD || 0.65;
+                    const priceMaps = benchmarks.holdingPrices || {};
+                    bmLabels.forEach(dateStr => {
+                        let total = 0;
+                        portfolio.forEach(h => {
+                            let units = 0;
+                            for (const tx of h.transactions) {
+                                if (tx.date > dateStr) continue;
+                                if (tx.type === "buy") units += tx.qty;
+                                else if (tx.type === "sell") units -= tx.qty;
+                            }
+                            if (units <= 0) return;
+                            const hp = priceMaps[h.ticker];
+                            let price = hp?.priceMap ? hp.priceMap[dateStr] : null;
+                            if (!price && prices[h.ticker] > 0) price = prices[h.ticker];
+                            if (!price) return;
+                            if (h.isBondPct) price = price * (h.faceValue || 1000000) / 100;
+                            let val = units * price;
+                            if (h.currency === "IDR") val /= audIdr;
+                            else if (h.currency === "USD") val /= audUsd;
+                            total += val;
+                        });
+                        bmPortfolio.push(total);
+                    });
+                    // Normalize to percentage from start
+                    const base = bmPortfolio.find(v => v > 0) || 1;
+                    const bmPortPct = bmPortfolio.map(v => v > 0 ? ((v - base) / base) * 100 : null);
+                    // Replace raw values with percentages
+                    bmPortfolio.length = 0;
+                    bmPortfolio.push(...bmPortPct);
+                }
+
+                return {
+                    labels,
+                    rawDates,
+                    vals,
+                    divCumul,
+                    startVal,
+                    endVal,
+                    tLabels,
+                    tVals,
+                    palette,
+                    byCurLabels,
+                    byCurVals,
+                    byCurColors,
+                    mLabels,
+                    mVals,
+                    mDatasets: [{ label: "Income", data: mVals, backgroundColor: dark ? "rgba(138,180,248,.6)" :
+                            "rgba(26,115,232,.5)", borderColor: dark ? "#8ab4f8" : "#1a73e8", borderWidth: 1,
+                        borderRadius: 4 }],
+                    divCAGR: divCAGR_val,
+                    divCAGRYears,
+                    waterfallData,
+                    bmLabels,
+                    bmSeries,
+                    bmPortfolio,
+                };
+            }, [history, holdings, portfolio, rates, chartPeriod, benchmarks, prices, dark, periodCutoff]);
+
             const yFmtD = useCallback((v) => {
                 const val = fromAUD(v, displayCur, rates);
                 if (displayCur === "IDR") {
@@ -3478,7 +3678,7 @@
 
                 return (
                     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                        {/* Market Settings */}
+                        {/* Market Settings - full width */}
                         <div style={card({ padding: 12 })}>
                             <div style={{ fontSize: 11, fontWeight: 600, color: T.text, marginBottom: 6 }}>📈 Market
                                 Settings</div>
@@ -3528,166 +3728,173 @@
                             </div>
                         </div>
 
-                        {/* Asset Modifiers */}
-                        <div style={card({ padding: 12 })}>
-                            <div style={{ fontSize: 11, fontWeight: 600, color: T.text, marginBottom: 6 }}>📊 Asset Modifiers
-                                <span style={{ fontSize: 8, color: T.text3, fontWeight: 400, marginLeft: 6 }}>Adjust
-                                    allocation %</span></div>
-                            <div className="holdings-wrap" style={{ display: "grid", gridTemplateColumns: isMob ?
-                                        "1fr" : "1fr 1fr", gap: 4 }}>
-                                {holdings.map(h => {
-                                    const currentPct = (h.currentValue / totalValue) * 100;
-                                    const target = whatIf.targetPct && whatIf.targetPct[h.ticker] !== undefined ? whatIf.targetPct[
-                                        h.ticker] : currentPct;
-                                    const pct = Math.round(target);
-                                    const diff = pct - currentPct;
-                                    return (
-                                        <div key={h.ticker} className="adj-row" style={{ background: T.bg4,
-                                                borderRadius: 5, padding: "4px 7px", border: "1px solid " + T.border,
-                                                minHeight: 34 }}>
-                                            <span className="ticker" style={{ fontSize: 11, minWidth: 40,
-                                                    fontWeight: 700, color: T.text, flexShrink: 0 }}>{h.ticker}</span>
-                                            <span className="value" style={{ fontSize: 9, minWidth: 46,
-                                                    textAlign: "right", color: T.text2, fontWeight: 500,
-                                                    flexShrink: 0 }}>{currentPct.toFixed(0)}%</span>
-                                            <button className="adj-btn" style={{ background: T.bg2,
-                                                    border: "1px solid " + T.border, borderRadius: 4,
-                                                    width: 22, height: 22, display: "flex", alignItems: "center",
-                                                    justifyContent: "center", color: T.text, cursor: "pointer",
-                                                    fontSize: 14, fontWeight: 700, flexShrink: 0 }}
-                                                onClick={() => {
-                                                    const newVal = Math.max(0, target - 2);
-                                                    updateTargetPct(h.ticker, newVal);
-                                                }}>−</button>
-                                            <input type="number" style={{ width: 44, background: T.bg,
-                                                    border: "1px solid " + T.border, borderRadius: 4,
-                                                    padding: "2px 3px", fontSize: 10, color: T.text,
-                                                    textAlign: "center", fontWeight: 600, flexShrink: 0 }}
-                                                value={pct} min="0" max="100"
-                                                onChange={e => {
-                                                    const val = parseFloat(e.target.value);
-                                                    if (!isNaN(val) && val >= 0 && val <= 100) {
-                                                        updateTargetPct(h.ticker, val);
-                                                    }
-                                                }} />
-                                            <button className="adj-btn" style={{ background: T.bg2,
-                                                    border: "1px solid " + T.border, borderRadius: 4,
-                                                    width: 22, height: 22, display: "flex", alignItems: "center",
-                                                    justifyContent: "center", color: T.text, cursor: "pointer",
-                                                    fontSize: 14, fontWeight: 700, flexShrink: 0 }}
-                                                onClick={() => {
-                                                    const newVal = Math.min(100, target + 2);
-                                                    updateTargetPct(h.ticker, newVal);
-                                                }}>+</button>
-                                            <span className="diff-label" style={{ fontSize: 8, minWidth: 28,
-                                                    textAlign: "right", color: diff > 0 ? T.green : diff <
-                                                    0 ? T.red : T.text3, fontWeight: 600, flexShrink: 0 }}>
-                                                {diff > 0 ? `+${diff.toFixed(0)}` : diff < 0 ? diff.toFixed(0) : '0'}
-                                            </span>
+                        {/* Two-column layout: left = Asset Modifiers, right = Treemap + Projected Outcome */}
+                        <div style={{ display: "flex", gap: 10, flexWrap: isMob ? "wrap" : "nowrap" }}>
+                            {/* Left column: Asset Modifiers */}
+                            <div style={{ flex: "0 0 50%", minWidth: 0, ...card({ padding: 12 }) }}>
+                                <div style={{ fontSize: 11, fontWeight: 600, color: T.text, marginBottom: 6 }}>📊 Asset Modifiers
+                                    <span style={{ fontSize: 8, color: T.text3, fontWeight: 400, marginLeft: 6 }}>Adjust
+                                        allocation %</span></div>
+                                <div className="holdings-wrap" style={{ display: "grid", gridTemplateColumns: isMob ?
+                                            "1fr" : "1fr 1fr", gap: 4 }}>
+                                    {holdings.map(h => {
+                                        const currentPct = (h.currentValue / totalValue) * 100;
+                                        const target = whatIf.targetPct && whatIf.targetPct[h.ticker] !== undefined ? whatIf.targetPct[
+                                            h.ticker] : currentPct;
+                                        const pct = Math.round(target);
+                                        const diff = pct - currentPct;
+                                        return (
+                                            <div key={h.ticker} className="adj-row" style={{ background: T.bg4,
+                                                    borderRadius: 5, padding: "4px 7px", border: "1px solid " + T.border,
+                                                    minHeight: 34 }}>
+                                                <span className="ticker" style={{ fontSize: 11, minWidth: 40,
+                                                        fontWeight: 700, color: T.text, flexShrink: 0 }}>{h.ticker}</span>
+                                                <span className="value" style={{ fontSize: 9, minWidth: 46,
+                                                        textAlign: "right", color: T.text2, fontWeight: 500,
+                                                        flexShrink: 0 }}>{currentPct.toFixed(0)}%</span>
+                                                <button className="adj-btn" style={{ background: T.bg2,
+                                                        border: "1px solid " + T.border, borderRadius: 4,
+                                                        width: 22, height: 22, display: "flex", alignItems: "center",
+                                                        justifyContent: "center", color: T.text, cursor: "pointer",
+                                                        fontSize: 14, fontWeight: 700, flexShrink: 0 }}
+                                                    onClick={() => {
+                                                        const newVal = Math.max(0, target - 2);
+                                                        updateTargetPct(h.ticker, newVal);
+                                                    }}>−</button>
+                                                <input type="number" style={{ width: 44, background: T.bg,
+                                                        border: "1px solid " + T.border, borderRadius: 4,
+                                                        padding: "2px 3px", fontSize: 10, color: T.text,
+                                                        textAlign: "center", fontWeight: 600, flexShrink: 0 }}
+                                                    value={pct} min="0" max="100"
+                                                    onChange={e => {
+                                                        const val = parseFloat(e.target.value);
+                                                        if (!isNaN(val) && val >= 0 && val <= 100) {
+                                                            updateTargetPct(h.ticker, val);
+                                                        }
+                                                    }} />
+                                                <button className="adj-btn" style={{ background: T.bg2,
+                                                        border: "1px solid " + T.border, borderRadius: 4,
+                                                        width: 22, height: 22, display: "flex", alignItems: "center",
+                                                        justifyContent: "center", color: T.text, cursor: "pointer",
+                                                        fontSize: 14, fontWeight: 700, flexShrink: 0 }}
+                                                    onClick={() => {
+                                                        const newVal = Math.min(100, target + 2);
+                                                        updateTargetPct(h.ticker, newVal);
+                                                    }}>+</button>
+                                                <span className="diff-label" style={{ fontSize: 8, minWidth: 28,
+                                                        textAlign: "right", color: diff > 0 ? T.green : diff <
+                                                        0 ? T.red : T.text3, fontWeight: 600, flexShrink: 0 }}>
+                                                    {diff > 0 ? `+${diff.toFixed(0)}` : diff < 0 ? diff.toFixed(0) : '0'}
+                                                </span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                <div style={{ display: "flex", gap: 4, marginTop: 5 }}>
+                                    <button onClick={() => {
+                                            const pctMap = {};
+                                            holdings.forEach(h => {
+                                                pctMap[h.ticker] = (h.currentValue / totalValue) * 100;
+                                            });
+                                            setWhatIf(w => ({ ...w, targetPct: pctMap }));
+                                        }} style={bO(T.text2, { fontSize: 9, padding: "2px 8px" })}>Reset to Current</button>
+                                </div>
+                            </div>
+
+                            {/* Right column: Treemap + Projected Outcome stacked */}
+                            <div style={{ flex: "0 0 50%", minWidth: 0, display: "flex", flexDirection: "column", gap: 10 }}>
+                                {/* Projection Metrics */}
+                                <div style={card({ padding: 12 })}>
+                                    <div style={{ fontSize: 11, fontWeight: 600, color: T.text, marginBottom: 6 }}>📈 Projected
+                                        Outcome</div>
+                                    <div style={{ display: "grid", gridTemplateColumns: isMob ? "1fr 1fr" : "1fr 1fr",
+                                            gap: 6 }}>
+                                        <div style={{ textAlign: "center", background: T.bg4, border: "1px solid " + T.border,
+                                                borderRadius: 6, padding: "6px 8px" }}>
+                                            <div style={{ fontSize: 7, color: T.text3, textTransform: "uppercase",
+                                                    fontWeight: 600 }}>Portfolio Value</div>
+                                            <div style={{ fontSize: 14, fontWeight: 700, color: T.text, fontFamily: "'Space Mono',monospace" }}>{FC(
+                                                    finalPortfolioValue, true)}</div>
+                                            <div style={{ fontSize: 8, color: T.text3 }}>in {simulationYears} years</div>
                                         </div>
-                                    );
-                                })}
-                            </div>
-                            <div style={{ display: "flex", gap: 4, marginTop: 5 }}>
-                                <button onClick={() => {
-                                        const pctMap = {};
-                                        holdings.forEach(h => {
-                                            pctMap[h.ticker] = (h.currentValue / totalValue) * 100;
-                                        });
-                                        setWhatIf(w => ({ ...w, targetPct: pctMap }));
-                                    }} style={bO(T.text2, { fontSize: 9, padding: "2px 8px" })}>Reset to Current</button>
-                            </div>
-                        </div>
-
-                        {/* Projection Metrics */}
-                        <div style={card({ padding: 12 })}>
-                            <div style={{ fontSize: 11, fontWeight: 600, color: T.text, marginBottom: 6 }}>📈 Projected
-                                Outcome</div>
-                            <div style={{ display: "grid", gridTemplateColumns: isMob ? "1fr 1fr" : "1fr 1fr 1fr 1fr",
-                                    gap: 6 }}>
-                                <div style={{ textAlign: "center", background: T.bg4, border: "1px solid " + T.border,
-                                        borderRadius: 6, padding: "6px 8px" }}>
-                                    <div style={{ fontSize: 7, color: T.text3, textTransform: "uppercase",
-                                            fontWeight: 600 }}>Portfolio Value</div>
-                                    <div style={{ fontSize: 14, fontWeight: 700, color: T.text, fontFamily: "'Space Mono',monospace" }}>{FC(
-                                            finalPortfolioValue, true)}</div>
-                                    <div style={{ fontSize: 8, color: T.text3 }}>in {simulationYears} years</div>
-                                </div>
-                                <div style={{ textAlign: "center", background: T.bg4, border: "1px solid " + T.border,
-                                        borderRadius: 6, padding: "6px 8px" }}>
-                                    <div style={{ fontSize: 7, color: T.text3, textTransform: "uppercase",
-                                            fontWeight: 600 }}>Annual Income</div>
-                                    <div style={{ fontSize: 14, fontWeight: 700, color: T.teal, fontFamily: "'Space Mono',monospace" }}>{FC(
-                                            avgAnnualDividend, true)}</div>
-                                    <div style={{ fontSize: 8, color: T.text3 }}>avg dividend/coupon</div>
-                                </div>
-                                <div style={{ textAlign: "center", background: T.bg4, border: "1px solid " + T.border,
-                                        borderRadius: 6, padding: "6px 8px" }}>
-                                    <div style={{ fontSize: 7, color: T.text3, textTransform: "uppercase",
-                                            fontWeight: 600 }}>Dividend CAGR</div>
-                                    <div style={{ fontSize: 14, fontWeight: 700, color: dividendCAGR !== null && dividendCAGR >=
-                                            0 ? T.green : T.red, fontFamily: "'Space Mono',monospace" }}>{dividendCAGR !==
-                                            null ? fmtPct(dividendCAGR) : "—"}</div>
-                                    <div style={{ fontSize: 8, color: T.text3 }}>over {simulationYears} years</div>
-                                </div>
-                                <div style={{ textAlign: "center", background: T.bg4, border: "1px solid " + T.border,
-                                        borderRadius: 6, padding: "6px 8px" }}>
-                                    <div style={{ fontSize: 7, color: T.text3, textTransform: "uppercase",
-                                            fontWeight: 600 }}>Risk Concentration</div>
-                                    <div style={{ fontSize: 14, fontWeight: 700, color: riskConcentration > 30 ? T
-                                                .red : riskConcentration > 20 ? T.amber : T.green, fontFamily: "'Space Mono',monospace" }}>{riskConcentration
-                                            .toFixed(0)}%</div>
-                                    <div style={{ fontSize: 8, color: T.text3 }}>top holding</div>
-                                </div>
-                            </div>
-                            <div style={{ display: "flex", gap: 8, marginTop: 6, fontSize: 8, color: T.text3,
-                                    justifyContent: "center", flexWrap: "wrap" }}>
-                                <span>Growth: {growthRate}%</span>
-                                <span>·</span>
-                                <span>Reinvest: {reinvestDividends ? "Yes" : "No"}</span>
-                                <span>·</span>
-                                <span>FX: {fxRate >= 0 ? "+" : ""}{fxRate}%</span>
-                                <span>·</span>
-                                <span>Yield: {(weightedAvgYield * 100).toFixed(2)}%</span>
-                            </div>
-                        </div>
-
-                        {/* Treemap */}
-                        <div style={card({ padding: 12 })}>
-                            <div style={{ fontSize: 11, fontWeight: 600, color: T.text, marginBottom: 6 }}>📊 Adjusted
-                                Allocation</div>
-                            <div className="treemap-container" ref={whatIfTmRef} style={{ flex: 1, width: "100%",
-                                    minHeight: treemapHeight, position: "relative", borderRadius: 10, overflow: "hidden",
-                                    border: "1px solid " + T.border, background: T.bg3, height: treemapHeight }}>
-                                {whatIfRects.map(r => {
-                                    const c = getPerformanceColor(r.gainPct || 0, dark);
-                                    const minDim = Math.min(r.w, r.h);
-                                    const fontSize = Math.max(8, Math.min(14, minDim / 6));
-                                    const pct = r.targetPct !== undefined ? r.targetPct : 0;
-                                    return (
-                                        <div key={r.ticker} style={{ position: "absolute", left: r.x, top: r
-                                                    .y, width: r.w, height: r.h, background: c.bg,
-                                                border: "1px solid " + c.border, display: "flex",
-                                                flexDirection: "column", alignItems: "center",
-                                                justifyContent: "center", fontSize: fontSize,
-                                                fontWeight: 700, color: c.text, padding: 2,
-                                                textAlign: "center", overflow: "hidden" }}>
-                                            <span style={{ fontSize: fontSize, fontWeight: 700 }}>{r
-                                                .ticker}</span>
-                                            <span style={{ fontSize: fontSize * 0.8, opacity: 0.9 }}>{FC(
-                                                    r.adjustedValue, true)}</span>
-                                            <span style={{ fontSize: fontSize * 0.7, opacity: 0.7 }}>{pct
-                                                    .toFixed(0)}%</span>
+                                        <div style={{ textAlign: "center", background: T.bg4, border: "1px solid " + T.border,
+                                                borderRadius: 6, padding: "6px 8px" }}>
+                                            <div style={{ fontSize: 7, color: T.text3, textTransform: "uppercase",
+                                                    fontWeight: 600 }}>Annual Income</div>
+                                            <div style={{ fontSize: 14, fontWeight: 700, color: T.teal, fontFamily: "'Space Mono',monospace" }}>{FC(
+                                                    avgAnnualDividend, true)}</div>
+                                            <div style={{ fontSize: 8, color: T.text3 }}>avg dividend/coupon</div>
                                         </div>
-                                    );
-                                })}
-                                {whatIfRects.length === 0 && <div style={{ position: "absolute", inset: 0,
-                                        display: "flex", alignItems: "center", justifyContent: "center",
-                                        color: T.text3, fontSize: 11 }}>No holdings</div>}
+                                        <div style={{ textAlign: "center", background: T.bg4, border: "1px solid " + T.border,
+                                                borderRadius: 6, padding: "6px 8px" }}>
+                                            <div style={{ fontSize: 7, color: T.text3, textTransform: "uppercase",
+                                                    fontWeight: 600 }}>Dividend CAGR</div>
+                                            <div style={{ fontSize: 14, fontWeight: 700, color: dividendCAGR !== null && dividendCAGR >=
+                                                    0 ? T.green : T.red, fontFamily: "'Space Mono',monospace" }}>{dividendCAGR !==
+                                                    null ? fmtPct(dividendCAGR) : "—"}</div>
+                                            <div style={{ fontSize: 8, color: T.text3 }}>over {simulationYears} years</div>
+                                        </div>
+                                        <div style={{ textAlign: "center", background: T.bg4, border: "1px solid " + T.border,
+                                                borderRadius: 6, padding: "6px 8px" }}>
+                                            <div style={{ fontSize: 7, color: T.text3, textTransform: "uppercase",
+                                                    fontWeight: 600 }}>Risk Concentration</div>
+                                            <div style={{ fontSize: 14, fontWeight: 700, color: riskConcentration > 30 ? T
+                                                        .red : riskConcentration > 20 ? T.amber : T.green, fontFamily: "'Space Mono',monospace" }}>{riskConcentration
+                                                    .toFixed(0)}%</div>
+                                            <div style={{ fontSize: 8, color: T.text3 }}>top holding</div>
+                                        </div>
+                                    </div>
+                                    <div style={{ display: "flex", gap: 8, marginTop: 6, fontSize: 8, color: T.text3,
+                                            justifyContent: "center", flexWrap: "wrap" }}>
+                                        <span>Growth: {growthRate}%</span>
+                                        <span>·</span>
+                                        <span>Reinvest: {reinvestDividends ? "Yes" : "No"}</span>
+                                        <span>·</span>
+                                        <span>FX: {fxRate >= 0 ? "+" : ""}{fxRate}%</span>
+                                        <span>·</span>
+                                        <span>Yield: {(weightedAvgYield * 100).toFixed(2)}%</span>
+                                    </div>
+                                </div>
+
+                                {/* Treemap */}
+                                <div style={card({ padding: 12 })}>
+                                    <div style={{ fontSize: 11, fontWeight: 600, color: T.text, marginBottom: 6 }}>📊 Adjusted
+                                        Allocation</div>
+                                    <div className="treemap-container" ref={whatIfTmRef} style={{ flex: 1, width: "100%",
+                                            minHeight: treemapHeight, position: "relative", borderRadius: 10,
+                                            overflow: "hidden", border: "1px solid " + T.border, background: T.bg3,
+                                            height: treemapHeight }}>
+                                        {whatIfRects.map(r => {
+                                            const c = getPerformanceColor(r.gainPct || 0, dark);
+                                            const minDim = Math.min(r.w, r.h);
+                                            const fontSize = Math.max(8, Math.min(14, minDim / 6));
+                                            const pct = r.targetPct !== undefined ? r.targetPct : 0;
+                                            return (
+                                                <div key={r.ticker} style={{ position: "absolute", left: r.x, top: r
+                                                            .y, width: r.w, height: r.h, background: c.bg,
+                                                        border: "1px solid " + c.border, display: "flex",
+                                                        flexDirection: "column", alignItems: "center",
+                                                        justifyContent: "center", fontSize: fontSize,
+                                                        fontWeight: 700, color: c.text, padding: 2,
+                                                        textAlign: "center", overflow: "hidden" }}>
+                                                    <span style={{ fontSize: fontSize, fontWeight: 700 }}>{r
+                                                        .ticker}</span>
+                                                    <span style={{ fontSize: fontSize * 0.8, opacity: 0.9 }}>{FC(
+                                                            r.adjustedValue, true)}</span>
+                                                    <span style={{ fontSize: fontSize * 0.7, opacity: 0.7 }}>{pct
+                                                            .toFixed(0)}%</span>
+                                                </div>
+                                            );
+                                        })}
+                                        {whatIfRects.length === 0 && <div style={{ position: "absolute", inset: 0,
+                                                display: "flex", alignItems: "center", justifyContent: "center",
+                                                color: T.text3, fontSize: 11 }}>No holdings</div>}
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Scenarios */}
+                        {/* Scenarios - full width */}
                         <div style={card({ padding: 10 })}>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
                                     marginBottom: 4, flexWrap: "wrap", gap: 3 }}>
