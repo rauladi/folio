@@ -2879,6 +2879,23 @@
                 return computeIncomeRiskMetrics(portfolio, rates, displayCur);
             }, [portfolio, rates, displayCur]);
 
+            // ─── periodCutoff must be defined before chartData ──────────────────────
+            const periodCutoff = useCallback((period) => {
+                const now = new Date();
+                if (period === "1M") { const d = new Date(now);
+                    d.setMonth(d.getMonth() - 1); return d; }
+                if (period === "3M") { const d = new Date(now);
+                    d.setMonth(d.getMonth() - 3); return d; }
+                if (period === "6M") { const d = new Date(now);
+                    d.setMonth(d.getMonth() - 6); return d; }
+                if (period === "YTD") { return new Date(now.getFullYear(), 0, 1); }
+                if (period === "1Y") { const d = new Date(now);
+                    d.setFullYear(d.getFullYear() - 1); return d; }
+                if (period === "5Y") { const d = new Date(now);
+                    d.setFullYear(d.getFullYear() - 5); return d; }
+                return new Date(0);
+            }, []);
+
             // ─── CHART DATA ──────────────────────────────────────────────────────────
             const chartData = useMemo(() => {
                 const cutoff = periodCutoff(chartPeriod);
@@ -3178,22 +3195,6 @@
                 "performance" ? perfRects : tmMode === "day" ? dayRects : divRects);
             const totalPortfolioDivs = useMemo(() => holdings.reduce((s, h) => s + h.totalDividends, 0), [holdings]);
             const selH = holdings.find(h => h.ticker === selected);
-
-            const periodCutoff = useCallback((period) => {
-                const now = new Date();
-                if (period === "1M") { const d = new Date(now);
-                    d.setMonth(d.getMonth() - 1); return d; }
-                if (period === "3M") { const d = new Date(now);
-                    d.setMonth(d.getMonth() - 3); return d; }
-                if (period === "6M") { const d = new Date(now);
-                    d.setMonth(d.getMonth() - 6); return d; }
-                if (period === "YTD") { return new Date(now.getFullYear(), 0, 1); }
-                if (period === "1Y") { const d = new Date(now);
-                    d.setFullYear(d.getFullYear() - 1); return d; }
-                if (period === "5Y") { const d = new Date(now);
-                    d.setFullYear(d.getFullYear() - 5); return d; }
-                return new Date(0);
-            }, []);
 
             // ─── What-If Simulation ─────────────────────────────────────────────────
             const runSimulation = useCallback(() => {
