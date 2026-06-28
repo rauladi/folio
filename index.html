@@ -3669,11 +3669,7 @@
                     if (isNaN(newPct) || newPct < 0) return;
                     const current = { ...whatIf.targetPct };
                     current[ticker] = newPct;
-                    const sum = Object.values(current).reduce((s, v) => s + (typeof v === 'number' ? v : 0), 0);
-                    if (sum > 0) {
-                        const factor = 100 / sum;
-                        Object.keys(current).forEach(k => { current[k] = current[k] * factor; });
-                    }
+                    // Don't auto-normalize here — let the simulation handle normalization
                     setWhatIf(w => ({ ...w, targetPct: current }));
                 };
 
@@ -3769,7 +3765,7 @@
                                                     value={pct} min="0" max="100"
                                                     onChange={e => {
                                                         const val = parseFloat(e.target.value);
-                                                        if (!isNaN(val) && val >= 0 && val <= 100) {
+                                                        if (!isNaN(val) && val >= 0) {
                                                             updateTargetPct(h.ticker, val);
                                                         }
                                                     }} />
@@ -3794,8 +3790,10 @@
                                 <div style={{ display: "flex", gap: 4, marginTop: 5 }}>
                                     <button onClick={() => {
                                             const pctMap = {};
+                                            const total = holdings.reduce((s, h) => s + h.currentValue, 0);
+                                            if (total <= 0) return;
                                             holdings.forEach(h => {
-                                                pctMap[h.ticker] = (h.currentValue / totalValue) * 100;
+                                                pctMap[h.ticker] = (h.currentValue / total) * 100;
                                             });
                                             setWhatIf(w => ({ ...w, targetPct: pctMap }));
                                         }} style={bO(T.text2, { fontSize: 9, padding: "2px 8px" })}>Reset to Current</button>
@@ -4948,7 +4946,7 @@
                                         })()}
                                     </div>
 
-                                    {/* Period selector */}
+                                    {/* Period selector (removed B, D, Evt markers) */}
                                     <div style={{ display: "flex", alignItems: "center", gap: 4,
                                             flexWrap: "wrap" }}>
                                         <span style={{ fontSize: 9, color: T.text3,
@@ -4969,18 +4967,6 @@
                                         </div>
                                         <span style={{ fontSize: 8, color: T.text3,
                                             marginLeft: 2, fontWeight: 400 }}>{chartData.labels.length} pts</span>
-                                        <span style={{ fontSize: 8, color: T.text3, marginLeft: 4,
-                                                fontWeight: 400, opacity: .6 }}>
-                                            <span className="dot" style={{ background: "#34a853", width: 6,
-                                                    height: 6, borderRadius: "50%", display: "inline-block",
-                                                    marginRight: 2 }} />B
-                                            <span className="dot" style={{ background: "#f9a825", width: 6,
-                                                    height: 6, borderRadius: "50%", display: "inline-block",
-                                                    marginLeft: 4, marginRight: 2 }} />D
-                                            <span className="dot" style={{ background: "#fdd663", width: 6,
-                                                    height: 2, display: "inline-block", marginLeft: 4,
-                                                    marginRight: 2 }} />Evt
-                                        </span>
                                     </div>
 
                                     {/* Main chart with annotations */}
