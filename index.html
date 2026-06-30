@@ -2374,6 +2374,7 @@
                 return { totalIncome: 0, stability: null, payoutRisk: null, cutProb: null, concentration: null,
                     incomeVolatility: null, incomeDrawdown: null, dividendGrowth: null };
             }
+            // Filter to only dividend-paying holdings, excluding super and other excluded tickers
             const divHoldings = portfolio.filter(h =>
                 DIVIDEND_PAYING_TYPES.has(h.assetType) &&
                 !INCOME_RISK_EXCLUDED_TICKERS.has(h.ticker)
@@ -2408,6 +2409,7 @@
 
             const dates = Object.keys(monthlyIncome).sort();
             if (dates.length < 3) {
+                // Not enough data to compute meaningful metrics
                 return { totalIncome: 0, stability: null, payoutRisk: null, cutProb: null, concentration: null,
                     incomeVolatility: null, incomeDrawdown: null, dividendGrowth: null };
             }
@@ -2416,10 +2418,12 @@
             const mean = incomeValues.reduce((a, b) => a + b, 0) / incomeValues.length;
             const stdDev = Math.sqrt(incomeValues.reduce((s, v) => s + (v - mean) ** 2, 0) / incomeValues.length);
             const cv = mean > 0 ? stdDev / mean : 1;
+            // Stability score: 1 - min(cv,1) -> higher is better
             const stability = Math.max(0, Math.min(1, 1 - Math.min(cv, 1)));
-            const rawPayoutRisk = cv;
-            const payoutRisk = Math.min(1, Math.max(0, rawPayoutRisk * 0.8 + 0.1));
+            // Payout risk: use cv with a floor and cap
+            const payoutRisk = Math.min(1, Math.max(0, cv * 0.8 + 0.1));
 
+            // Cut probability based on payoutRisk and stability
             let cutProb;
             if (payoutRisk < 0.3 && stability > 0.7) cutProb = "Low";
             else if (payoutRisk < 0.5 && stability > 0.5) cutProb = "Low–Medium";
@@ -2427,12 +2431,16 @@
             else if (payoutRisk < 0.75) cutProb = "Medium–High";
             else cutProb = "High";
 
+            // Income concentration (top 3 holdings as % of total)
             const sortedIncome = Object.values(holdingTotalIncome).sort((a, b) => b - a);
             const top3 = sortedIncome.slice(0, 3).reduce((s, v) => s + v, 0);
             const totalIncome = sortedIncome.reduce((s, v) => s + v, 0);
             const concentration = totalIncome > 0 ? top3 / totalIncome : 0;
 
+            // Income volatility (already captured by stability, but keep for reference)
             const incomeVolatility = mean > 0 ? stdDev / mean : 0;
+
+            // Income drawdown (max drop from peak)
             let peakIncome = -Infinity;
             let maxIncomeDrawdown = 0;
             for (const v of incomeValues) {
@@ -2443,6 +2451,7 @@
                 }
             }
 
+            // Dividend growth (CAGR of yearly totals)
             const years = Object.keys(yearlyIncome).sort();
             let dividendGrowth = null;
             if (years.length >= 2) {
@@ -2462,7 +2471,7 @@
                 payoutRisk,
                 cutProb,
                 concentration,
-                incomeVolatility,
+                incomeVolatility, // kept for reference but not displayed
                 incomeDrawdown: maxIncomeDrawdown,
                 dividendGrowth,
                 meanMonthlyIncome: mean,
@@ -2859,6 +2868,18 @@
                 if (monthlyTargetAud <= 0) return null;
                 return (monthlyPassiveNumerator / monthlyTargetAud) * 100;
             }, [monthlyPassiveNumerator, monthlyTargetAud]);
+
+            // ─── Header KPI: Passive Income ────────────────────────────────────────
+            const passiveLabel = monthlyPassivePercent !== null ?
+                `${monthlyPassivePercent.toFixed(0)}% of target` :
+                "Set target";
+            const passiveValue = monthlyPassivePercent !== null ?
+                `${FC(monthlyPassiveNumerator)} / ${FC(monthlyTargetAud)}` :
+                "—";
+            const passiveColor = monthlyPassivePercent !== null ?
+                monthlyPassivePercent >= 100 ? T.green :
+                monthlyPassivePercent >= 50 ? T.amber :
+                T.red : T.text3;
 
             const targetDisplay = useMemo(() => {
                 if (monthlyTargetAud <= 0) return "—";
@@ -4220,6 +4241,9 @@
                                         sub: "" },
                                         { label: "Total Income", value: `${FC(totDivs)} (${fmtPct(divYieldOnly)} yld)`,
                                             color: T.teal, sub: "" },
+                                        // ─── Passive Income KPI ─────────────────────────
+                                        { label: "Passive Income", value: passiveValue, color: passiveColor,
+                                        sub: passiveLabel },
                                     ].map((k, i) => (
                                         <div key={i} className="header-kpi" style={{ minWidth: "60px" }}>
                                             <span className="label" style={{ color: T.kpiLabel, fontSize: 7 }}>{k
@@ -5159,7 +5183,7 @@
                                         </div>
                                     </div>
 
-                                    {/* ─── INCOME RISK EXPOSURE (FIXED) ─── */}
+                                    {/* ─── INCOME RISK EXPOSURE (simplified) ─── */}
                                     <div style={{ ...card({ padding: 12 }) }}>
                                         <div style={{ display: "flex", justifyContent: "space-between",
                                                 alignItems: "center", marginBottom: 6, flexWrap: "wrap", gap: 3 }}>
@@ -5195,10 +5219,6 @@
                                             const cutColor = ir.cutProb === "Low" ? T.green :
                                                 ir.cutProb === "Low–Medium" || ir.cutProb === "Medium" ?
                                                 T.amber : T.red;
-                                            const drawdownColor = ir.incomeDrawdown < 0.15 ? T.green :
-                                                ir.incomeDrawdown < 0.30 ? T.amber : T.red;
-                                            const volColor = ir.incomeVolatility < 0.3 ? T.green :
-                                                ir.incomeVolatility < 0.6 ? T.amber : T.red;
                                             const growthColor = ir.dividendGrowth !== null ? (ir
                                                 .dividendGrowth > 0 ? T.green : T.red) : T.text3;
                                             const growthLabel = ir.dividendGrowth !== null ? (ir
@@ -5243,17 +5263,6 @@
                                                             sub: concentrationLabel,
                                                             bar: ir.concentration *
                                                             100 },
-                                                        { label: "🟥 Income Volatility (CV)",
-                                                            value: (ir.incomeVolatility *
-                                                            100).toFixed(0) + "%",
-                                                            color: volColor,
-                                                            sub: ir.incomeVolatility < 0.3 ?
-                                                                "Low volatility" :
-                                                                ir.incomeVolatility < 0.6 ?
-                                                                "Moderate" : "High volatility",
-                                                            bar: Math.min(ir
-                                                                .incomeVolatility *
-                                                            100, 100) },
                                                         { label: "🟪 Dividend Growth",
                                                             value: ir.dividendGrowth !==
                                                                 null ? ir.dividendGrowth
