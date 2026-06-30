@@ -2869,6 +2869,11 @@
                 return (monthlyPassiveNumerator / monthlyTargetAud) * 100;
             }, [monthlyPassiveNumerator, monthlyTargetAud]);
 
+            // ─── Define FC, FG, pColor BEFORE using them ────────────────────────────
+            const FC = (a, compact = false) => valuesHidden ? "••••••" : fmtCur(a, displayCur, rates, compact);
+            const FG = (a) => valuesHidden ? "••••••" : fmtGain(a, displayCur, rates);
+            const pColor = n => n >= 0 ? T.green : T.red;
+
             // ─── Header KPI: Passive Income ────────────────────────────────────────
             const passiveLabel = monthlyPassivePercent !== null ?
                 `${monthlyPassivePercent.toFixed(0)}% of target` :
@@ -2890,10 +2895,6 @@
                 if (avgSuperBalanceAud <= 0) return null;
                 return (superFundsValueAUD / avgSuperBalanceAud) * 100;
             }, [superFundsValueAUD, avgSuperBalanceAud]);
-
-            const FC = (a, compact = false) => valuesHidden ? "••••••" : fmtCur(a, displayCur, rates, compact);
-            const FG = (a) => valuesHidden ? "••••••" : fmtGain(a, displayCur, rates);
-            const pColor = n => n >= 0 ? T.green : T.red;
 
             const riskMetrics = useMemo(() => computeRiskMetrics(history), [history]);
             const incomeRiskMetrics = useMemo(() => {
