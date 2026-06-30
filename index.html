@@ -3211,19 +3211,24 @@
 
                 const safeTargetPct = targetPct && typeof targetPct === 'object' ? targetPct : {};
                 const totalPct = Object.values(safeTargetPct).reduce((s, v) => s + (typeof v === 'number' ? v : 0), 0);
+
+                // Always use target percentages if any exist, otherwise fall back to current
                 let pctMap = { ...safeTargetPct };
-                if (totalPct === 0 || totalPct < 99.9 || totalPct > 100.1) {
+
+                // If totalPct is 0 (no targets set), use current percentages
+                if (totalPct === 0) {
                     const currentPct = {};
                     holdings.forEach(h => {
                         currentPct[h.ticker] = (h.currentValue / totalValue) * 100;
                     });
                     pctMap = currentPct;
-                }
-
-                const sum = Object.values(pctMap).reduce((s, v) => s + (typeof v === 'number' ? v : 0), 0);
-                if (Math.abs(sum - 100) > 0.01 && sum > 0) {
-                    const factor = 100 / sum;
-                    Object.keys(pctMap).forEach(k => { pctMap[k] = pctMap[k] * factor; });
+                } else {
+                    // Normalize the target percentages to sum to 100%
+                    const sum = Object.values(pctMap).reduce((s, v) => s + (typeof v === 'number' ? v : 0), 0);
+                    if (sum > 0 && Math.abs(sum - 100) > 0.001) {
+                        const factor = 100 / sum;
+                        Object.keys(pctMap).forEach(k => { pctMap[k] = pctMap[k] * factor; });
+                    }
                 }
 
                 let adjustedValue = 0;
@@ -3669,7 +3674,6 @@
                     if (isNaN(newPct) || newPct < 0) return;
                     const current = { ...whatIf.targetPct };
                     current[ticker] = newPct;
-                    // Don't auto-normalize here — let the simulation handle normalization
                     setWhatIf(w => ({ ...w, targetPct: current }));
                 };
 
