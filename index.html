@@ -2368,7 +2368,7 @@
             };
         }
 
-        // ─── Income Risk Metrics ─────────────────────────────────────────────────────
+        // ─── Income Risk Metrics (quarterly aggregation) ──────────────────────────
         function computeIncomeRiskMetrics(portfolio, rates, displayCur) {
             if (!Array.isArray(portfolio)) {
                 return { totalIncome: 0, stability: null, payoutRisk: null, cutProb: null, concentration: null,
@@ -2384,74 +2384,76 @@
                     incomeVolatility: null, incomeDrawdown: null, dividendGrowth: null };
             }
 
-            const monthlyIncome = {};
-            const monthlyByHolding = {};
+            // Aggregate by quarter (YYYY-Q1, Q2, Q3, Q4)
+            const quarterlyIncome = {};
             const holdingTotalIncome = {};
             const yearlyIncome = {};
 
             for (const h of divHoldings) {
                 const divTxs = h.transactions.filter(t => t.type === "dividend" && t.date);
                 for (const tx of divTxs) {
-                    const date = tx.date.slice(0, 7);
-                    const year = tx.date.slice(0, 4);
+                    const date = new Date(tx.date);
+                    const quarter = Math.floor(date.getMonth() / 3) + 1;
+                    const quarterKey = `${date.getFullYear()}-Q${quarter}`;
+                    const year = String(date.getFullYear());
                     const amountAUD = toAUD(tx.totalAmount || 0, h.currency, rates);
-                    if (!monthlyIncome[date]) monthlyIncome[date] = 0;
-                    monthlyIncome[date] += amountAUD;
-                    if (!monthlyByHolding[date]) monthlyByHolding[date] = {};
-                    if (!monthlyByHolding[date][h.ticker]) monthlyByHolding[date][h.ticker] = 0;
-                    monthlyByHolding[date][h.ticker] += amountAUD;
-                    if (!holdingTotalIncome[h.ticker]) holdingTotalIncome[h.ticker] = 0;
-                    holdingTotalIncome[h.ticker] += amountAUD;
+
+                    // Quarterly
+                    if (!quarterlyIncome[quarterKey]) quarterlyIncome[quarterKey] = 0;
+                    quarterlyIncome[quarterKey] += amountAUD;
+
+                    // Yearly
                     if (!yearlyIncome[year]) yearlyIncome[year] = 0;
                     yearlyIncome[year] += amountAUD;
+
+                    // Holding total
+                    if (!holdingTotalIncome[h.ticker]) holdingTotalIncome[h.ticker] = 0;
+                    holdingTotalIncome[h.ticker] += amountAUD;
                 }
             }
 
-            const dates = Object.keys(monthlyIncome).sort();
-            if (dates.length < 3) {
-                // Not enough data to compute meaningful metrics
+            const quarterKeys = Object.keys(quarterlyIncome).sort();
+            if (quarterKeys.length < 3) {
+                // Not enough quarterly data (need at least 3 quarters)
                 return { totalIncome: 0, stability: null, payoutRisk: null, cutProb: null, concentration: null,
                     incomeVolatility: null, incomeDrawdown: null, dividendGrowth: null };
             }
 
-            const incomeValues = dates.map(d => monthlyIncome[d]);
+            const incomeValues = quarterKeys.map(k => quarterlyIncome[k]);
             const mean = incomeValues.reduce((a, b) => a + b, 0) / incomeValues.length;
             const stdDev = Math.sqrt(incomeValues.reduce((s, v) => s + (v - mean) ** 2, 0) / incomeValues.length);
             const cv = mean > 0 ? stdDev / mean : 1;
-            // Stability score: 1 - min(cv,1) -> higher is better
-            const stability = Math.max(0, Math.min(1, 1 - Math.min(cv, 1)));
-            // Payout risk: use cv with a floor and cap
-            const payoutRisk = Math.min(1, Math.max(0, cv * 0.8 + 0.1));
 
-            // Cut probability based on payoutRisk and stability
+            // --- STABILITY SCORE (inverted CV, higher is better) ---
+            const stability = Math.max(0, Math.min(1, 1 - Math.min(cv, 1)));
+
+            // --- PAYOUT RISK: maximum drawdown of quarterly income ---
+            let peak = -Infinity;
+            let maxDrawdown = 0;
+            for (const v of incomeValues) {
+                if (v > peak) peak = v;
+                if (peak > 0) {
+                    const dd = (peak - v) / peak;
+                    if (dd > maxDrawdown) maxDrawdown = dd;
+                }
+            }
+            const payoutRisk = Math.min(1, maxDrawdown);
+
+            // --- Cut probability (based on stability and payoutRisk) ---
             let cutProb;
-            if (payoutRisk < 0.3 && stability > 0.7) cutProb = "Low";
-            else if (payoutRisk < 0.5 && stability > 0.5) cutProb = "Low–Medium";
+            if (stability > 0.7 && payoutRisk < 0.3) cutProb = "Low";
+            else if (stability > 0.5 && payoutRisk < 0.5) cutProb = "Low–Medium";
             else if (payoutRisk < 0.6) cutProb = "Medium";
             else if (payoutRisk < 0.75) cutProb = "Medium–High";
             else cutProb = "High";
 
-            // Income concentration (top 3 holdings as % of total)
+            // --- Income concentration (top 3 holdings as % of total) ---
             const sortedIncome = Object.values(holdingTotalIncome).sort((a, b) => b - a);
             const top3 = sortedIncome.slice(0, 3).reduce((s, v) => s + v, 0);
             const totalIncome = sortedIncome.reduce((s, v) => s + v, 0);
             const concentration = totalIncome > 0 ? top3 / totalIncome : 0;
 
-            // Income volatility (already captured by stability, but keep for reference)
-            const incomeVolatility = mean > 0 ? stdDev / mean : 0;
-
-            // Income drawdown (max drop from peak)
-            let peakIncome = -Infinity;
-            let maxIncomeDrawdown = 0;
-            for (const v of incomeValues) {
-                if (v > peakIncome) peakIncome = v;
-                if (peakIncome > 0) {
-                    const dd = (peakIncome - v) / peakIncome;
-                    if (dd > maxIncomeDrawdown) maxIncomeDrawdown = dd;
-                }
-            }
-
-            // Dividend growth (CAGR of yearly totals)
+            // --- Dividend growth (CAGR of yearly totals) ---
             const years = Object.keys(yearlyIncome).sort();
             let dividendGrowth = null;
             if (years.length >= 2) {
@@ -2467,18 +2469,17 @@
 
             return {
                 totalIncome,
-                stability,
-                payoutRisk,
+                stability,          // 0-1, higher = more stable
+                payoutRisk,         // 0-1, higher = more risk (max drawdown)
                 cutProb,
                 concentration,
-                incomeVolatility, // kept for reference but not displayed
-                incomeDrawdown: maxIncomeDrawdown,
+                incomeVolatility: cv, // kept for reference
+                incomeDrawdown: maxDrawdown,
                 dividendGrowth,
-                meanMonthlyIncome: mean,
-                stdDevMonthly: stdDev,
-                dates,
+                meanQuarterlyIncome: mean,
+                stdDevQuarterly: stdDev,
+                quarters: quarterKeys,
                 incomeValues,
-                monthlyByHolding,
                 holdingTotalIncome,
                 yearlyIncome,
             };
@@ -5184,7 +5185,7 @@
                                         </div>
                                     </div>
 
-                                    {/* ─── INCOME RISK EXPOSURE (simplified) ─── */}
+                                    {/* ─── INCOME RISK EXPOSURE (new quarterly‑based metrics) ─── */}
                                     <div style={{ ...card({ padding: 12 }) }}>
                                         <div style={{ display: "flex", justifyContent: "space-between",
                                                 alignItems: "center", marginBottom: 6, flexWrap: "wrap", gap: 3 }}>
@@ -5192,7 +5193,7 @@
                                                 <div style={{ fontSize: 11, fontWeight: 600, color: T
                                                         .text }}>📈 Income Risk Exposure</div>
                                                 <div style={{ fontSize: 9, color: T.text3,
-                                                    fontWeight: 400 }}>Measures stability, concentration &amp; sustainability of your dividend income</div>
+                                                    fontWeight: 400 }}>Based on quarterly dividend income · stability &amp; drawdown risk</div>
                                             </div>
                                             <div style={{ display: "flex", gap: 4, flexWrap: "wrap",
                                                     fontSize: 8, color: T.text3 }}>
@@ -5202,7 +5203,7 @@
                                                 <span style={{ color: T.red }}>🟥</span>
                                             </div>
                                         </div>
-                                        {incomeRiskMetrics.totalIncome > 0 ? (() => {
+                                        {incomeRiskMetrics.totalIncome > 0 && incomeRiskMetrics.stability !== null ? (() => {
                                             const ir = incomeRiskMetrics;
                                             const stabilityColor = ir.stability >= 0.7 ? T.green :
                                                 ir.stability >= 0.4 ? T.amber : T.red;
@@ -5213,10 +5214,10 @@
                                             const concentrationLabel = ir.concentration < 0.4 ?
                                                 "Well Diversified" : ir.concentration < 0.6 ?
                                                 "Moderate" : "High Concentration";
-                                            const payoutColor = ir.payoutRisk < 0.3 ? T.green :
-                                                ir.payoutRisk < 0.5 ? T.amber : T.red;
-                                            const payoutLabel = ir.payoutRisk < 0.3 ? "Low Risk" :
-                                                ir.payoutRisk < 0.5 ? "Moderate" : "High Risk";
+                                            const payoutColor = ir.payoutRisk < 0.15 ? T.green :
+                                                ir.payoutRisk < 0.30 ? T.amber : T.red;
+                                            const payoutLabel = ir.payoutRisk < 0.15 ? "Low" :
+                                                ir.payoutRisk < 0.30 ? "Moderate" : "High";
                                             const cutColor = ir.cutProb === "Low" ? T.green :
                                                 ir.cutProb === "Low–Medium" || ir.cutProb === "Medium" ?
                                                 T.amber : T.red;
@@ -5231,13 +5232,13 @@
                                                         gridTemplateColumns: isMob ? "1fr 1fr" :
                                                             "1fr 1fr 1fr", gap: 6 }}>
                                                     {[
-                                                        { label: "🟩 Stability Score",
+                                                        { label: "🟩 Stability Score (quarterly)",
                                                             value: (ir.stability * 100).toFixed(
                                                             0) + "%",
                                                             color: stabilityColor,
                                                             sub: stabilityLabel,
                                                             bar: ir.stability * 100 },
-                                                        { label: "🟦 Payout Risk",
+                                                        { label: "🟦 Payout Risk (max drawdown)",
                                                             value: (ir.payoutRisk * 100).toFixed(
                                                             0) + "%",
                                                             color: payoutColor,
@@ -5264,7 +5265,7 @@
                                                             sub: concentrationLabel,
                                                             bar: ir.concentration *
                                                             100 },
-                                                        { label: "🟪 Dividend Growth",
+                                                        { label: "🟪 Dividend Growth (CAGR)",
                                                             value: ir.dividendGrowth !==
                                                                 null ? ir.dividendGrowth
                                                                 .toFixed(1) + "%" : "—",
@@ -5330,13 +5331,15 @@
                                         })() : (
                                             <div style={{ padding: 12, textAlign: "center", color: T
                                                     .text3, fontSize: 10, fontWeight: 500 }}>
-                                                No dividend income recorded yet. Add dividend transactions to see income risk metrics.
+                                                {incomeRiskMetrics.totalIncome === 0 ?
+                                                    "No dividend income recorded yet. Add dividend transactions to see income risk metrics." :
+                                                    "Not enough quarterly data (need at least 3 quarters)."}
                                             </div>
                                         )}
-                                        {incomeRiskMetrics.totalIncome > 0 && (
+                                        {incomeRiskMetrics.totalIncome > 0 && incomeRiskMetrics.stability !== null && (
                                             <div style={{ fontSize: 8, color: T.text4, marginTop: 6,
                                                     textAlign: "center", opacity: 0.7, fontWeight: 400 }}>
-                                                Based on {incomeRiskMetrics.dates?.length || 0} months of dividend history · Total income: {FC(incomeRiskMetrics.totalIncome, true)}
+                                                Based on {incomeRiskMetrics.quarters?.length || 0} quarters · Total income: {FC(incomeRiskMetrics.totalIncome, true)}
                                             </div>
                                         )}
                                     </div>
