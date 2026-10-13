@@ -48,7 +48,6 @@
   .risk-card .value{font-size:16px;font-weight:700;font-family:'Space Mono',monospace;margin-top:2px}
   .risk-card .sub{font-size:10px;color:var(--text3,#9aa0a6);margin-top:1px;font-weight:400}
 
-  /* Net Buy Flow summary strip */
   .bf-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:12px}
   @media (max-width:640px){.bf-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
   .bf-sum-card{background:var(--bg4,#333);border:1px solid var(--border,#3d3d3d);border-radius:8px;padding:8px 10px}
@@ -597,17 +596,30 @@ const SEED=[
 const INIT_PRICES={BHP:46.5,CBA:128,VAS:98,BBCA:10050,PBS032:1010000,PBS033:1005000,BTC:130000,GOLD:4200};
 const INIT_PREV={BHP:45.8,CBA:126.5,VAS:97.2,BBCA:9950,PBS032:1008000,PBS033:1004000,BTC:128000,GOLD:4180};
 
+/* Dense seed history — 78 weekly points (~18 months) */
 function makeSeedHistory(){
-  const h=[], now=new Date(); let val=85000, divs=0;
-  for(let i=11;i>=0;i--){
-    const d=new Date(now); d.setMonth(d.getMonth()-i);
-    val+=1800+Math.random()*2200-(i>8?500:0);
-    divs+=(i%3===0?600+Math.random()*500:Math.random()*60);
-    h.push({date:d.toISOString().slice(0,10),totalValueAUD:Math.max(val,60000),
-      totalDividendsAUD:Math.round(divs)});
+  const h=[];
+  const now=new Date();
+  let val=42000;
+  let divs=0;
+  const WEEKS=78;
+  for(let i=WEEKS;i>=0;i--){
+    const d=new Date(now);
+    d.setDate(d.getDate()-i*7);
+    const drift=110;
+    const noise=(Math.random()-0.48)*1800;
+    const dip=(i%17===0&&i>0)?-900:0;
+    val=Math.max(22000,val+drift+noise+dip);
+    if(i%5===0)divs+=180+Math.random()*420;
+    h.push({
+      date:d.toISOString().slice(0,10),
+      totalValueAUD:Math.round(val),
+      totalDividendsAUD:Math.round(divs)
+    });
   }
   return h;
 }
+
 function useWindowSize(){
   const [w,setW]=useState(typeof window!=="undefined"?window.innerWidth:1200);
   useEffect(()=>{const h=()=>setW(window.innerWidth); window.addEventListener("resize",h);
@@ -618,7 +630,7 @@ function useWindowSize(){
 /* ═══════════════════════════════════════════════════════════════════
    CHART COMPONENTS
    ═══════════════════════════════════════════════════════════════════ */
-function ChartLine({labels,rawDates,datasets,T,yFmt,y2Fmt,height=220,spanGaps=false}){
+function ChartLine({labels,datasets,T,yFmt,y2Fmt,height=220,spanGaps=false}){
   const ref=useRef(null);
   const inst=useRef(null);
   const sig=useMemo(()=>{
@@ -636,16 +648,16 @@ function ChartLine({labels,rawDates,datasets,T,yFmt,y2Fmt,height=220,spanGaps=fa
          border:{color:T.border}},
       y:{grid:{color:T.chartGrid},
          ticks:{color:T.chartTick,font:{size:10,weight:"500"},callback:yFmt||(v=>`${v}`)},
-         border:{color:T.border},position:"left"},
+         border:{color:T.border},position:"left",beginAtZero:false},
     };
     if(hasY2){
       scales.y2={grid:{drawOnChartArea:false},
         ticks:{color:"#1a73e8",font:{size:10,weight:"500"},callback:y2Fmt},
-        border:{color:T.border},position:"right"};
+        border:{color:T.border},position:"right",beginAtZero:true};
     }
     inst.current=new Chart(ref.current,{
       type:"line",
-      data:{labels,rawDates,datasets},
+      data:{labels,datasets},
       options:{
         spanGaps,responsive:true,maintainAspectRatio:false,
         animation:{duration:280},
@@ -810,7 +822,6 @@ function ChartWaterfall({data,T,yFmt,height=240}){
   );
 }
 
-/* ── Net Buy Flow (mixed bar + line) ── */
 function ChartBuyFlow({labels,buys,sells,cumulative,T,yFmt,height=240}){
   const ref=useRef(null);
   const inst=useRef(null);
@@ -1459,8 +1470,14 @@ function App(){
     const cutoffStr=cutoff.toISOString().slice(0,10);
     const filtered=history.filter(d=>new Date(d.date)>=cutoff);
     const sorted=[...filtered].sort((a,b)=>new Date(a.date)-new Date(b.date));
-    const labels=sorted.map(d=>d.date);
     const rawDates=sorted.map(d=>d.date);
+    const labels=sorted.map(d=>{
+      try{
+        return new Date(d.date+"T12:00:00").toLocaleDateString("en-AU",{
+          day:"2-digit", month:"short"
+        });
+      }catch{return d.date;}
+    });
     const vals=sorted.map(d=>d.totalValueAUD);
     const divCumul=sorted.map(d=>d.totalDividendsAUD);
     const startVal=vals.length?vals[0]:0;
@@ -1532,7 +1549,7 @@ function App(){
       waterfallData.push({label:"End",value:lw,type:"total"});
     }
 
-    /* ── NET BUY FLOW ── */
+    /* Net Buy Flow */
     const buyFlowMap={};
     portfolio.forEach(h=>h.transactions.forEach(tx=>{
       if(!tx.date||tx.date<cutoffStr)return;
@@ -2725,7 +2742,7 @@ function App(){
                         {fmtPct(chartData.startVal>0?(chartData.endVal-chartData.startVal)/chartData.startVal*100:0)}</div>
                     </div>}
                   </div>
-                  <ChartLine labels={chartData.labels} rawDates={chartData.rawDates}
+                  <ChartLine labels={chartData.labels}
                     datasets={[
                       {label:"Portfolio Value",data:chartData.vals,
                         borderColor:dark?"#34a853":"#1e8e3e",
@@ -2745,7 +2762,6 @@ function App(){
                 </div>
               </div>
 
-              {/* Row: Net Buy Flow (wide) + Monthly Income (narrow) */}
               <div className="chart-row">
                 <div style={card({padding:14})}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10,flexWrap:"wrap",gap:6}}>
@@ -2829,7 +2845,7 @@ function App(){
                   marginBottom:8,flexWrap:"wrap",gap:6}}>
                   <div>
                     <div style={{fontSize:12,fontWeight:600,color:T.text}}>📊 Capital Risk Exposure</div>
-                    <div style={{fontSize:10,color:T.text3,fontWeight:400}}>Based on {history.length} monthly snapshots</div>
+                    <div style={{fontSize:10,color:T.text3,fontWeight:400}}>Based on {history.length} snapshots</div>
                   </div>
                   <div style={{display:"flex",gap:8,flexWrap:"wrap",fontSize:9,color:T.text3}}>
                     <span><span style={{color:T.green}}>●</span> Volatility (ann.)</span>
