@@ -19,122 +19,64 @@
   input[type=number]{-moz-appearance:textfield}
   button{cursor:pointer;border:none;outline:none;background:none;color:inherit;transition:background .15s,transform .1s,color .15s,opacity .15s}
   button:active{transform:scale(.97)}
-  a{color:inherit;text-decoration:none}
   ::-webkit-scrollbar{width:6px;height:6px}
   ::-webkit-scrollbar-track{background:transparent}
   ::-webkit-scrollbar-thumb{background:var(--border-light);border-radius:4px}
   ::-webkit-scrollbar-thumb:hover{background:var(--text-3)}
 
   :root{
-    --bg:#0a0e14;
-    --bg-card:#11161f;
-    --bg-elevated:#161c26;
-    --bg-hover:#1c232f;
-    --bg-input:#0e131a;
-    --border:#222b38;
-    --border-light:#2d3746;
-    --text:#e6edf3;
-    --text-2:#8b949e;
-    --text-3:#6b7684;
-    --green:#22c55e;
-    --green-dim:#16a34a;
-    --green-bg:rgba(34,197,94,.12);
-    --red:#ef4444;
-    --red-bg:rgba(239,68,68,.12);
-    --blue:#3b82f6;
-    --blue-bg:rgba(59,130,246,.12);
-    --amber:#f59e0b;
-    --amber-bg:rgba(245,158,11,.12);
-    --teal:#14b8a6;
-    --teal-bg:rgba(20,184,166,.12);
-    --purple:#a855f7;
-    --purple-bg:rgba(168,85,247,.12);
-    --radius:14px;
-    --radius-sm:10px;
-    --radius-xs:6px;
-    --shadow:0 1px 2px rgba(0,0,0,.3);
-    --shadow-lg:0 12px 32px rgba(0,0,0,.5);
-    --chart-grid:rgba(255,255,255,.05);
-    --chart-tick:#6b7684;
+    --bg:#0a0e14;--bg-card:#11161f;--bg-elevated:#161c26;--bg-hover:#1c232f;--bg-input:#0e131a;
+    --border:#222b38;--border-light:#2d3746;
+    --text:#e6edf3;--text-2:#8b949e;--text-3:#6b7684;
+    --green:#22c55e;--green-dim:#16a34a;--green-bg:rgba(34,197,94,.12);
+    --red:#ef4444;--red-bg:rgba(239,68,68,.12);
+    --blue:#3b82f6;--blue-bg:rgba(59,130,246,.12);
+    --amber:#f59e0b;--amber-bg:rgba(245,158,11,.12);
+    --teal:#14b8a6;--teal-bg:rgba(20,184,166,.12);
+    --purple:#a855f7;--purple-bg:rgba(168,85,247,.12);
+    --radius:14px;--radius-sm:10px;
+    --shadow:0 1px 2px rgba(0,0,0,.3);--shadow-lg:0 12px 32px rgba(0,0,0,.5);
+    --chart-grid:rgba(255,255,255,.05);--chart-tick:#6b7684;
   }
-  [data-theme="light"]{
-    --bg:#f4f6fa;
-    --bg-card:#ffffff;
-    --bg-elevated:#f7f9fc;
-    --bg-hover:#eef2f7;
-    --bg-input:#f4f6fa;
-    --border:#e2e8f0;
-    --border-light:#cbd5e1;
-    --text:#0d1520;
-    --text-2:#475569;
-    --text-3:#94a3b8;
-    --green:#16a34a;
-    --green-dim:#15803d;
-    --green-bg:rgba(22,163,74,.1);
-    --red:#dc2626;
-    --red-bg:rgba(220,38,38,.1);
-    --blue:#2563eb;
-    --blue-bg:rgba(37,99,235,.1);
-    --amber:#d97706;
-    --amber-bg:rgba(217,119,6,.1);
-    --teal:#0d9488;
-    --teal-bg:rgba(13,148,136,.1);
-    --purple:#9333ea;
-    --purple-bg:rgba(147,51,234,.1);
-    --shadow:0 1px 3px rgba(15,23,42,.06);
-    --shadow-lg:0 12px 32px rgba(15,23,42,.12);
-    --chart-grid:rgba(15,23,42,.06);
-    --chart-tick:#64748b;
+  html[data-theme="light"]{
+    --bg:#f4f6fa;--bg-card:#ffffff;--bg-elevated:#f7f9fc;--bg-hover:#eef2f7;--bg-input:#f4f6fa;
+    --border:#e2e8f0;--border-light:#cbd5e1;
+    --text:#0d1520;--text-2:#475569;--text-3:#94a3b8;
+    --green:#16a34a;--green-dim:#15803d;--green-bg:rgba(22,163,74,.1);
+    --red:#dc2626;--red-bg:rgba(220,38,38,.1);
+    --blue:#2563eb;--blue-bg:rgba(37,99,235,.1);
+    --amber:#d97706;--amber-bg:rgba(217,119,6,.1);
+    --teal:#0d9488;--teal-bg:rgba(13,148,136,.1);
+    --purple:#9333ea;--purple-bg:rgba(147,51,234,.1);
+    --shadow:0 1px 3px rgba(15,23,42,.06);--shadow-lg:0 12px 32px rgba(15,23,42,.12);
+    --chart-grid:rgba(15,23,42,.06);--chart-tick:#64748b;
   }
 
-  /* ---------- Layout ---------- */
-  .app{display:flex;flex-direction:column;min-height:100vh;background:var(--bg);padding-bottom:env(safe-area-inset-bottom)}
+  .app{display:flex;flex-direction:column;min-height:100vh;background:var(--bg)}
 
-  /* ---------- Header ---------- */
-  .header{
-    position:sticky;top:0;z-index:40;background:var(--bg-card);
-    border-bottom:1px solid var(--border);
-    padding:10px 20px;backdrop-filter:blur(12px);
-  }
+  /* HEADER */
+  .header{position:sticky;top:0;z-index:40;background:var(--bg-card);border-bottom:1px solid var(--border);padding:10px 20px;backdrop-filter:blur(12px)}
   .header-inner{display:flex;align-items:center;gap:16px;max-width:1600px;margin:0 auto;width:100%}
   .logo{display:flex;align-items:center;gap:10px;flex-shrink:0}
-  .logo-mark{
-    width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;
-    background:linear-gradient(135deg,var(--green) 0%,var(--green-dim) 100%);
-    box-shadow:0 4px 12px rgba(34,197,94,.25);
-  }
+  .logo-mark{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--green) 0%,var(--green-dim) 100%);box-shadow:0 4px 12px rgba(34,197,94,.25)}
   .logo-text{display:flex;flex-direction:column;line-height:1.1}
   .logo-text b{font-size:14px;font-weight:800;letter-spacing:.6px;color:var(--text)}
   .logo-text span{font-size:9px;color:var(--text-3);font-weight:500;letter-spacing:.3px;margin-top:1px}
   .header-nav{display:flex;gap:4px;flex:1;justify-content:center}
-  .nav-tab{
-    padding:8px 16px;border-radius:9px;font-size:13px;font-weight:600;color:var(--text-2);
-    display:flex;align-items:center;gap:7px;white-space:nowrap;
-  }
+  .nav-tab{padding:8px 16px;border-radius:9px;font-size:13px;font-weight:600;color:var(--text-2);display:flex;align-items:center;gap:7px;white-space:nowrap}
   .nav-tab:hover{background:var(--bg-hover);color:var(--text)}
   .nav-tab.active{background:var(--green-bg);color:var(--green)}
-  .nav-tab svg{width:15px;height:15px}
   .header-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
-  .icon-btn{
-    width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;
-    color:var(--text-2);border:1px solid transparent;
-  }
+  .icon-btn{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;color:var(--text-2);border:1px solid transparent}
   .icon-btn:hover{background:var(--bg-hover);color:var(--text);border-color:var(--border)}
-  .icon-btn svg{width:16px;height:16px}
-  .avatar{
-    width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--purple));
-    display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff;overflow:hidden;
-    border:2px solid var(--border);flex-shrink:0;
-  }
+  .icon-btn:disabled{opacity:.5;cursor:not-allowed}
+  .avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff;overflow:hidden;border:2px solid var(--border);flex-shrink:0}
   .avatar img{width:100%;height:100%;object-fit:cover}
-  .currency-pill{
-    display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:9px;
-    background:var(--bg-elevated);border:1px solid var(--border);font-size:12px;font-weight:600;color:var(--text);
-  }
+  .currency-pill{display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:9px;background:var(--bg-elevated);border:1px solid var(--border);font-size:12px;font-weight:600;color:var(--text)}
   .currency-pill select{background:transparent;border:none;color:inherit;font-size:12px;font-weight:600;outline:none;cursor:pointer;appearance:none;padding-right:4px}
   .currency-pill select option{background:var(--bg-card);color:var(--text)}
 
-  /* ---------- Main ---------- */
+  /* MAIN */
   .main{flex:1;width:100%;max-width:1600px;margin:0 auto;padding:18px 20px 40px}
   .greeting{margin-bottom:18px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
   .greeting h1{font-size:22px;font-weight:800;color:var(--text);letter-spacing:-.4px}
@@ -142,38 +84,27 @@
   .greeting-quote{font-size:12px;color:var(--text-2);font-style:italic;max-width:280px;text-align:right;line-height:1.5}
   .greeting-quote span{display:block;font-style:normal;color:var(--text-3);font-size:11px;margin-top:2px}
 
-  /* ---------- Cards ---------- */
-  .card{
-    background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);
-    padding:16px;box-shadow:var(--shadow);transition:border-color .15s;
-  }
+  /* CARDS */
+  .card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);transition:border-color .15s}
   .card:hover{border-color:var(--border-light)}
   .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px;flex-wrap:wrap}
-  .card-title{font-size:13px;font-weight:700;color:var(--text);letter-spacing:-.1px}
+  .card-title{font-size:13px;font-weight:700;color:var(--text)}
   .card-sub{font-size:11px;color:var(--text-3);font-weight:500;margin-top:2px}
 
-  /* ---------- KPI ---------- */
+  /* KPI */
   .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
-  .kpi-card{
-    background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);
-    padding:14px 16px;display:flex;flex-direction:column;gap:8px;position:relative;overflow:hidden;
-    transition:border-color .15s,transform .15s;
-  }
+  .kpi-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;display:flex;flex-direction:column;gap:8px;position:relative;overflow:hidden;transition:border-color .15s}
   .kpi-card:hover{border-color:var(--border-light)}
   .kpi-top{display:flex;align-items:center;gap:9px}
-  .kpi-icon{
-    width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
-  }
-  .kpi-icon svg{width:16px;height:16px}
+  .kpi-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
   .kpi-icon.green{background:var(--green-bg);color:var(--green)}
   .kpi-icon.blue{background:var(--blue-bg);color:var(--blue)}
   .kpi-icon.amber{background:var(--amber-bg);color:var(--amber)}
   .kpi-icon.teal{background:var(--teal-bg);color:var(--teal)}
-  .kpi-icon.purple{background:var(--purple-bg);color:var(--purple)}
   .kpi-icon.red{background:var(--red-bg);color:var(--red)}
   .kpi-label{font-size:11px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
   .kpi-value{font-size:22px;font-weight:800;color:var(--text);letter-spacing:-.5px;font-variant-numeric:tabular-nums;line-height:1.1}
-  .kpi-delta{font-size:11px;font-weight:700;display:flex;align-items:center;gap:4px}
+  .kpi-delta{font-size:11px;font-weight:700;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
   .kpi-delta.up{color:var(--green)}
   .kpi-delta.down{color:var(--red)}
   .kpi-delta.neutral{color:var(--text-3)}
@@ -181,20 +112,17 @@
   .kpi-progress{height:4px;border-radius:2px;background:var(--bg-elevated);overflow:hidden;margin-top:2px}
   .kpi-progress-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--green),var(--teal));transition:width .5s}
 
-  /* ---------- Grid rows ---------- */
+  /* GRID ROWS */
   .row-2{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:16px}
   .row-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
 
-  /* ---------- Period selector ---------- */
+  /* PERIOD TABS */
   .period-tabs{display:flex;gap:2px;background:var(--bg-elevated);padding:3px;border-radius:9px;border:1px solid var(--border)}
-  .period-tab{
-    padding:5px 11px;border-radius:6px;font-size:11px;font-weight:600;color:var(--text-3);
-    transition:all .15s;
-  }
+  .period-tab{padding:5px 11px;border-radius:6px;font-size:11px;font-weight:600;color:var(--text-3)}
   .period-tab:hover{color:var(--text)}
   .period-tab.active{background:var(--green);color:#fff;box-shadow:0 2px 6px rgba(34,197,94,.3)}
 
-  /* ---------- Performance snapshot ---------- */
+  /* SNAPSHOT LIST */
   .snapshot-list{display:flex;flex-direction:column;gap:2px}
   .snapshot-row{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:8px;transition:background .15s}
   .snapshot-row:hover{background:var(--bg-elevated)}
@@ -203,52 +131,38 @@
   .snapshot-row .val.up{color:var(--green)}
   .snapshot-row .val.down{color:var(--red)}
 
-  /* ---------- Allocation grid ---------- */
-  .alloc-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  .alloc-legend{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+  /* ALLOC */
+  .alloc-legend{display:flex;flex-direction:column;gap:6px}
   .alloc-legend-item{display:flex;align-items:center;gap:8px;font-size:11px}
   .alloc-dot{width:8px;height:8px;border-radius:3px;flex-shrink:0}
   .alloc-legend-item .name{flex:1;color:var(--text-2);font-weight:500}
   .alloc-legend-item .pct{color:var(--text);font-weight:700;font-variant-numeric:tabular-nums}
 
-  /* ---------- Risk gauge ---------- */
-  .risk-gauge-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;padding:4px 0}
-  .risk-gauge{position:relative;width:160px;height:90px}
+  /* RISK */
+  .risk-gauge{position:relative;width:160px;height:90px;margin:0 auto}
   .risk-gauge svg{width:100%;height:100%;display:block}
   .risk-gauge-label{position:absolute;left:0;right:0;bottom:6px;text-align:center}
   .risk-gauge-label .lvl{font-size:12px;font-weight:800;letter-spacing:1px}
   .risk-gauge-label .sub{font-size:9px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-top:1px}
-  .risk-metrics{width:100%;display:flex;flex-direction:column;gap:5px;margin-top:6px}
+  .risk-metrics{width:100%;display:flex;flex-direction:column;gap:5px;margin-top:10px}
   .risk-metric{display:flex;justify-content:space-between;font-size:11px;padding:5px 8px;border-radius:6px;background:var(--bg-elevated)}
   .risk-metric .k{color:var(--text-3);font-weight:500}
   .risk-metric .v{color:var(--text);font-weight:700;font-variant-numeric:tabular-nums}
 
-  /* ---------- Table ---------- */
+  /* TABLE */
   .table-wrap{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
   .table-toolbar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap}
-  .search-input{
-    flex:1;min-width:160px;display:flex;align-items:center;gap:8px;background:var(--bg-input);
-    border:1px solid var(--border);border-radius:9px;padding:7px 12px;color:var(--text);
-  }
+  .search-input{flex:1;min-width:160px;display:flex;align-items:center;gap:8px;background:var(--bg-input);border:1px solid var(--border);border-radius:9px;padding:7px 12px;color:var(--text)}
   .search-input input{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-size:12px}
   .search-input input::placeholder{color:var(--text-3)}
-  .search-input svg{width:14px;height:14px;color:var(--text-3);flex-shrink:0}
   .table-scroll{overflow:auto;max-height:calc(100vh - 320px)}
   .modern-table{width:100%;border-collapse:collapse;font-size:12px}
-  .modern-table thead th{
-    position:sticky;top:0;z-index:5;background:var(--bg-elevated);
-    padding:10px 14px;text-align:left;font-size:10px;font-weight:700;color:var(--text-3);
-    text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border);white-space:nowrap;
-  }
+  .modern-table thead th{position:sticky;top:0;z-index:5;background:var(--bg-elevated);padding:10px 14px;text-align:left;font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border);white-space:nowrap}
   .modern-table tbody td{padding:12px 14px;border-bottom:1px solid var(--border);color:var(--text-2);font-weight:500;white-space:nowrap}
   .modern-table tbody tr:hover td{background:var(--bg-elevated)}
   .modern-table tbody tr:last-child td{border-bottom:none}
   .ticker-cell{display:flex;align-items:center;gap:10px}
-  .ticker-badge{
-    width:32px;height:32px;border-radius:8px;background:var(--bg-elevated);
-    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;color:var(--text);
-    letter-spacing:.3px;flex-shrink:0;border:1px solid var(--border);
-  }
+  .ticker-badge{width:32px;height:32px;border-radius:8px;background:var(--bg-elevated);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;color:var(--text);letter-spacing:.3px;flex-shrink:0;border:1px solid var(--border)}
   .ticker-info{display:flex;flex-direction:column;line-height:1.3}
   .ticker-info .t{font-weight:700;color:var(--text);font-size:12px}
   .ticker-info .n{font-size:10px;color:var(--text-3);font-weight:500;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -258,38 +172,28 @@
   .pill.down{background:var(--red-bg);color:var(--red)}
   .pill.neutral{background:var(--bg-elevated);color:var(--text-2)}
   .row-actions{display:flex;gap:4px}
-  .row-action{
-    width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;
-    background:var(--bg-elevated);color:var(--text-2);font-size:11px;font-weight:700;
-  }
+  .row-action{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;background:var(--bg-elevated);color:var(--text-2);font-size:11px;font-weight:700}
   .row-action:hover{background:var(--bg-hover);color:var(--text)}
   .row-action.buy:hover{background:var(--green-bg);color:var(--green)}
   .row-action.sell:hover{background:var(--red-bg);color:var(--red)}
   .row-action.div:hover{background:var(--teal-bg);color:var(--teal)}
 
-  /* ---------- Treemap ---------- */
+  /* TREEMAP */
   .treemap{position:relative;width:100%;border-radius:var(--radius);overflow:hidden;background:var(--bg-elevated);border:1px solid var(--border)}
-  .treemap-cell{
-    position:absolute;border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    cursor:pointer;overflow:hidden;transition:filter .12s;padding:2px;text-align:center;
-  }
+  .treemap-cell{position:absolute;border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;transition:filter .12s;padding:2px;text-align:center}
   .treemap-cell:hover{filter:brightness(1.12)}
   .treemap-cell .tk{font-weight:800;font-family:'Space Mono',monospace;letter-spacing:.2px;line-height:1.1}
   .treemap-cell .pct{font-family:'Space Mono',monospace;opacity:.9;line-height:1.1;margin-top:1px}
   .treemap-cell .sub{font-family:'Space Mono',monospace;opacity:.7;line-height:1.1;margin-top:1px}
 
-  /* ---------- View toggle ---------- */
+  /* VIEW TOGGLE */
   .view-toggle{display:flex;gap:3px;background:var(--bg-elevated);padding:3px;border-radius:9px;border:1px solid var(--border)}
   .view-toggle button{padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;color:var(--text-3);display:flex;align-items:center;gap:5px}
   .view-toggle button.active{background:var(--bg-card);color:var(--text);box-shadow:var(--shadow)}
   .view-toggle button:hover:not(.active){color:var(--text-2)}
-  .view-toggle svg{width:13px;height:13px}
 
-  /* ---------- Buttons ---------- */
-  .btn{
-    padding:9px 16px;border-radius:9px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:6px;
-    transition:all .15s;
-  }
+  /* BUTTONS */
+  .btn{padding:9px 16px;border-radius:9px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
   .btn-primary{background:var(--green);color:#fff;box-shadow:0 2px 8px rgba(34,197,94,.25)}
   .btn-primary:hover{background:var(--green-dim);box-shadow:0 4px 12px rgba(34,197,94,.35)}
   .btn-primary:disabled{opacity:.5;cursor:not-allowed}
@@ -298,81 +202,47 @@
   .btn-danger{background:var(--red);color:#fff}
   .btn-danger:hover{background:#dc2626}
   .btn-sm{padding:6px 12px;font-size:11px;border-radius:8px}
-  .btn svg{width:14px;height:14px}
 
-  /* ---------- Inputs ---------- */
+  /* INPUTS */
   .field{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
   .field label{font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.6px}
-  .field input,.field select,.field textarea{
-    width:100%;background:var(--bg-input);border:1px solid var(--border);border-radius:9px;
-    padding:10px 12px;color:var(--text);font-size:13px;outline:none;transition:border-color .15s;
-  }
+  .field input,.field select{width:100%;background:var(--bg-input);border:1px solid var(--border);border-radius:9px;padding:10px 12px;color:var(--text);font-size:13px;outline:none;transition:border-color .15s}
   .field input:focus,.field select:focus{border-color:var(--green)}
   .field input::placeholder{color:var(--text-3)}
   .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .field-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
 
-  /* ---------- Bottom nav (mobile) ---------- */
-  .bottom-nav{
-    display:none;position:fixed;bottom:0;left:0;right:0;z-index:50;
-    background:var(--bg-card);border-top:1px solid var(--border);
-    padding:6px 8px calc(6px + env(safe-area-inset-bottom));backdrop-filter:blur(12px);
-  }
+  /* BOTTOM NAV */
+  .bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:50;background:var(--bg-card);border-top:1px solid var(--border);padding:6px 8px calc(6px + env(safe-area-inset-bottom));backdrop-filter:blur(12px)}
   .bottom-nav-inner{display:flex;justify-content:space-around;max-width:500px;margin:0 auto}
-  .bottom-nav-item{
-    flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 4px;border-radius:10px;
-    color:var(--text-3);transition:color .15s,background .15s;
-  }
-  .bottom-nav-item svg{width:20px;height:20px}
+  .bottom-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 4px;border-radius:10px;color:var(--text-3);transition:color .15s,background .15s}
   .bottom-nav-item span{font-size:10px;font-weight:600}
   .bottom-nav-item.active{color:var(--green)}
-  .bottom-nav-item.active svg{filter:drop-shadow(0 0 8px rgba(34,197,94,.4))}
 
-  /* ---------- Modal ---------- */
-  .modal-overlay{
-    position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);
-    display:flex;align-items:center;justify-content:center;padding:16px;animation:fadeIn .15s ease;
-  }
+  /* MODAL */
+  .modal-overlay{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px;animation:fadeIn .15s ease}
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-  .modal{
-    background:var(--bg-card);border:1px solid var(--border);border-radius:18px;
-    width:100%;max-width:460px;max-height:90vh;overflow-y:auto;
-    box-shadow:var(--shadow-lg);animation:slideUp .2s ease;
-  }
+  .modal{background:var(--bg-card);border:1px solid var(--border);border-radius:18px;width:100%;max-width:460px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);animation:slideUp .2s ease}
   @keyframes slideUp{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}
   .modal-lg{max-width:760px}
   .modal-header{padding:18px 20px 14px;border-bottom:1px solid var(--border)}
-  .modal-header h2{font-size:16px;font-weight:800;color:var(--text);letter-spacing:-.2px}
+  .modal-header h2{font-size:16px;font-weight:800;color:var(--text)}
   .modal-header p{font-size:11px;color:var(--text-3);margin-top:3px;font-weight:500}
   .modal-body{padding:18px 20px}
   .modal-footer{display:flex;gap:8px;justify-content:flex-end;padding:14px 20px;border-top:1px solid var(--border)}
 
-  /* ---------- Import preview ---------- */
-  .import-drop{
-    border:2px dashed var(--border-light);border-radius:14px;padding:36px 20px;text-align:center;
-    background:var(--bg-elevated);transition:all .2s;cursor:pointer;
-  }
+  /* IMPORT */
+  .import-drop{border:2px dashed var(--border-light);border-radius:14px;padding:36px 20px;text-align:center;background:var(--bg-elevated);transition:all .2s;cursor:pointer}
   .import-drop.dragover{border-color:var(--green);background:var(--green-bg)}
   .import-drop .ico{font-size:36px;margin-bottom:10px;opacity:.5}
   .import-drop .ttl{font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px}
   .import-drop .desc{font-size:11px;color:var(--text-3);margin-bottom:14px}
 
-  /* ---------- Snackbar / status ---------- */
-  .status-chip{
-    display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;
-    font-size:10px;font-weight:600;background:var(--bg-elevated);border:1px solid var(--border);color:var(--text-2);
-  }
-
-  /* ---------- Spinner ---------- */
   @keyframes spin{to{transform:rotate(360deg)}}
   .spin{display:inline-block;animation:spin .9s linear infinite}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
-  .pulse{animation:pulse 1.5s ease-in-out infinite}
 
-  /* ---------- Responsive ---------- */
-  @media(max-width:1100px){
-    .row-4{grid-template-columns:1fr 1fr}
-  }
+  /* RESPONSIVE */
+  @media(max-width:1100px){.row-4{grid-template-columns:1fr 1fr}}
   @media(max-width:900px){
     .header-nav{display:none}
     .row-2{grid-template-columns:1fr}
@@ -381,38 +251,25 @@
   @media(max-width:768px){
     .header{padding:8px 12px}
     .main{padding:14px 12px 100px}
-    .greeting{margin-bottom:14px}
     .greeting h1{font-size:19px}
-    .greeting p{font-size:11px}
-    .kpi-grid{grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+    .kpi-grid{grid-template-columns:1fr 1fr;gap:10px}
     .kpi-card{padding:12px}
     .kpi-value{font-size:18px}
-    .kpi-label{font-size:10px}
     .row-4{grid-template-columns:1fr;gap:10px}
-    .alloc-grid{grid-template-columns:1fr}
     .bottom-nav{display:block}
     .logo-text span{display:none}
     .logo-mark{width:30px;height:30px}
-    .currency-pill{padding:5px 8px}
-    .header-actions{gap:4px}
-    .icon-btn{width:32px;height:32px}
-    .avatar{width:32px;height:32px}
     .card{padding:14px}
-    .modal{max-width:100%;border-radius:16px}
     .table-scroll{max-height:calc(100vh - 260px)}
     .modern-table tbody td{padding:10px 12px}
     .modern-table thead th{padding:8px 12px}
-    .row-actions .row-action:nth-child(n+4){display:none}
   }
   @media(max-width:480px){
     .kpi-grid{grid-template-columns:1fr 1fr;gap:8px}
     .kpi-value{font-size:16px}
-    .kpi-icon{width:28px;height:28px}
-    .kpi-icon svg{width:14px;height:14px}
     .main{padding:12px 10px 100px}
     .field-row,.field-row-3{grid-template-columns:1fr}
     .greeting h1{font-size:17px}
-    .treemap-cell .tk{font-size:10px !important}
   }
 </style>
 </head>
@@ -430,16 +287,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
 <script>
-  const FIREBASE_CONFIG = {
-    apiKey: "AIzaSyBp20SC2Yt9IWkevpLgU6-nXZtA7HuNbN0",
-    authDomain: "folio-sync.firebaseapp.com",
-    projectId: "folio-sync",
-    storageBucket: "folio-sync.firebasestorage.app",
-    messagingSenderId: "763988334867",
-    appId: "1:763988334867:web:f5984340db588992e9a2e6",
-    measurementId: "G-YDQLTZ8SP4"
-  };
-  const FB_CONFIGURED = !FIREBASE_CONFIG.apiKey.startsWith("YOUR_");
+  const FIREBASE_CONFIG={apiKey:"AIzaSyBp20SC2Yt9IWkevpLgU6-nXZtA7HuNbN0",authDomain:"folio-sync.firebaseapp.com",projectId:"folio-sync",storageBucket:"folio-sync.firebasestorage.app",messagingSenderId:"763988334867",appId:"1:763988334867:web:f5984340db588992e9a2e6",measurementId:"G-YDQLTZ8SP4"};
+  const FB_CONFIGURED=!FIREBASE_CONFIG.apiKey.startsWith("YOUR_");
   let fbApp=null,fbAuth=null,fbDb=null;
   if(FB_CONFIGURED){
     try{
@@ -458,11 +307,10 @@
 <script type="text/babel">
 const {useState,useMemo,useCallback,useEffect,useRef,useLayoutEffect}=React;
 
-// ========== ERROR BOUNDARY ==========
 class ErrorBoundary extends React.Component{
   constructor(p){super(p);this.state={hasError:false,error:null};}
   static getDerivedStateFromError(e){return{hasError:true,error:e};}
-  componentDidCatch(e,i){console.error("React error boundary:",e,i);}
+  componentDidCatch(e,i){console.error("React error:",e,i);}
   render(){
     if(this.state.hasError){
       return(
@@ -477,31 +325,15 @@ class ErrorBoundary extends React.Component{
   }
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
 const ASSET_TYPES=["Shares / Stocks","ETF","Mutual Fund","Index Fund","Superannuation","Bond – Government","Bond – Corporate","Bond – Indonesia (SBN)","Bond – Sharia (Sukuk)","Commodity","Cryptocurrency","Forex","REIT / Property","Cash / Term Deposit","Other"];
 const CURRENCIES=["AUD","IDR","USD"];
 const DIVIDEND_PAYING_TYPES=new Set(["Shares / Stocks","ETF","Mutual Fund","Index Fund","Superannuation","REIT / Property","Bond – Government","Bond – Corporate","Bond – Indonesia (SBN)","Bond – Sharia (Sukuk)"]);
 const INCOME_RISK_EXCLUDED_TICKERS=new Set(["SHIB","BTC","GOLD","NUL5339AU","NUL7270AU"]);
 
-// ─── Themes ───────────────────────────────────────────────────────────────
-const DARK={
-  bg:"#0a0e14",bg2:"#11161f",bg3:"#161c26",bg4:"#1c232f",bg5:"#2d3746",
-  border:"#222b38",border2:"#2d3746",text:"#e6edf3",text2:"#8b949e",text3:"#6b7684",text4:"#4d5866",
-  green:"#22c55e",greenBtn:"#22c55e",red:"#ef4444",redBtn:"#ef4444",teal:"#14b8a6",tealBtn:"#3b82f6",
-  amber:"#f59e0b",amberBg:"#2d1f0a",shadow:"0 1px 2px rgba(0,0,0,.3)",
-  chartGrid:"rgba(255,255,255,.05)",chartTick:"#6b7684",cardBg:"#11161f",hoverBg:"#1c232f",
-  kpiLabel:"#6b7684",sysinfoColor:"#8b949e",borderColor:"#222b38",
-};
-const LIGHT={
-  bg:"#f4f6fa",bg2:"#ffffff",bg3:"#f7f9fc",bg4:"#eef2f7",bg5:"#cbd5e1",
-  border:"#e2e8f0",border2:"#cbd5e1",text:"#0d1520",text2:"#475569",text3:"#94a3b8",text4:"#b0bccb",
-  green:"#16a34a",greenBtn:"#16a34a",red:"#dc2626",redBtn:"#dc2626",teal:"#0d9488",tealBtn:"#2563eb",
-  amber:"#d97706",amberBg:"#fef3c7",shadow:"0 1px 3px rgba(15,23,42,.06)",
-  chartGrid:"rgba(15,23,42,.06)",chartTick:"#64748b",cardBg:"#ffffff",hoverBg:"#eef2f7",
-  kpiLabel:"#94a3b8",sysinfoColor:"#475569",borderColor:"#e2e8f0",
-};
+const DARK={bg:"#0a0e14",bg2:"#11161f",bg3:"#161c26",bg4:"#1c232f",bg5:"#2d3746",border:"#222b38",border2:"#2d3746",text:"#e6edf3",text2:"#8b949e",text3:"#6b7684",text4:"#4d5866",green:"#22c55e",greenBtn:"#22c55e",red:"#ef4444",redBtn:"#ef4444",teal:"#14b8a6",tealBtn:"#3b82f6",amber:"#f59e0b",amberBg:"#2d1f0a",chartGrid:"rgba(255,255,255,.05)",chartTick:"#6b7684",cardBg:"#11161f"};
+const LIGHT={bg:"#f4f6fa",bg2:"#ffffff",bg3:"#f7f9fc",bg4:"#eef2f7",bg5:"#cbd5e1",border:"#e2e8f0",border2:"#cbd5e1",text:"#0d1520",text2:"#475569",text3:"#94a3b8",text4:"#b0bccb",green:"#16a34a",greenBtn:"#16a34a",red:"#dc2626",redBtn:"#dc2626",teal:"#0d9488",tealBtn:"#2563eb",amber:"#d97706",amberBg:"#fef3c7",chartGrid:"rgba(15,23,42,.06)",chartTick:"#64748b",cardBg:"#ffffff"};
 
-// ─── Treemap ──────────────────────────────────────────────────────────────────
+// ─── Treemap ──────────────────────────────────────────────────────────────
 function squarify(items,x,y,w,h){
   if(!items.length)return[];
   const r=[];
@@ -530,7 +362,7 @@ function _layout(it,x,y,w,h,tot,r){
   hz?_layout(rem,x+rd,y,w-rd,h,remT,r):_layout(rem,x,y+rd,w,h-rd,remT,r);
 }
 
-// ─── Colors ──────────────────────────────────────────────────────────────────
+// ─── Colors ────────────────────────────────────────────────────────────────
 function getPerformanceColor(pct,dark){
   const maxAbs=10;const clamped=Math.max(-maxAbs,Math.min(maxAbs,pct));const ratio=clamped/maxAbs;
   if(Math.abs(pct)<0.05)return{bg:dark?"#2d3746":"#e2e8f0",text:dark?"#8b949e":"#475569",border:dark?"#3d4b5c":"#cbd5e1"};
@@ -547,11 +379,8 @@ function getDividendColor(yieldPct,dark){
   const borderLight=dark?25:40;const border=`hsl(${hue}, ${sat}%, ${borderLight}%)`;
   return{bg,text,border};
 }
-const gainColor=(p,d)=>getPerformanceColor(p,d);
-const dayColor=(p,d)=>getPerformanceColor(p,d);
-const divColor=(y,d)=>getDividendColor(y,d);
 
-// ─── Currency helpers ────────────────────────────────────────────────────────
+// ─── Currency ──────────────────────────────────────────────────────────────
 const toAUD=(a,cur,R)=>{if(cur==="IDR")return a/R.AUD_IDR;if(cur==="USD")return a/R.AUD_USD;return a;};
 const fromAUD=(a,cur,R)=>{if(cur==="IDR")return a*R.AUD_IDR;if(cur==="USD")return a*R.AUD_USD;return a;};
 function fmtIDR(n){try{return Math.round(n).toLocaleString("id-ID");}catch{return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,".");}}
@@ -573,8 +402,7 @@ function fmtGain(audAmt,dc,R){
 }
 const fmtPct=n=>`${n>=0?"+":""}${n.toFixed(2)}%`;
 const fmtDate=d=>{try{return new Date(d+"T12:00:00").toLocaleDateString("en-AU",{day:"2-digit",month:"short",year:"numeric"});}catch{return d;}};
-const fmtMon=d=>{try{const dt=new Date(d+"-01");return dt.toLocaleDateString("en-AU",{month:"short",year:"2-digit"});}catch{return d;}};
-const fmtMonShort=d=>{try{return new Date(d+"T12:00:00").toLocaleDateString("en-AU",{day:"2-digit",month:"short"});}catch{return d;}};
+const fmtMon=d=>{try{return new Date(d+"-01").toLocaleDateString("en-AU",{month:"short",year:"2-digit"});}catch{return d;}};
 const fmtTime=d=>{if(!d)return"—";try{return d.toLocaleTimeString("en-AU",{hour:"2-digit",minute:"2-digit"});}catch{return"—";}};
 
 function suggestYahoo(ticker,exchange,assetType){
@@ -586,2323 +414,87 @@ function suggestYahoo(ticker,exchange,assetType){
   if(ex==="SGX")return tk+".SI";
   if(ex==="TSX")return tk+".TO";
   if(ex==="CRYPTO"||tk==="BTC"||tk==="ETH"){const cm={BTC:"BTC-AUD",ETH:"ETH-AUD",BNB:"BNB-AUD",SOL:"SOL-AUD",XRP:"XRP-AUD",ADA:"ADA-AUD",DOGE:"DOGE-AUD",USDT:"USDT-AUD"};return cm[tk]||tk+"-AUD";}
-  if(ex==="SPOT"||at==="Commodity"){const cm={GOLD:"GC=F",SILVER:"SI=F",OIL:"CL=F",COPPER:"HG=F",PLATINUM:"PL=F",PALLADIUM:"PA=F",XAUUSD:"XAUUSD=X",XAGUSD:"XAGUSD=X"};return cm[tk]||"";}
-  if(at.includes("Bond")||at.includes("Sukuk"))return"";
+  if(ex==="SPOT"||at==="Commodity"){const cm={GOLD:"GC=F",SILVER:"SI=F",OIL:"CL=F",COPPER:"HG=F",PLATINUM:"PL=F",PALLADIUM:"PA=F"};return cm[tk]||"";}
   return"";
 }
 
-// ─── Price Fetchers ──────────────────────────────────────────────────────────
+// ─── Prices ────────────────────────────────────────────────────────────────
 const YAHOO_BASE="https://query2.finance.yahoo.com/v8/finance/chart/";
-const YAHOO_BASE1="https://query1.finance.yahoo.com/v8/finance/chart/";
-const YAHOO_V7="https://query1.finance.yahoo.com/v7/finance/quote?symbols=";
 const RATES_URL="https://open.er-api.com/v6/latest/AUD";
 const PROXIES=[
   u=>"https://corsproxy.io/?"+encodeURIComponent(u),
   u=>"https://api.allorigins.win/raw?url="+encodeURIComponent(u),
-  u=>"https://proxy.cors.sh/"+u,
   u=>"https://cors.eu.org/"+u,
   u=>"https://api.codetabs.com/v1/proxy?quest="+encodeURIComponent(u),
-  u=>"https://corsproxy.org/?"+encodeURIComponent(u),
-  u=>"https://thingproxy.freeboard.io/fetch/"+u,
   u=>"https://api.allorigins.win/get?url="+encodeURIComponent(u),
 ];
-async function fetchWithProxyRaw(url,timeoutMs=10000){
-  return new Promise((resolve,reject)=>{
-    let settled=false;let pending=PROXIES.length;
-    PROXIES.forEach(proxy=>{
-      fetch(proxy(url),{signal:AbortSignal.timeout(timeoutMs)}).then(async r=>{
-        if(!r.ok)throw new Error("HTTP "+r.status);
-        const t=await r.text();if(!t||t.length<10)throw new Error("Empty");
-        if(t.trim().startsWith("{")&&t.includes('"contents"')){try{const j=JSON.parse(t);if(j.contents){if(!settled){settled=true;resolve(j.contents);}return;}}catch(e){}}
-        if(!settled){settled=true;resolve(t);}
-      }).catch(()=>{pending--;if(pending===0&&!settled)reject(new Error("All proxies failed (raw)"));});
-    });
-  });
-}
 async function tryProxy(proxyUrl,timeoutMs){
   const r=await fetch(proxyUrl,{signal:AbortSignal.timeout(timeoutMs)});
   if(!r.ok)throw new Error("HTTP "+r.status);
-  const t=await r.text();if(!t||t.length<10)throw new Error("Empty response");
+  const t=await r.text();if(!t||t.length<10)throw new Error("Empty");
   let parsed=JSON.parse(t);
   if(parsed?.contents&&typeof parsed.contents==="string")parsed=JSON.parse(parsed.contents);
   return parsed;
 }
 async function fetchWithProxy(url,timeoutMs=10000){
   return new Promise((resolve,reject)=>{
-    let settled=false;let pending=PROXIES.length;const errors=[];
+    let settled=false;let pending=PROXIES.length;
     PROXIES.forEach(proxy=>{
       tryProxy(proxy(url),timeoutMs).then(data=>{if(!settled){settled=true;resolve(data);}})
-        .catch(e=>{errors.push(e.message);pending--;if(pending===0&&!settled)reject(new Error("All proxies failed: "+url.split("?")[0].split("/").pop()));});
+        .catch(()=>{pending--;if(pending===0&&!settled)reject(new Error("All proxies failed"));});
     });
   });
 }
-async function fetchIDXPrice(stockCode){
-  const code=stockCode.toUpperCase().replace(".JK","").trim();
-  const endpoints=[`https://api-apps.idx.co.id/api/Stock/GetStockSummary?StockCode=${code}`,`https://api-apps.idx.co.id/api/Stock/GetStockData?StockCode=${code}`,`https://api-apps.idx.co.id/api/Stock/GetTradingResult?StockCode=${code}`,`https://api.stockbit.com/v2.4/fundamental/financialsummary/${code}`,`https://api.markets.ft.com/data/prices/v1/series/symbol/${code}.JK`];
-  for(const url of endpoints){
-    try{
-      const d=await fetchWithProxy(url,8000);if(!d)continue;
-      const item=d?.data||d?.Data||d;
-      const cur=parseFloat(item?.ClosePrice??item?.closePrice??item?.LastPrice??item?.lastPrice??item?.price??0);
-      if(cur>0){const prev=parseFloat(item?.PreviousPrice??item?.previousPrice??item?.OpenPrice??cur);return{current:cur,prev};}
-      const arr=Array.isArray(item)?item:(item?.stockData||item?.result||[]);
-      if(arr.length){const r=arr[0];const cur2=parseFloat(r?.ClosePrice??r?.closePrice??r?.LastPrice??0);if(cur2>0)return{current:cur2,prev:parseFloat(r?.PreviousPrice??cur2)};}
-    }catch(e){}
-  }
-  throw new Error("IDX: "+code+" not found");
-}
-function toStooqSymbol(yahooSymbol){
-  const s=yahooSymbol.toUpperCase();
-  if(s.endsWith(".AX"))return s.replace(".AX",".AU").toLowerCase();
-  if(s.endsWith(".JK"))return s.replace(".JK",".ID").toLowerCase();
-  if(s.endsWith("-AUD"))return s.replace("-AUD","-AUD.CRYPTO").toLowerCase();
-  if(s.endsWith("-USD"))return s.replace("-USD","-USD.CRYPTO").toLowerCase();
-  if(s.endsWith("-BTC"))return s.replace("-BTC","-BTC.CRYPTO").toLowerCase();
-  if(s==="GC=F")return"gc.f";if(s==="SI=F")return"si.f";if(s==="CL=F")return"cl.f";if(s==="NG=F")return"ng.f";
-  if(s.endsWith(".L"))return s.toLowerCase();if(s.endsWith(".SI"))return s.toLowerCase();if(s.endsWith(".TO"))return s.toLowerCase();if(s.endsWith(".HK"))return s.toLowerCase();
-  if(!s.includes(".")&&!s.includes("-")&&!s.includes("="))return s.toLowerCase()+".us";
-  return null;
-}
-async function fetchStooq(yahooSymbol){
-  const stooq=toStooqSymbol(yahooSymbol);if(!stooq)throw new Error("No Stooq symbol for "+yahooSymbol);
-  const now=new Date();const d1=new Date(now);d1.setDate(d1.getDate()-7);
-  const fmt=d=>`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}`;
-  const url=`https://stooq.com/q/d/l/?s=${stooq}&d1=${fmt(d1)}&d2=${fmt(now)}&i=d`;
-  const raw=await fetchWithProxyRaw(url);
-  const allLines=raw.trim().split("\n").map(l=>l.trim()).filter(Boolean);
-  if(allLines.length<2)throw new Error("Stooq: no data for "+stooq);
-  const header=allLines[0].toLowerCase().split(",");const closeIdx=header.indexOf("close");
-  if(closeIdx<0)throw new Error("Stooq: no Close col");
-  const dataLines=allLines.slice(1).filter(l=>!/no data/i.test(l));
-  if(!dataLines.length)throw new Error("Stooq: empty data");
-  dataLines.sort((a,b)=>a.split(",")[0].localeCompare(b.split(",")[0]));
-  const parseClose=l=>parseFloat(l.split(",")[closeIdx])||0;
-  const cur=parseClose(dataLines[dataLines.length-1]);
-  const prev=dataLines.length>1?parseClose(dataLines[dataLines.length-2]):cur;
-  if(!cur)throw new Error("Stooq: zero price");
-  return{current:cur,prev};
-}
 async function fetchYahooPrice(symbol){
   const sym=encodeURIComponent(symbol);
-  const isJK=symbol.endsWith(".JK");
-  const parseQuote=d=>{const quote=d?.quoteResponse?.result?.[0]||d?.result?.[0];if(quote&&quote.regularMarketPrice){const prev=quote.regularMarketPreviousClose;if(prev&&prev!==quote.regularMarketPrice){return{current:quote.regularMarketPrice,prev:prev};}return{current:quote.regularMarketPrice,prev:null};}return null;};
-  const parseChartForPrevClose=d=>{const res=d?.chart?.result?.[0];if(!res)return null;const timestamps=res.timestamp;const closes=res.indicators?.quote?.[0]?.close;if(!timestamps||!closes||timestamps.length<2)return null;const prevClose=closes[closes.length-2];const current=closes[closes.length-1];if(prevClose&&current)return{current,prev:prevClose};return null;};
-  try{const quoteUrl=`https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=2d&includePrePost=false`;const data=await fetchWithProxy(quoteUrl);const result=parseChartForPrevClose(data);if(result&&result.current>0&&result.prev>0)return result;}catch(e){}
-  try{const quoteUrl=YAHOO_V7+sym+"&fields=regularMarketPrice,regularMarketPreviousClose";const quoteData=await fetchWithProxy(quoteUrl);const result=parseQuote(quoteData);if(result&&result.current>0&&result.prev!==null)return result;}catch(e){}
-  const chartUrls=[YAHOO_BASE+sym+"?interval=1d&range=2d&includePrePost=false",YAHOO_BASE1+sym+"?interval=1d&range=2d&includePrePost=false"];
-  for(const url of chartUrls){try{const chartData2=await fetchWithProxy(url);const result=parseChartForPrevClose(chartData2);if(result&&result.current>0&&result.prev>0)return result;}catch(e){}}
-  try{const stooqResult=await fetchStooq(symbol);if(stooqResult?.current>0)return stooqResult;}catch(e){}
-  if(isJK){try{const idxResult=await fetchIDXPrice(symbol);if(idxResult?.current>0)return idxResult;}catch(e){}}
-  throw new Error(`All price sources failed for ${symbol}`);
+  const parseChart=d=>{
+    const res=d?.chart?.result?.[0];if(!res)return null;
+    const closes=res.indicators?.quote?.[0]?.close;
+    if(!closes||closes.length<2)return null;
+    const prev=closes[closes.length-2];const cur=closes[closes.length-1];
+    if(prev&&cur)return{current:cur,prev};
+    return null;
+  };
+  const urls=[`https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=2d`,YAHOO_BASE+sym+"?interval=1d&range=2d"];
+  for(const url of urls){
+    try{const d=await fetchWithProxy(url);const r=parseChart(d);if(r&&r.current>0&&r.prev>0)return r;}catch(e){}
+  }
+  throw new Error("Price fetch failed for "+symbol);
 }
 async function fetchBenchmark(symbol){
   const sym=encodeURIComponent(symbol);
-  const candidates=[YAHOO_BASE+sym+"?interval=1mo&range=5y",YAHOO_BASE1+sym+"?interval=1mo&range=5y",YAHOO_BASE+sym+"?interval=1mo&range=3y"];
-  let lastErr="No data";
-  for(const url of candidates){
-    try{
-      const d=await fetchWithProxy(url);const res=d?.chart?.result?.[0];if(!res)continue;
-      const ts=res.timestamp||[];const closes=res.indicators?.quote?.[0]?.close||[];
-      if(!ts.length||!closes.length)continue;
-      const base=closes.find(v=>v!=null)||1;
-      return{labels:ts.map(t=>new Date(t*1000).toISOString().slice(0,10)),pct:closes.map(v=>v!=null?((v-base)/base)*100:null),raw:closes};
-    }catch(e){lastErr=e.message;}
-  }
-  throw new Error(lastErr);
+  const url=YAHOO_BASE+sym+"?interval=1mo&range=5y";
+  const d=await fetchWithProxy(url);
+  const res=d?.chart?.result?.[0];
+  if(!res)throw new Error("No data");
+  const ts=res.timestamp||[];const closes=res.indicators?.quote?.[0]?.close||[];
+  if(!ts.length||!closes.length)throw new Error("Empty data");
+  const base=closes.find(v=>v!=null)||1;
+  return{labels:ts.map(t=>new Date(t*1000).toISOString().slice(0,10)),pct:closes.map(v=>v!=null?((v-base)/base)*100:null)};
 }
 async function fetchHoldingHistory(yahooSymbol){
   const sym=encodeURIComponent(yahooSymbol);
-  const candidates=[YAHOO_BASE+sym+"?interval=1mo&range=5y",YAHOO_BASE1+sym+"?interval=1mo&range=5y"];
-  for(const url of candidates){
-    try{
-      const d=await fetchWithProxy(url);const res=d?.chart?.result?.[0];if(!res)continue;
-      const ts=res.timestamp||[];const closes=res.indicators?.quote?.[0]?.close||[];
-      const currency=res.meta?.currency||"AUD";
-      if(!ts.length||!closes.length)continue;
-      const priceMap={};
-      ts.forEach((t,i)=>{if(closes[i]!=null)priceMap[new Date(t*1000).toISOString().slice(0,10)]=closes[i];});
-      return{priceMap,currency};
-    }catch(e){}
-  }
-  return null;
+  try{
+    const d=await fetchWithProxy(YAHOO_BASE+sym+"?interval=1mo&range=5y");
+    const res=d?.chart?.result?.[0];if(!res)return null;
+    const ts=res.timestamp||[];const closes=res.indicators?.quote?.[0]?.close||[];
+    if(!ts.length||!closes.length)return null;
+    const priceMap={};
+    ts.forEach((t,i)=>{if(closes[i]!=null)priceMap[new Date(t*1000).toISOString().slice(0,10)]=closes[i];});
+    return{priceMap,currency:res.meta?.currency||"AUD"};
+  }catch(e){return null;}
 }
 async function fetchExchangeRates(){
   const r=await fetch(RATES_URL,{signal:AbortSignal.timeout(10000)});
   if(!r.ok)throw new Error("Rate API HTTP "+r.status);
-  const d=await r.json();if(!d.rates)throw new Error("Invalid rate response");
+  const d=await r.json();
+  if(!d.rates)throw new Error("Invalid response");
   return{AUD_IDR:d.rates.IDR,AUD_USD:d.rates.USD};
 }
-async function fetchDJPPRPrice(seriSBN){
-  const sn=seriSBN.toUpperCase().trim();
-  async function tryDirect(url,timeoutMs=6000){
-    try{const r=await fetch(url,{signal:AbortSignal.timeout(timeoutMs)});if(r.ok){const t=await r.text();if(t&&t.length>10)return JSON.parse(t);}}catch(e){}
-    return fetchWithProxy(url,timeoutMs);
-  }
-  function bondPrice(obj){
-    if(!obj||typeof obj!=="object")return 0;
-    const keys=Object.keys(obj);
-    const find=(...names)=>{for(const n of names){const k=keys.find(k=>k.toLowerCase()===n.toLowerCase());if(k&&parseFloat(obj[k])>0)return parseFloat(obj[k]);}return 0;};
-    return find("ClosePrice","LastPrice","Price","Close","Bid","Ask","HargaBid","HargaAsk","closeprice","lastprice","price");
-  }
-  const idxSingle=[`https://api-apps.idx.co.id/api/Bond/GetBondData?BondCode=${sn}`,`https://api-apps.idx.co.id/api/BondBursa/GetBondBursaData?BondCode=${sn}`,`https://api-apps.idx.co.id/api/Bond/GetBondSummary?StockCode=${sn}`,`https://api-apps.idx.co.id/api/Stock/GetStockSummary?StockCode=${sn}`];
-  for(const url of idxSingle){
-    try{
-      const d=await tryDirect(url);if(!d)continue;
-      const item=d?.data||d?.Data||d;const arr=Array.isArray(item)?item:null;const obj=arr?arr[0]:item;
-      if(obj&&typeof obj==="object"){const cur=bondPrice(obj);if(cur>0){const prev=bondPrice({PreviousPrice:obj.PreviousPrice??obj.previousPrice??obj.PreviousClose??cur})||cur;return{current:cur,prev};}}
-    }catch(e){}
-  }
-  const idxAll=["https://api-apps.idx.co.id/api/Bond/GetBondBursaAllData","https://api-apps.idx.co.id/api/BondBursa/GetBondBursaAllData","https://api-apps.idx.co.id/api/Bond/GetAllBondData"];
-  for(const url of idxAll){
-    try{
-      const d=await tryDirect(url,10000);
-      const arr=Array.isArray(d)?d:Array.isArray(d?.data)?d.data:Array.isArray(d?.Data)?d.Data:[];
-      const bond=arr.find(x=>Object.values(x).some(v=>String(v).toUpperCase()===sn));
-      if(bond){const cur=bondPrice(bond);if(cur>0)return{current:cur,prev:cur};}
-    }catch(e){}
-  }
-  try{const d=await fetchWithProxy(`https://www.phei.co.id/api/bond/price?code=${sn}`,6000);const item=d?.data||d;const cur=parseFloat(item?.price||item?.cleanPrice||item?.dirtyPrice||0);if(cur>0)return{current:cur,prev:parseFloat(item?.previousPrice||cur)};}catch(e){}
-  try{const d=await fetchWithProxy(`https://api.bareksa.com/v2/fixed-income/product?isin_code=${sn}&type=sukuk`,6000);const item=d?.data?.[0]||d;const cur=parseFloat(item?.nav||item?.price||item?.lastPrice||0);if(cur>0)return{current:cur,prev:cur};}catch(e){}
-  try{const raw=await fetchWithProxyRaw(`https://stooq.com/q/d/l/?s=${sn.toLowerCase()}.id&f=sd2ohlcv&e=csv`,6000);const lines=raw.trim().split("\n").filter(l=>l&&!l.startsWith("Symbol")&&!l.startsWith("Date")&&l.trim());if(lines.length){const p=lines[lines.length-1].split(",");const cur=parseFloat(p[5])||0;const prev=lines.length>1?(parseFloat(lines[lines.length-2].split(",")[5])||cur):cur;if(cur>0)return{current:cur,prev};}}catch(e){}
-  throw new Error(sn+": bond price unavailable — enter manually");
-}
-const MS_IDS={"NUL7270AU":"46182"};
-async function fetchAUFundPrice(apir){
-  const ap=apir.toUpperCase().trim();
-  const msId=MS_IDS[ap];
-  if(msId){
-    const msEndpoints=[`https://www.morningstar.com.au/api/morningstarapi/fund/NAVDetails?id=${msId}`,`https://www.morningstar.com.au/api/morningstarapi/security/details?id=${msId}`,`https://lt.morningstar.com/api/rest.svc/klr5zyak8x/security_details/${ap}?viewId=nav&currencyId=AUD&outputType=json`,`https://www.morningstar.com.au/Funds/FundReturn/${ap}`,`https://lt.morningstar.com/api/rest.svc/klr5zyak8x/security/screener?page=1&pageSize=3&outputType=json&version=1&languageId=en-AU&currencyId=AUD&universeIds=FOZAUS%24%24ALL&securityDataPoints=SecId%7CName%7CNAVASOF%7CNAVD1&term=${ap}`];
-    for(const url of msEndpoints){
-      try{
-        const d=await fetchWithProxy(url);if(!d)continue;
-        const nav=d?.nav??d?.unitPrice??d?.price??d?.NAV;
-        if(nav){const c=parseFloat(nav);if(c>0)return{current:c,prev:parseFloat(d.previousNav??d.prevNav??d.previousUnitPrice??nav)};}
-        const dNav=d?.data?.nav??d?.data?.price??d?.data?.unitPrice;
-        if(dNav){const c=parseFloat(dNav);if(c>0)return{current:c,prev:parseFloat(d.data?.previousNav??dNav)};}
-        const rows=d?.rows||d?.results||[];
-        if(rows.length){const r=rows[0];const c=parseFloat(r.NAVASOF||r.nav||0);if(c>0)return{current:c,prev:parseFloat(r.NAVD1||c)};}
-        const pts=d?.seriesCollection?.[0]?.dataPoints||[];
-        if(pts.length>=2){const c=parseFloat(pts[pts.length-1]?.[1]||0);if(c>0)return{current:c,prev:parseFloat(pts[pts.length-2]?.[1]||c)};}
-      }catch(e){}
-    }
-  }
-  const feEndpoints=[`https://fundcentre.financialexpress.net/SP/SP/Funds/GetFundPrices?code=${ap}`,`https://www.financialexpress.net/api/fund/prices?apir=${ap}`,`https://fundcentre.moneymanagement.com.au/SP/SP/Funds/Price?apirCode=${ap}`,`https://fundcentre.financialexpress.net/api/fund/nav?apir=${ap}`,`https://www.moneymanagement.com.au/api/funds/nav?apir=${ap}`];
-  for(const url of feEndpoints){
-    try{
-      const d=await fetchWithProxy(url);if(!d)continue;
-      const arr=Array.isArray(d)?d:[d];
-      for(const item of arr){const c=parseFloat(item?.exitPrice??item?.nav??item?.price??item?.unitPrice??0);if(c>0)return{current:c,prev:parseFloat(item?.previousExitPrice??item?.prevNav??c)};}
-    }catch(e){}
-  }
-  try{const d=await fetchWithProxy(`https://lt.morningstar.com/api/rest.svc/klr5zyak8x/security/screener?page=1&pageSize=3&outputType=json&version=1&languageId=en-AU&currencyId=AUD&universeIds=FOZAUS%24%24ALL&securityDataPoints=SecId%7CName%7CNAVASOF%7CNAVD1&term=${ap}`);const rows=d?.rows||[];if(rows.length){const r=rows[0];const c=parseFloat(r.NAVASOF||0);if(c>0)return{current:c,prev:parseFloat(r.NAVD1||c)};}}catch(e){}
-  throw new Error(`${ap}: fund NAV unavailable — enter price manually`);
-}
 
-// ─── Compute Holding ──────────────────────────────────────────────────────────
+// ─── Compute Holding ───────────────────────────────────────────────────────
 function computeHolding(h,prices,prevPrices,R){
   let qty=0,cbL=0,rgL=0,lots=[],divL=0;
-  const txs=[...h.transactions].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const txs=[...(h.transactions||[])].sort((a,b)=>new Date(a.date)-new Date(b.date));
   for(const tx of txs){
-    if(tx.type==="buy"){lots.push({qty:tx.qty,price:tx.price});qty+=tx.qty;cbL+=tx.qty*tx.price;}
-    else if(tx.type==="sell"){
-      let rem=tx.qty;qty-=tx.qty;
-      while(rem>0&&lots.length){const lot=lots[0],used=Math.min(lot.qty,rem);rgL+=used*(tx.price-lot.price);cbL-=used*lot.price;lot.qty-=used;rem-=used;if(lot.qty===0)lots.shift();}
-    }else if(tx.type==="dividend"){divL+=tx.totalAmount||0;}
-  }
-  const cpL=prices[h.ticker]??0,pcL=prevPrices[h.ticker]??cpL;
-  const cvL=qty*cpL,ugL=cvL-cbL,dgL=(cpL-pcL)*qty,dgPct=pcL>0?(cpL-pcL)/pcL*100:0;
-  const cv=toAUD(cvL,h.currency,R),cb=toAUD(cbL,h.currency,R),ug=toAUD(ugL,h.currency,R);
-  const rg=toAUD(rgL,h.currency,R),divs=toAUD(divL,h.currency,R),dg=toAUD(dgL,h.currency,R);
-  const totalInv=txs.filter(t=>t.type==="buy").reduce((s,t)=>s+toAUD(t.qty*t.price,h.currency,R),0);
-  const totalGain=ug+rg+divs,gainPct=totalInv>0?(totalGain/totalInv)*100:0;
-  const divYoc=totalInv>0?(divs/totalInv)*100:0;
-  return{...h,qty,costBasis:cb,currentPrice:cpL,prevClose:pcL,currentValue:cv,unrealizedGain:ug,realizedGain:rg,totalDividends:divs,totalGain,gainPct,dayGain:dg,dayGainPct:dgPct,divYieldOnCost:divYoc,totalInvested:totalInv};
-}
-
-// ─── Repair Portfolio ────────────────────────────────────────────────────────
-let globalIdCounter=Date.now();
-function repairPortfolio(portfolio){
-  if(!Array.isArray(portfolio))return[];
-  const seenIds=new Set();
-  return portfolio.map(h=>{
-    let id=h.id;
-    if(!id||typeof id!=="number"||isNaN(id)||seenIds.has(id)){id=++globalIdCounter;}
-    seenIds.add(id);
-    let tx=h.transactions;if(!Array.isArray(tx))tx=[];tx=[...tx];tx=tx.filter(t=>t&&typeof t==="object");
-    return{...h,id,transactions:tx};
-  });
-}
-
-// ─── Seed Data ────────────────────────────────────────────────────────────────
-const INIT_RATES={AUD_IDR:10550,AUD_USD:0.645};
-const SEED=[
-  {id:1,ticker:"BHP",name:"BHP Group Ltd",currency:"AUD",assetType:"Shares / Stocks",exchange:"ASX",yahooSymbol:"BHP.AX",transactions:[
-    {type:"buy",qty:50,price:42,date:"2022-06-10"},{type:"buy",qty:30,price:44,date:"2023-01-15"},
-    {type:"dividend",amountPerShare:1.30,totalAmount:104,date:"2022-09-20"},{type:"dividend",amountPerShare:1.10,totalAmount:88,date:"2023-03-20"},{type:"dividend",amountPerShare:1.15,totalAmount:92,date:"2023-09-22"},
-  ]},
-  {id:2,ticker:"CBA",name:"Commonwealth Bank",currency:"AUD",assetType:"Shares / Stocks",exchange:"ASX",yahooSymbol:"CBA.AX",transactions:[
-    {type:"buy",qty:20,price:98,date:"2022-08-01"},
-    {type:"dividend",amountPerShare:2.40,totalAmount:48,date:"2022-09-30"},{type:"dividend",amountPerShare:2.40,totalAmount:48,date:"2023-03-31"},{type:"dividend",amountPerShare:2.50,totalAmount:50,date:"2023-09-29"},
-  ]},
-  {id:3,ticker:"VAS",name:"Vanguard Aus Shares ETF",currency:"AUD",assetType:"ETF",exchange:"ASX",yahooSymbol:"VAS.AX",transactions:[
-    {type:"buy",qty:100,price:88,date:"2022-07-20"},{type:"buy",qty:50,price:92,date:"2023-04-10"},
-    {type:"dividend",amountPerShare:1.80,totalAmount:270,date:"2023-04-07"},{type:"dividend",amountPerShare:1.75,totalAmount:262.5,date:"2023-10-06"},
-  ]},
-  {id:4,ticker:"BBCA",name:"Bank Central Asia Tbk",currency:"IDR",assetType:"Shares / Stocks",exchange:"IDX",yahooSymbol:"BBCA.JK",transactions:[
-    {type:"buy",qty:10000,price:8500,date:"2022-09-01"},{type:"buy",qty:5000,price:9200,date:"2023-06-15"},
-    {type:"dividend",amountPerShare:170,totalAmount:2550000,date:"2022-12-15"},{type:"dividend",amountPerShare:178,totalAmount:2670000,date:"2023-12-14"},
-  ]},
-  {id:5,ticker:"PBS032",name:"PBS 032 – Sukuk Negara",currency:"IDR",assetType:"Bond – Sharia (Sukuk)",exchange:"IDX",yahooSymbol:"",isBondPct:true,faceValue:1000000,transactions:[
-    {type:"buy",qty:5,price:1000000,date:"2023-06-01"},
-    {type:"dividend",amountPerShare:33750,totalAmount:168750,date:"2023-08-15"},{type:"dividend",amountPerShare:33750,totalAmount:168750,date:"2024-02-15"},
-  ]},
-  {id:6,ticker:"PBS033",name:"PBS 033 – Sukuk Negara",currency:"IDR",assetType:"Bond – Sharia (Sukuk)",exchange:"IDX",yahooSymbol:"",isBondPct:true,faceValue:1000000,transactions:[
-    {type:"buy",qty:3,price:1000000,date:"2023-09-01"},
-    {type:"dividend",amountPerShare:32250,totalAmount:96750,date:"2024-03-15"},
-  ]},
-  {id:7,ticker:"BTC",name:"Bitcoin",currency:"AUD",assetType:"Cryptocurrency",exchange:"Crypto",yahooSymbol:"BTC-AUD",transactions:[
-    {type:"buy",qty:0.1,price:45000,date:"2023-01-10"},{type:"buy",qty:0.05,price:62000,date:"2023-11-20"},
-  ]},
-  {id:8,ticker:"GOLD",name:"Gold (troy oz AUD)",currency:"AUD",assetType:"Commodity",exchange:"Spot",yahooSymbol:"GC=F",transactions:[
-    {type:"buy",qty:1,price:2600,date:"2022-10-01"},{type:"buy",qty:1,price:2950,date:"2023-07-01"},
-  ]},
-];
-const INIT_PRICES={BHP:46.5,CBA:128,VAS:98,BBCA:10050,PBS032:1010000,PBS033:1005000,BTC:130000,GOLD:4200};
-const INIT_PREV={BHP:45.8,CBA:126.5,VAS:97.2,BBCA:9950,PBS032:1008000,PBS033:1004000,BTC:128000,GOLD:4180};
-
-function makeSeedHistory(){
-  const h=[];const now=new Date();let val=85000,divs=0;
-  for(let i=11;i>=0;i--){
-    const d=new Date(now);d.setMonth(d.getMonth()-i);
-    val+=1800+Math.random()*2200-(i>8?500:0);
-    divs+=(i%3===0?600+Math.random()*500:Math.random()*60);
-    h.push({date:d.toISOString().slice(0,10),totalValueAUD:Math.max(val,60000),totalDividendsAUD:Math.round(divs)});
-  }
-  return h;
-}
-function useWindowSize(){
-  const[w,setW]=useState(typeof window!=="undefined"?window.innerWidth:1200);
-  useEffect(()=>{const h=()=>setW(window.innerWidth);window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h);},[]);
-  return w;
-}
-
-// ─── Icons ───────────────────────────────────────────────────────────────────
-const Icon=({name,size=16})=>{
-  const s={width:size,height:size,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2,strokeLinecap:"round",strokeLinejoin:"round"};
-  switch(name){
-    case "dashboard":return <svg {...s}><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>;
-    case "wallet":return <svg {...s}><rect x="2" y="6" width="20" height="14" rx="3"/><path d="M2 10h20"/><circle cx="17" cy="15" r="1.2" fill="currentColor"/></svg>;
-    case "chart":return <svg {...s}><path d="M3 3v18h18"/><path d="m7 15 4-4 4 4 6-6"/></svg>;
-    case "trend-up":return <svg {...s}><path d="m3 17 6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>;
-    case "trend-down":return <svg {...s}><path d="m3 7 6 6 4-4 8 8"/><path d="M15 17h6v-6"/></svg>;
-    case "coins":return <svg {...s}><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="m16.71 13.88.7.71-2.82 2.82"/></svg>;
-    case "percent":return <svg {...s}><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>;
-    case "bell":return <svg {...s}><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>;
-    case "refresh":return <svg {...s}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>;
-    case "search":return <svg {...s}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>;
-    case "plus":return <svg {...s}><path d="M12 5v14M5 12h14"/></svg>;
-    case "edit":return <svg {...s}><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>;
-    case "download":return <svg {...s}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>;
-    case "upload":return <svg {...s}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>;
-    case "cloud":return <svg {...s}><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>;
-    case "sun":return <svg {...s}><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>;
-    case "moon":return <svg {...s}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>;
-    case "eye":return <svg {...s}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>;
-    case "eye-off":return <svg {...s}><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>;
-    case "settings":return <svg {...s}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>;
-    case "check":return <svg {...s}><polyline points="20 6 9 17 4 12"/></svg>;
-    case "x":return <svg {...s}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
-    case "layout":return <svg {...s}><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>;
-    case "list":return <svg {...s}><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>;
-    default:return null;
-  }
-};
-
-// ─── Chart Components ─────────────────────────────────────────────────────────
-function ChartLine({labels,rawDates,datasets,T,yFmt,y2Fmt,height=220,spanGaps=false,plugins=[]}){
-  const ref=useRef(null);const inst=useRef(null);
-  useEffect(()=>{
-    if(!ref.current||typeof Chart==="undefined")return;
-    if(inst.current)inst.current.destroy();
-    const hasY2=y2Fmt&&datasets.some(d=>d.yAxisID==="y2");
-    const scales={
-      x:{grid:{color:T.chartGrid},ticks:{color:T.chartTick,font:{size:10,weight:"500"}},border:{color:T.border}},
-      y:{grid:{color:T.chartGrid},ticks:{color:T.chartTick,font:{size:10,weight:"500"},callback:yFmt||(v=>`A$${(v/1000).toFixed(0)}K`)},border:{color:T.border},position:"left"},
-    };
-    if(hasY2){scales.y2={grid:{drawOnChartArea:false},ticks:{color:"#3b82f6",font:{size:10,weight:"500"},callback:y2Fmt},border:{color:T.border},position:"right"};}
-    inst.current=new Chart(ref.current,{type:"line",data:{labels,rawDates,datasets},options:{
-      spanGaps:spanGaps,responsive:true,maintainAspectRatio:false,
-      plugins:{
-        legend:{labels:{color:T.text2,font:{family:"Inter",size:11,weight:"500"},boxWidth:10,padding:12,usePointStyle:true,pointStyle:"circle"}},
-        tooltip:{backgroundColor:T.bg2,borderColor:T.border,borderWidth:1,titleColor:T.text,bodyColor:T.text2,padding:10,cornerRadius:8,callbacks:{label:ctx=>{const fmt=ctx.dataset.yAxisID==="y2"&&y2Fmt?y2Fmt:yFmt||(v=>`${v}`);return` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)}`;}}}
-      },
-      scales:scales,
-      elements:{line:{tension:0.4},point:{radius:2,hoverRadius:5}},
-      plugins:plugins
-    }});
-    return()=>{if(inst.current)inst.current.destroy();};
-  },[labels,rawDates,datasets,T,yFmt,y2Fmt,plugins]);
-  return <div style={{height,position:"relative"}}><canvas ref={ref}/></div>;
-}
-function ChartBar({labels,datasets,T,yFmt,height=200,stacked=false}){
-  const ref=useRef(null);const inst=useRef(null);
-  useEffect(()=>{
-    if(!ref.current||typeof Chart==="undefined")return;
-    if(inst.current)inst.current.destroy();
-    inst.current=new Chart(ref.current,{type:"bar",data:{labels,datasets},options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{
-        legend:{display:stacked,labels:{color:T.text2,font:{family:"Inter",size:10,weight:"500"},boxWidth:8,padding:6,usePointStyle:true}},
-        tooltip:{backgroundColor:T.bg2,borderColor:T.border,borderWidth:1,titleColor:T.text,bodyColor:T.text2,padding:10,cornerRadius:8}
-      },
-      scales:{
-        x:{grid:{color:"transparent"},ticks:{color:T.chartTick,font:{size:10,weight:"500"}},border:{color:T.border},stacked:stacked},
-        y:{grid:{color:T.chartGrid},ticks:{color:T.chartTick,font:{size:10,weight:"500"},callback:yFmt||(v=>`A$${v.toFixed(0)}`)},border:{color:T.border},stacked:stacked}
-      }
-    }});
-    return()=>{if(inst.current)inst.current.destroy();};
-  },[labels,datasets,T,yFmt,stacked]);
-  return <div style={{height,position:"relative"}}><canvas ref={ref}/></div>;
-}
-function ChartDoughnut({labels,data,colors,T,height=200,cutout="68%"}){
-  const ref=useRef(null);const inst=useRef(null);
-  useEffect(()=>{
-    if(!ref.current||typeof Chart==="undefined")return;
-    if(inst.current)inst.current.destroy();
-    inst.current=new Chart(ref.current,{type:"doughnut",data:{labels,datasets:[{data,backgroundColor:colors,borderColor:T.bg2,borderWidth:2}]},options:{
-      responsive:true,maintainAspectRatio:false,cutout:cutout,
-      plugins:{
-        legend:{display:false},
-        tooltip:{backgroundColor:T.bg2,borderColor:T.border,borderWidth:1,titleColor:T.text,bodyColor:T.text2,padding:10,cornerRadius:8}
-      }
-    }});
-    return()=>{if(inst.current)inst.current.destroy();};
-  },[labels,data,colors,T,cutout]);
-  return <div style={{height,position:"relative"}}><canvas ref={ref}/></div>;
-}
-
-// ─── Risk Gauge (SVG semicircle) ─────────────────────────────────────────────
-function RiskGauge({score,label,T}){
-  const size=160;
-  const R=62;
-  const cx=size/2;
-  const cy=size-16;
-  const startAngle=Math.PI;
-  const endAngle=0;
-  const pct=Math.max(0,Math.min(1,score));
-  const angle=startAngle-(startAngle-endAngle)*pct;
-  const arcStartX=cx+R*Math.cos(startAngle);
-  const arcStartY=cy+R*Math.sin(startAngle);
-  const arcEndX=cx+R*Math.cos(angle);
-  const arcEndY=cy+R*Math.sin(angle);
-  const largeArc=pct>0.5?1:0;
-  const track=`M ${cx-R} ${cy} A ${R} ${R} 0 0 1 ${cx+R} ${cy}`;
-  const fill=`M ${arcStartX} ${arcStartY} A ${R} ${R} 0 ${largeArc} 1 ${arcEndX} ${arcEndY}`;
-  let color="#22c55e";
-  if(pct>0.66)color="#ef4444";
-  else if(pct>0.33)color="#f59e0b";
-  return(
-    <div className="risk-gauge">
-      <svg viewBox={`0 0 ${size} ${size-8}`}>
-        <defs>
-          <linearGradient id="rg" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#22c55e"/>
-            <stop offset="50%" stopColor="#f59e0b"/>
-            <stop offset="100%" stopColor="#ef4444"/>
-          </linearGradient>
-        </defs>
-        <path d={track} stroke={T.bg4} strokeWidth="12" fill="none" strokeLinecap="round"/>
-        <path d={fill} stroke="url(#rg)" strokeWidth="12" fill="none" strokeLinecap="round"/>
-        <circle cx={cx} cy={cy} r="3" fill={T.text}/>
-      </svg>
-      <div className="risk-gauge-label">
-        <div className="lvl" style={{color}}>{label}</div>
-        <div className="sub">Risk Score</div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Import/Export ───────────────────────────────────────────────────────────
-const COL={
-  ticker:["ticker","symbol","stock code","scrip","stock ticker","asx code","idx code","security code"],
-  name:["name","company","company name","security name","description","instrument","issuer"],
-  type:["type","transaction type","tx type","txtype","tx_type","action","trade type"],
-  date:["date","trade date","settlement date","payment date","tx date","transaction date","value date"],
-  qty:["qty","quantity","units","volume","lots","number of shares","number of units","unit count"],
-  price:["price","unit price","trade price","cost price","nav","purchase price","sale price"],
-  currency:["currency","ccy","cur","denomination"],
-  assetType:["asset type","asset_type","asset class","category","class","security type","instrument type"],
-  exchange:["exchange","market","listing","exchange code","exch","bourse"],
-  yahooSymbol:["yahoo","yahoo symbol","yahoo_symbol","yfinance","yf symbol","yahoo finance"],
-  faceValue:["face value","face_value","nominal","nominal value","par value","par"],
-  isBondPct:["is bond","isbond","bond pct","bond %","fixed rate bond","is_bond"],
-  entitledQty:["entitled qty","entitled units","entitled shares","entitled","ex date units","qualifying units","qualifying shares"],
-  amountPerShare:["amount per share","div per share","coupon per unit","dividend per share","dividend rate","coupon rate","div rate","rate per unit","distribution per unit"],
-  totalAmount:["total amount","total dividend","total coupon","gross amount","total distribution","dividend total"],
-};
-function resolveHeader(raw){
-  if(!raw&&raw!==0)return null;
-  const norm=s=>String(s).toLowerCase().trim().replace(/[_\-]/g," ").replace(/\s+/g," ");
-  const lo=norm(raw);
-  for(const[field,aliases]of Object.entries(COL)){if(aliases.map(norm).includes(lo))return field;}
-  for(const[field,aliases]of Object.entries(COL)){for(const a of aliases){const na=norm(a);const re=new RegExp("(^|[\\s/])"+na.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"([\\s/]|$)");if(re.test(lo))return field;}}
-  return null;
-}
-function normaliseType(raw=""){
-  const lo=raw.toLowerCase().trim();
-  if(["buy","purchase","bought","b","top up","topup","top-up","add"].includes(lo))return"buy";
-  if(["sell","sale","sold","s","disposal","withdraw"].includes(lo))return"sell";
-  if(["div","dividend","dividends","income","distribution","coupon","interest","yield","d"].includes(lo))return"dividend";
-  return null;
-}
-function normaliseDate(raw=""){
-  if(!raw)return"";
-  if(typeof raw==="number"){const d=new Date(Math.round((raw-25569)*86400*1000));return d.toISOString().slice(0,10);}
-  const s=String(raw).trim();
-  if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.slice(0,10);
-  const m1=s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
-  if(m1){const[,d,mo,y]=m1;return`${y}-${mo.padStart(2,"0")}-${d.padStart(2,"0")}`;}
-  const dt=new Date(s);if(!isNaN(dt))return dt.toISOString().slice(0,10);
-  return s;
-}
-function normaliseCurrency(raw=""){
-  const lo=String(raw).toUpperCase().trim();
-  if(["AUD","A$","AU"].includes(lo))return"AUD";
-  if(["IDR","RP","RUPIAH"].includes(lo))return"IDR";
-  if(["USD","US$","$"].includes(lo))return"USD";
-  return lo||"AUD";
-}
-function normaliseAssetType(raw=""){
-  const lo=raw.toLowerCase().trim();
-  const map={"shares":"Shares / Stocks","stocks":"Shares / Stocks","share":"Shares / Stocks","stock":"Shares / Stocks","equity":"Shares / Stocks","etf":"ETF","exchange traded fund":"ETF","mutual fund":"Mutual Fund","unit trust":"Mutual Fund","reksadana":"Mutual Fund","index fund":"Index Fund","super":"Superannuation","superannuation":"Superannuation","bond":"Bond – Government","govt bond":"Bond – Government","government bond":"Bond – Government","sbn":"Bond – Indonesia (SBN)","sukuk":"Bond – Sharia (Sukuk)","sharia bond":"Bond – Sharia (Sukuk)","pbs":"Bond – Sharia (Sukuk)","commodity":"Commodity","commodities":"Commodity","gold":"Commodity","silver":"Commodity","crypto":"Cryptocurrency","cryptocurrency":"Cryptocurrency","bitcoin":"Cryptocurrency","token":"Cryptocurrency","forex":"Forex","fx":"Forex","currency":"Forex","reit":"REIT / Property","property":"REIT / Property","real estate":"REIT / Property","cash":"Cash / Term Deposit","td":"Cash / Term Deposit","term deposit":"Cash / Term Deposit","deposit":"Cash / Term Deposit"};
-  for(const[k,v]of Object.entries(map)){if(lo.includes(k))return v;}
-  return ASSET_TYPES.find(t=>t.toLowerCase()===lo)||raw||"Shares / Stocks";
-}
-function parseRows(rawRows){
-  if(!rawRows.length)return{rows:[],errors:[],fieldMap:{}};
-  const sampleKeys=Object.keys(rawRows[0]);
-  const fieldMap={};
-  sampleKeys.forEach(k=>{const f=resolveHeader(k);if(f)fieldMap[f]=k;});
-  const rows=[],errors=[];
-  rawRows.forEach((raw,i)=>{
-    const row={};
-    const R=n=>fieldMap[n]?String(raw[fieldMap[n]]??"").trim():"";
-    const RN=n=>fieldMap[n]?parseFloat(String(raw[fieldMap[n]]??"").replace(/[^\d.\-]/g,""))||0:0;
-    row.ticker=(R("ticker")||"").toUpperCase();
-    row.type=normaliseType(R("type"));
-    row.date=normaliseDate(fieldMap["date"]?raw[fieldMap["date"]]:"");
-    row.qty=RN("qty");row.price=RN("price");
-    row.name=R("name")||row.ticker;
-    row.currency=normaliseCurrency(R("currency"));
-    row.assetType=normaliseAssetType(R("assetType"));
-    row.exchange=R("exchange");row.yahooSymbol=R("yahooSymbol");
-    row.faceValue=RN("faceValue")||null;
-    row.isBondPct=["true","yes","1","y"].includes(R("isBondPct").toLowerCase());
-    row.entitledQty=RN("entitledQty")||null;
-    row.amountPerShare=RN("amountPerShare");row.totalAmount=RN("totalAmount");
-    const errs=[];
-    if(!row.ticker)errs.push("Missing ticker");
-    if(!row.type)errs.push(`Unknown type "${R("type")}"`);
-    if(!row.date)errs.push("Missing date");
-    if(row.type==="buy"||row.type==="sell"){if(!row.qty||row.qty<=0)errs.push("qty must be > 0");if(!row.price||row.price<=0)errs.push("price must be > 0");}
-    if(row.type==="dividend"){if(!row.amountPerShare&&!row.totalAmount)errs.push("Need amount per share or total amount");}
-    row._rowNum=i+2;row._errors=errs;
-    rows.push(row);
-    if(errs.length)errors.push({rowNum:i+2,ticker:row.ticker,errs});
-  });
-  return{rows,errors,fieldMap};
-}
-function buildPortfolioFromRows(parsedRows,existingPortfolio=[]){
-  const repaired=repairPortfolio(existingPortfolio);
-  const portfolio=repaired.map(h=>({...h,transactions:[...h.transactions]}));
-  const valid=parsedRows.filter(r=>!r._errors.length);
-  valid.forEach(row=>{
-    let holding=portfolio.find(h=>h.ticker===row.ticker);
-    if(!holding){
-      holding={id:Date.now()+Math.random()*1000,ticker:row.ticker,name:row.name||row.ticker,currency:row.currency||"AUD",assetType:row.assetType||"Shares / Stocks",exchange:row.exchange||"",yahooSymbol:row.yahooSymbol||suggestYahoo(row.ticker,row.exchange,row.assetType),transactions:[]};
-      if(row.isBondPct)holding.isBondPct=true;
-      if(row.faceValue)holding.faceValue=row.faceValue;
-      portfolio.push(holding);
-    }
-    if(row.type==="buy"||row.type==="sell"){holding.transactions.push({type:row.type,qty:row.qty,price:row.price,date:row.date});}
-    else if(row.type==="dividend"){
-      const entQ=row.entitledQty||row.qty||null;
-      let total=row.totalAmount||0;
-      if(!total&&row.amountPerShare&&entQ)total=row.amountPerShare*entQ;
-      holding.transactions.push({type:"dividend",amountPerShare:row.amountPerShare,totalAmount:total,...(entQ?{entitledQty:entQ}:{}),date:row.date});
-    }
-  });
-  portfolio.forEach(h=>h.transactions.sort((a,b)=>new Date(a.date)-new Date(b.date)));
-  return repairPortfolio(portfolio);
-}
-function readFileAsRows(file){
-  return new Promise((resolve,reject)=>{
-    const ext=file.name.split(".").pop().toLowerCase();
-    if(ext==="csv"||ext==="txt"){
-      const reader=new FileReader();
-      reader.onload=e=>{const result=Papa.parse(e.target.result,{header:true,skipEmptyLines:true,dynamicTyping:false});resolve(result.data);};
-      reader.onerror=reject;reader.readAsText(file);
-    }else if(["xlsx","xls","ods"].includes(ext)){
-      const reader=new FileReader();
-      reader.onload=e=>{const wb=XLSX.read(e.target.result,{type:"array",cellDates:false});const ws=wb.Sheets[wb.SheetNames[0]];const data=XLSX.utils.sheet_to_json(ws,{defval:"",raw:true});resolve(data);};
-      reader.onerror=reject;reader.readAsArrayBuffer(file);
-    }else{reject(new Error("Unsupported file type: ."+ext));}
-  });
-}
-function downloadTemplateCSV(){
-  const rows=[
-    ["ticker","name","type","date","qty","price","currency","asset_type","exchange","yahoo_symbol","amount_per_share","entitled_qty","total_amount","face_value","is_bond"],
-    ["BHP","BHP Group Ltd","buy","2023-06-10","100","45.50","AUD","Shares / Stocks","ASX","BHP.AX","","","","",""],
-    ["BBCA","Bank Central Asia","buy","2023-07-01","5000","9200","IDR","Shares / Stocks","IDX","BBCA.JK","","","","",""],
-    ["PBS032","PBS 032 Sukuk Negara","buy","2023-08-01","5","1000000","IDR","Bond – Sharia (Sukuk)","IDX","","","","","1000000","true"],
-    ["BTC","Bitcoin","buy","2023-09-01","0.05","62000","AUD","Cryptocurrency","Crypto","BTC-AUD","","","","",""],
-    ["BHP","","dividend","2023-09-20","","","AUD","","","","1.30","80","","",""],
-  ];
-  const csv=rows.map(r=>r.map(v=>String(v).includes(",")?`"${v}"`:v).join(",")).join("\n");
-  const blob=new Blob([csv],{type:"text/csv"});
-  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="folio_import_template.csv";a.click();
-}
-function exportTransactionsCSV(portfolio){
-  const rows=[];const header=["ticker","name","type","date","qty","price","amount_per_share","entitled_qty","total_amount","currency","asset_type","exchange","yahoo_symbol","face_value","is_bond"];
-  rows.push(header);
-  for(const h of portfolio){for(const tx of h.transactions){rows.push([h.ticker,h.name||"",tx.type,tx.date||"",tx.type==="dividend"?"":(tx.qty??""),tx.type==="dividend"?"":(tx.price??""),tx.type==="dividend"?(tx.amountPerShare??""):"",tx.type==="dividend"?(tx.entitledQty??""):"",tx.type==="dividend"?(tx.totalAmount??""):"",h.currency||"AUD",h.assetType||"",h.exchange||"",h.yahooSymbol||"",h.faceValue??"",h.isBondPct?"true":""]);}}
-  const csv=rows.map(r=>r.map(v=>String(v).includes(",")?`"${v}"`:v).join(",")).join("\n");
-  const blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"});
-  const a=document.createElement("a");a.download=`folio_transactions_${new Date().toISOString().slice(0,10)}.csv`;a.href=URL.createObjectURL(blob);a.click();URL.revokeObjectURL(a.href);
-}
-
-// ─── Risk Metrics ────────────────────────────────────────────────────────────
-function computeRiskMetrics(historyData){
-  if(!historyData||historyData.length<3)return{volatility:null,maxDrawdown:null,bestMonth:null,worstMonth:null};
-  const sorted=[...historyData].sort((a,b)=>new Date(a.date)-new Date(b.date));
-  const values=sorted.map(d=>d.totalValueAUD);
-  const returns=[];
-  for(let i=1;i<values.length;i++){if(values[i-1]>0){let ret=(values[i]-values[i-1])/values[i-1];if(ret>1)ret=1;if(ret<-1)ret=-1;returns.push(ret);}}
-  if(returns.length<2)return{volatility:null,maxDrawdown:null,bestMonth:null,worstMonth:null};
-  const meanRet=returns.reduce((s,r)=>s+r,0)/returns.length;
-  const variance=returns.reduce((s,r)=>s+(r-meanRet)**2,0)/returns.length;
-  const volatility=Math.sqrt(variance)*Math.sqrt(12);
-  let peak=values[0],maxDrawdown=0;
-  for(const v of values){if(v>peak)peak=v;const dd=peak>0?(peak-v)/peak:0;if(dd>maxDrawdown)maxDrawdown=dd;}
-  const monthlyRet=[];
-  const sortedDates=sorted.map(d=>d.date);
-  for(let i=1;i<values.length;i++){let ret=values[i-1]>0?(values[i]-values[i-1])/values[i-1]:0;if(ret>1)ret=1;if(ret<-1)ret=-1;monthlyRet.push({date:sortedDates[i],ret});}
-  const best=monthlyRet.reduce((a,b)=>a.ret>b.ret?a:b,{ret:-Infinity});
-  const worst=monthlyRet.reduce((a,b)=>a.ret<b.ret?a:b,{ret:Infinity});
-  return{volatility:volatility*100,maxDrawdown:maxDrawdown*100,bestMonth:best.ret!==-Infinity?{date:best.date,ret:best.ret*100}:null,worstMonth:worst.ret!==Infinity?{date:worst.date,ret:worst.ret*100}:null};
-}
-function computeIncomeRiskMetrics(portfolio,rates,displayCur){
-  if(!Array.isArray(portfolio))return{totalIncome:0,stability:null,payoutRisk:null,cutProb:null,concentration:null,incomeVolatility:null,incomeDrawdown:null,dividendGrowth:null};
-  const divHoldings=portfolio.filter(h=>DIVIDEND_PAYING_TYPES.has(h.assetType)&&!INCOME_RISK_EXCLUDED_TICKERS.has(h.ticker));
-  if(divHoldings.length===0)return{totalIncome:0,stability:null,payoutRisk:null,cutProb:null,concentration:null,incomeVolatility:null,incomeDrawdown:null,dividendGrowth:null};
-  const quarterlyIncome={};const holdingTotalIncome={};const yearlyIncome={};
-  for(const h of divHoldings){
-    const divTxs=h.transactions.filter(t=>t.type==="dividend"&&t.date);
-    for(const tx of divTxs){
-      const date=new Date(tx.date);const quarter=Math.floor(date.getMonth()/3)+1;const quarterKey=`${date.getFullYear()}-Q${quarter}`;const year=String(date.getFullYear());
-      const amountAUD=toAUD(tx.totalAmount||0,h.currency,rates);
-      if(!quarterlyIncome[quarterKey])quarterlyIncome[quarterKey]=0;quarterlyIncome[quarterKey]+=amountAUD;
-      if(!yearlyIncome[year])yearlyIncome[year]=0;yearlyIncome[year]+=amountAUD;
-      if(!holdingTotalIncome[h.ticker])holdingTotalIncome[h.ticker]=0;holdingTotalIncome[h.ticker]+=amountAUD;
-    }
-  }
-  const quarterKeys=Object.keys(quarterlyIncome).sort();
-  if(quarterKeys.length<3)return{totalIncome:0,stability:null,payoutRisk:null,cutProb:null,concentration:null,incomeVolatility:null,incomeDrawdown:null,dividendGrowth:null};
-  const incomeValues=quarterKeys.map(k=>quarterlyIncome[k]);
-  const mean=incomeValues.reduce((a,b)=>a+b,0)/incomeValues.length;
-  const stdDev=Math.sqrt(incomeValues.reduce((s,v)=>s+(v-mean)**2,0)/incomeValues.length);
-  const cv=mean>0?stdDev/mean:1;
-  const stability=Math.max(0,Math.min(1,1-Math.min(cv,1)));
-  let peak=-Infinity,maxDrawdown=0;
-  for(const v of incomeValues){if(v>peak)peak=v;if(peak>0){const dd=(peak-v)/peak;if(dd>maxDrawdown)maxDrawdown=dd;}}
-  const payoutRisk=Math.min(1,maxDrawdown);
-  let cutProb;
-  if(stability>0.7&&payoutRisk<0.3)cutProb="Low";
-  else if(stability>0.5&&payoutRisk<0.5)cutProb="Low–Medium";
-  else if(payoutRisk<0.6)cutProb="Medium";
-  else if(payoutRisk<0.75)cutProb="Medium–High";
-  else cutProb="High";
-  const sortedIncome=Object.values(holdingTotalIncome).sort((a,b)=>b-a);
-  const top3=sortedIncome.slice(0,3).reduce((s,v)=>s+v,0);
-  const totalIncome=sortedIncome.reduce((s,v)=>s+v,0);
-  const concentration=totalIncome>0?top3/totalIncome:0;
-  const years=Object.keys(yearlyIncome).sort();
-  let dividendGrowth=null;
-  if(years.length>=2){
-    const firstY=years[0],lastY=years[years.length-1];
-    const firstVal=yearlyIncome[firstY],lastVal=yearlyIncome[lastY];
-    const numYears=parseInt(lastY)-parseInt(firstY);
-    if(numYears>0&&firstVal>0&&lastVal>0){dividendGrowth=(Math.pow(lastVal/firstVal,1/numYears)-1)*100;}
-  }
-  return{totalIncome,stability,payoutRisk,cutProb,concentration,incomeVolatility:cv,incomeDrawdown:maxDrawdown,dividendGrowth,meanQuarterlyIncome:mean,stdDevQuarterly:stdDev,quarters:quarterKeys,incomeValues,holdingTotalIncome,yearlyIncome};
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// MAIN APP
-// ═══════════════════════════════════════════════════════════════════════════════
-function App(){
-  const ld=(k,d)=>{try{const s=localStorage.getItem(k);return s?JSON.parse(s):d;}catch{return d;}};
-  const[portfolio,setPortfolio]=useState(()=>repairPortfolio(ld("f7_p",SEED)));
-  const[prices,setPrices]=useState(()=>ld("f7_pr",INIT_PRICES)||{});
-  const[prevPrices,setPrevPrices]=useState(()=>ld("f7_pp",INIT_PREV)||{});
-  const[rates,setRates]=useState(()=>ld("f7_rates",INIT_RATES)||INIT_RATES);
-  const[displayCur,setDisplayCur]=useState(()=>ld("f7_dcur","AUD")||"AUD");
-  const[history,setHistory]=useState(()=>ld("f7_hist",makeSeedHistory())||[]);
-  const[dark,setDark]=useState(()=>ld("f7_dark",true)!==false);
-  const[modal,setModal]=useState(null);
-  const[form,setForm]=useState({});
-  const[selected,setSelected]=useState(null);
-  const[view,setView]=useState("dashboard");
-  const[pfView,setPfView]=useState("table"); // table | map
-  const[tmMode,setTmMode]=useState("performance");
-  const[tmShowVal,setTmShowVal]=useState(true);
-  const[tmSize,setTmSize]=useState({w:600,h:420});
-  const[tmSlider,setTmSlider]=useState(null);
-  const[chartPeriod,setChartPeriod]=useState("1Y");
-  const[benchmarks,setBenchmarks]=useState({labels:[],series:{},holdingPrices:{}});
-  const[bmVisible,setBmVisible]=useState({sp500:true,brk:false,jkse:true,eido:true,vas:false});
-  const[valuesHidden,setValuesHidden]=useState(false);
-  const[editTx,setEditTx]=useState(null);
-  const[fetchSt,setFetchSt]=useState({loading:false,lastUpdate:null,errors:{},successes:0,total:0,fetched:0,rateOk:null,bmStatus:null});
-  const[fbUser,setFbUser]=useState(null);
-  const[syncSt,setSyncSt]=useState("idle");
-  const[syncMsg,setSyncMsg]=useState("");
-  const[cloudReady,setCloudReady]=useState(false);
-  const[importSt,setImportSt]=useState({step:"idle",rows:[],parsed:[],errors:[],mergeMode:"merge",dragOver:false});
-  const importFileRef=useRef(null);
-  const[monthlyTargetAud,setMonthlyTargetAud]=useState(()=>ld("f7_targetAud",0));
-  const[superDrawRate,setSuperDrawRate]=useState(()=>ld("f7_superRate",0));
-  const[showPassiveModal,setShowPassiveModal]=useState(false);
-  const[avgSuperBalanceAud,setAvgSuperBalanceAud]=useState(()=>ld("f7_avgSuper",0));
-  const[searchQ,setSearchQ]=useState("");
-  const[pfFilter,setPfFilter]=useState("all");
-  const[toast,setToast]=useState(null);
-
-  const defaultWhatIf={growthRate:5.0,reinvestDividends:true,fxRate:0.0,simulationYears:5,targetPct:{},scenarios:[],activeScenario:null,scenarioName:""};
-  const loadedWhatIf=ld("f7_whatif",defaultWhatIf);
-  const[whatIf,setWhatIf]=useState(()=>{
-    const w=loadedWhatIf&&typeof loadedWhatIf==='object'?loadedWhatIf:defaultWhatIf;
-    if(!w.targetPct||typeof w.targetPct!=='object')w.targetPct={};
-    if(!Array.isArray(w.scenarios))w.scenarios=[];
-    return w;
-  });
-  const[whatIfTmSize,setWhatIfTmSize]=useState({w:400,h:350});
-  const whatIfTmRef=useRef(null);
-
-  const T=dark?DARK:LIGHT;
-  const winW=useWindowSize();
-  const isMob=winW<768;
-  const fbUserRef=useRef(null);
-
-  // Theme attribute
-  useEffect(()=>{document.documentElement.setAttribute("data-theme",dark?"dark":"light");document.body.style.background=T.bg;document.body.style.color=T.text;},[T,dark]);
-
-  // Refs for treemap
-  const tmContainerRef=useRef(null);
-  useLayoutEffect(()=>{
-    const el=tmContainerRef.current;if(!el)return;
-    const updateSize=()=>{const rect=el.getBoundingClientRect();if(rect.width>10&&rect.height>10)setTmSize({w:rect.width,h:rect.height});};
-    updateSize();requestAnimationFrame(updateSize);const timeout=setTimeout(updateSize,150);
-    const obs=new ResizeObserver(()=>updateSize());obs.observe(el);
-    window.addEventListener('resize',updateSize);
-    return()=>{clearTimeout(timeout);obs.disconnect();window.removeEventListener('resize',updateSize);};
-  },[]);
-  useLayoutEffect(()=>{
-    const el=whatIfTmRef.current;if(!el)return;
-    const updateSize=()=>{const rect=el.getBoundingClientRect();if(rect.width>10&&rect.height>10)setWhatIfTmSize({w:rect.width,h:rect.height});};
-    requestAnimationFrame(updateSize);const t=setTimeout(updateSize,100);
-    const obs=new ResizeObserver(()=>updateSize());obs.observe(el);
-    window.addEventListener('resize',updateSize);
-    return()=>{clearTimeout(t);obs.disconnect();window.removeEventListener('resize',updateSize);};
-  },[]);
-
-  // Persistence
-  useEffect(()=>{localStorage.setItem("f7_p",JSON.stringify(portfolio));},[portfolio]);
-  useEffect(()=>{localStorage.setItem("f7_pr",JSON.stringify(prices));},[prices]);
-  useEffect(()=>{localStorage.setItem("f7_pp",JSON.stringify(prevPrices));},[prevPrices]);
-  useEffect(()=>{localStorage.setItem("f7_rates",JSON.stringify(rates));},[rates]);
-  useEffect(()=>{localStorage.setItem("f7_dcur",JSON.stringify(displayCur));},[displayCur]);
-  useEffect(()=>{localStorage.setItem("f7_hist",JSON.stringify(history));},[history]);
-  useEffect(()=>{localStorage.setItem("f7_dark",JSON.stringify(dark));},[dark]);
-  useEffect(()=>{localStorage.setItem("f7_targetAud",JSON.stringify(monthlyTargetAud));},[monthlyTargetAud]);
-  useEffect(()=>{localStorage.setItem("f7_superRate",JSON.stringify(superDrawRate));},[superDrawRate]);
-  useEffect(()=>{localStorage.setItem("f7_avgSuper",JSON.stringify(avgSuperBalanceAud));},[avgSuperBalanceAud]);
-  useEffect(()=>{localStorage.setItem("f7_whatif",JSON.stringify(whatIf));},[whatIf]);
-
-  // Toast helper
-  const showToast=useCallback((msg,type="ok")=>{setToast({msg,type});setTimeout(()=>setToast(null),3000);},[]);
-
-  // ─── Cloud sync ────────────────────────────────────────────────────────────
-  const cloudLoadAll=useCallback(async(userParam)=>{
-    let user=userParam||fbUserRef.current||(fbAuth&&fbAuth.currentUser);
-    if(!user){setSyncMsg("⚠️ Sign in first");return;}
-    setSyncSt("loading");setSyncMsg("Loading from cloud...");
-    try{
-      const data=await cloudLoad(user.uid);
-      if(!data){setSyncSt("ok");setSyncMsg("No cloud data yet");setCloudReady(true);return;}
-      if(data.portfolio){const parsed=JSON.parse(data.portfolio);setPortfolio(repairPortfolio(parsed));}
-      if(data.prices){const parsed=JSON.parse(data.prices);setPrices(parsed||{});}
-      if(data.prevPrices){const parsed=JSON.parse(data.prevPrices);setPrevPrices(parsed||{});}
-      if(data.history){const parsed=JSON.parse(data.history);setHistory(parsed||[]);}
-      if(data.displayCur)setDisplayCur(data.displayCur);
-      if(typeof data.dark==="boolean")setDark(data.dark);
-      if(typeof data.monthlyTargetAud==="number")setMonthlyTargetAud(data.monthlyTargetAud);
-      if(typeof data.superDrawRate==="number")setSuperDrawRate(data.superDrawRate);
-      if(typeof data.avgSuperBalanceAud==="number")setAvgSuperBalanceAud(data.avgSuperBalanceAud);
-      if(data.whatIf){const parsed=JSON.parse(data.whatIf);if(parsed&&typeof parsed==='object'){if(!parsed.targetPct||typeof parsed.targetPct!=='object')parsed.targetPct={};if(!Array.isArray(parsed.scenarios))parsed.scenarios=[];setWhatIf(parsed);}}
-      setSyncSt("ok");setSyncMsg("✅ Loaded ✓ "+new Date().toLocaleTimeString());setCloudReady(true);
-    }catch(e){setSyncSt("error");setSyncMsg("❌ Load failed: "+e.message);}
-  },[]);
-  const cloudSaveAll=useCallback(async(userParam)=>{
-    let user=userParam||fbUserRef.current||(fbAuth&&fbAuth.currentUser);
-    if(!user){setSyncMsg("⚠️ Sign in first");return;}
-    setSyncSt("saving");setSyncMsg("Saving to cloud...");
-    try{
-      await cloudSave(user.uid,{portfolio:JSON.stringify(portfolio),prices:JSON.stringify(prices),prevPrices:JSON.stringify(prevPrices),history:JSON.stringify(history),displayCur,dark,monthlyTargetAud,superDrawRate,avgSuperBalanceAud,whatIf:JSON.stringify(whatIf),savedAt:new Date().toISOString()});
-      setSyncSt("ok");setSyncMsg("✅ Saved ✓ "+new Date().toLocaleTimeString());
-    }catch(e){setSyncSt("error");setSyncMsg("❌ Save failed: "+e.message);}
-  },[portfolio,prices,prevPrices,history,displayCur,dark,monthlyTargetAud,superDrawRate,avgSuperBalanceAud,whatIf]);
-
-  useEffect(()=>{
-    if(!FB_CONFIGURED||!fbAuth)return;
-    const unsub=fbAuth.onAuthStateChanged(async(user)=>{
-      setFbUser(user||null);fbUserRef.current=user||null;
-      if(user){setSyncSt("idle");setSyncMsg("Signed in as "+(user.displayName||user.email));await cloudLoadAll(user);}
-      else{setSyncSt("idle");setSyncMsg("");setCloudReady(false);}
-    });
-    return unsub;
-  },[cloudLoadAll]);
-  useEffect(()=>{
-    const user=fbUserRef.current||(fbAuth&&fbAuth.currentUser);
-    if(!user||!FB_CONFIGURED||!cloudReady)return;
-    const t=setTimeout(()=>cloudSaveAll(),3000);
-    return()=>clearTimeout(t);
-  },[portfolio,prices,history,cloudReady,cloudSaveAll]);
-  const handleSignIn=useCallback(async()=>{try{const user=await signInGoogle();setFbUser(user);fbUserRef.current=user;await cloudLoadAll(user);}catch(e){setSyncSt("error");setSyncMsg(e.message);}},[cloudLoadAll]);
-  const handleSignOut=useCallback(async()=>{await signOutUser();setFbUser(null);fbUserRef.current=null;setCloudReady(false);setSyncMsg("");},[]);
-
-  const setPortfolioRepaired=useCallback(updater=>{
-    setPortfolio(prev=>{const next=typeof updater==='function'?updater(prev):updater;return repairPortfolio(next);});
-  },[]);
-
-  // ─── Computed holdings ─────────────────────────────────────────────────────
-  const holdings=useMemo(()=>{
-    const safePortfolio=Array.isArray(portfolio)?portfolio:[];
-    const safePrices=prices&&typeof prices==='object'?prices:{};
-    const safePrev=prevPrices&&typeof prevPrices==='object'?prevPrices:{};
-    const safeRates=rates&&typeof rates==='object'?rates:INIT_RATES;
-    return safePortfolio.map(h=>computeHolding(h,safePrices,safePrev,safeRates)).filter(h=>h.qty>0);
-  },[portfolio,prices,prevPrices,rates]);
-
-  const totVal=holdings.reduce((s,h)=>s+h.currentValue,0);
-  const totGain=holdings.reduce((s,h)=>s+h.totalGain,0);
-  const totInv=holdings.reduce((s,h)=>s+h.totalInvested,0);
-  const totPct=totInv>0?(totGain/totInv)*100:0;
-  const totDayGain=holdings.reduce((s,h)=>s+h.dayGain,0);
-  const prevTot=totVal-totDayGain;
-  const totDayPct=prevTot>0?(totDayGain/prevTot)*100:0;
-  const totDivs=holdings.reduce((s,h)=>s+h.totalDividends,0);
-  const divYld=totInv>0?(totDivs/totInv)*100:0;
-
-  const divYieldOnly=useMemo(()=>{
-    let totalInvestedDiv=0;let totalDividendsDiv=0;
-    for(const h of holdings){
-      if(h.ticker==="NUL5339AU"||h.ticker==="NUL7270AU")continue;
-      if(!h.assetType||!DIVIDEND_PAYING_TYPES.has(h.assetType))continue;
-      totalInvestedDiv+=h.totalInvested;totalDividendsDiv+=h.totalDividends;
-    }
-    if(totalInvestedDiv<=0)return 0;
-    return(totalDividendsDiv/totalInvestedDiv)*100;
-  },[holdings]);
-
-  const monthlyDivsAUD=useMemo(()=>{
-    const safePortfolio=Array.isArray(portfolio)?portfolio:[];
-    const safeRates=rates&&typeof rates==='object'?rates:INIT_RATES;
-    const now=new Date();
-    const currentYearMonth=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-    let totalAUD=0;
-    for(const h of safePortfolio){
-      for(const tx of h.transactions){
-        if(tx.type==="dividend"&&tx.date&&tx.date.startsWith(currentYearMonth)){totalAUD+=toAUD(tx.totalAmount||0,h.currency,safeRates);}
-      }
-    }
-    return totalAUD;
-  },[portfolio,rates]);
-
-  const superFundsValueAUD=useMemo(()=>{
-    let totalAUD=0;
-    for(const h of holdings){if(h.ticker==="NUL5339AU"||h.ticker==="NUL7270AU"){totalAUD+=h.currentValue;}}
-    return totalAUD;
-  },[holdings]);
-
-  const monthlyPassiveNumerator=useMemo(()=>{
-    const superMonthly=(superFundsValueAUD*(superDrawRate/100))/12;
-    return monthlyDivsAUD+superMonthly;
-  },[monthlyDivsAUD,superFundsValueAUD,superDrawRate]);
-  const monthlyPassivePercent=useMemo(()=>{
-    if(monthlyTargetAud<=0)return null;
-    return(monthlyPassiveNumerator/monthlyTargetAud)*100;
-  },[monthlyPassiveNumerator,monthlyTargetAud]);
-
-  const FC=useCallback((a,compact=false)=>valuesHidden?"••••••":fmtCur(a,displayCur,rates,compact),[valuesHidden,displayCur,rates]);
-  const FG=useCallback(a=>valuesHidden?"••••••":fmtGain(a,displayCur,rates),[valuesHidden,displayCur,rates]);
-  const pColor=n=>n>=0?T.green:T.red;
-
-  const riskMetrics=useMemo(()=>computeRiskMetrics(history),[history]);
-  const incomeRiskMetrics=useMemo(()=>computeIncomeRiskMetrics(portfolio,rates,displayCur),[portfolio,rates,displayCur]);
-
-  const periodCutoff=useCallback(period=>{
-    const now=new Date();
-    if(period==="1M"){const d=new Date(now);d.setMonth(d.getMonth()-1);return d;}
-    if(period==="3M"){const d=new Date(now);d.setMonth(d.getMonth()-3);return d;}
-    if(period==="6M"){const d=new Date(now);d.setMonth(d.getMonth()-6);return d;}
-    if(period==="YTD"){return new Date(now.getFullYear(),0,1);}
-    if(period==="1Y"){const d=new Date(now);d.setFullYear(d.getFullYear()-1);return d;}
-    if(period==="5Y"){const d=new Date(now);d.setFullYear(d.getFullYear()-5);return d;}
-    return new Date(0);
-  },[]);
-
-  // ─── Chart data ────────────────────────────────────────────────────────────
-  const chartData=useMemo(()=>{
-    const cutoff=periodCutoff(chartPeriod);
-    const filtered=history.filter(d=>new Date(d.date)>=cutoff);
-    const sorted=filtered.sort((a,b)=>new Date(a.date)-new Date(b.date));
-    const labels=sorted.map(d=>d.date);
-    const rawDates=sorted.map(d=>d.date);
-    const vals=sorted.map(d=>d.totalValueAUD);
-    const divCumul=sorted.map(d=>d.totalDividendsAUD);
-    const startVal=vals.length>0?vals[0]:0;
-    const endVal=vals.length>0?vals[vals.length-1]:0;
-
-    const typeMap={};
-    holdings.forEach(h=>{const key=h.assetType||"Other";if(!typeMap[key])typeMap[key]=0;typeMap[key]+=h.currentValue;});
-    const tLabels=Object.keys(typeMap);
-    const tVals=Object.values(typeMap);
-    const palette=tLabels.map((_,i)=>{const colors=["#22c55e","#3b82f6","#f59e0b","#ef4444","#a855f7","#14b8a6","#f97316","#84cc16"];return colors[i%colors.length];});
-
-    const curMap={};
-    holdings.forEach(h=>{if(!curMap[h.currency])curMap[h.currency]=0;curMap[h.currency]+=h.currentValue;});
-    const byCurLabels=Object.keys(curMap);
-    const byCurVals=Object.values(curMap);
-    const byCurColors=byCurLabels.map(c=>c==="AUD"?"#22c55e":c==="IDR"?"#f59e0b":"#3b82f6");
-
-    const monthMap={};
-    portfolio.forEach(h=>{h.transactions.forEach(tx=>{if(tx.type==="dividend"&&tx.date){const month=tx.date.slice(0,7);const amt=toAUD(tx.totalAmount||0,h.currency,rates);if(!monthMap[month])monthMap[month]=0;monthMap[month]+=amt;}});});
-    const monthKeys=Object.keys(monthMap).sort();
-    const mVals=monthKeys.map(m=>monthMap[m]);
-    const mLabels=monthKeys.map(m=>fmtMon(m));
-
-    const divYears={};
-    portfolio.forEach(h=>{h.transactions.forEach(tx=>{if(tx.type==="dividend"&&tx.date){const year=tx.date.slice(0,4);const amt=toAUD(tx.totalAmount||0,h.currency,rates);if(!divYears[year])divYears[year]=0;divYears[year]+=amt;}});});
-    const yearKeys=Object.keys(divYears).sort();
-    let divCAGR_val=null,divCAGRYears=0;
-    if(yearKeys.length>=2){
-      const first=yearKeys[0],last=yearKeys[yearKeys.length-1];
-      const firstVal=divYears[first],lastVal=divYears[last];
-      const numYears=parseInt(last)-parseInt(first);
-      if(numYears>0&&firstVal>0){divCAGR_val=(Math.pow(lastVal/firstVal,1/numYears)-1)*100;divCAGRYears=numYears;}
-    }
-
-    const waterfallData=[];
-    if(sorted.length>=2){
-      const firstValW=sorted[0]?.totalValueAUD||0;
-      const lastValW=sorted[sorted.length-1]?.totalValueAUD||0;
-      waterfallData.push({label:"Start",value:firstValW,type:"start"});
-      const buys={},sells={},divs={};
-      portfolio.forEach(h=>{h.transactions.forEach(tx=>{
-        const date=tx.date||"1900-01-01";
-        if(date>=cutoff.toISOString().slice(0,10)){
-          if(tx.type==="buy"){const amt=toAUD(tx.qty*tx.price,h.currency,rates);if(!buys[h.ticker])buys[h.ticker]=0;buys[h.ticker]+=amt;}
-          else if(tx.type==="sell"){const amt=toAUD(tx.qty*tx.price,h.currency,rates);if(!sells[h.ticker])sells[h.ticker]=0;sells[h.ticker]+=amt;}
-          else if(tx.type==="dividend"){const amt=toAUD(tx.totalAmount||0,h.currency,rates);if(!divs[h.ticker])divs[h.ticker]=0;divs[h.ticker]+=amt;}
-        }
-      });});
-      const totalBuys=Object.values(buys).reduce((a,b)=>a+b,0);
-      const totalSells=Object.values(sells).reduce((a,b)=>a+b,0);
-      const totalDivsW=Object.values(divs).reduce((a,b)=>a+b,0);
-      const capitalGain=lastValW-firstValW-totalBuys+totalSells-totalDivsW;
-      if(Math.abs(totalBuys)>0.01)waterfallData.push({label:"Top-Ups",value:totalBuys,type:"pos"});
-      if(Math.abs(totalSells)>0.01)waterfallData.push({label:"Withdrawals",value:-totalSells,type:"neg"});
-      if(Math.abs(totalDivsW)>0.01)waterfallData.push({label:"Dividends",value:totalDivsW,type:"pos"});
-      if(Math.abs(capitalGain)>0.01)waterfallData.push({label:capitalGain>=0?"Capital Gain":"Capital Loss",value:capitalGain,type:capitalGain>=0?"pos":"neg"});
-      waterfallData.push({label:"End",value:lastValW,type:"total"});
-    }
-
-    const bmLabels=benchmarks.labels||[];
-    const bmSeries=benchmarks.series||{};
-    const bmPortfolio=[];
-    if(bmLabels.length>1&&holdings.length>0){
-      const audIdr=rates.AUD_IDR||12000;
-      const audUsd=rates.AUD_USD||0.65;
-      const priceMaps=benchmarks.holdingPrices||{};
-      bmLabels.forEach(dateStr=>{
-        let total=0;
-        portfolio.forEach(h=>{
-          let units=0;
-          for(const tx of h.transactions){if(tx.date>dateStr)continue;if(tx.type==="buy")units+=tx.qty;else if(tx.type==="sell")units-=tx.qty;}
-          if(units<=0)return;
-          const hp=priceMaps[h.ticker];
-          let price=hp?.priceMap?hp.priceMap[dateStr]:null;
-          if(!price&&prices[h.ticker]>0)price=prices[h.ticker];
-          if(!price)return;
-          if(h.isBondPct)price=price*(h.faceValue||1000000)/100;
-          let val=units*price;
-          if(h.currency==="IDR")val/=audIdr;else if(h.currency==="USD")val/=audUsd;
-          total+=val;
-        });
-        bmPortfolio.push(total);
-      });
-      const base=bmPortfolio.find(v=>v>0)||1;
-      const bmPortPct=bmPortfolio.map(v=>v>0?((v-base)/base)*100:null);
-      bmPortfolio.length=0;bmPortfolio.push(...bmPortPct);
-    }
-
-    return{labels,rawDates,vals,divCumul,startVal,endVal,tLabels,tVals,palette,byCurLabels,byCurVals,byCurColors,mLabels,mVals,mDatasets:[{label:"Income",data:mVals,backgroundColor:dark?"rgba(34,197,94,.55)":"rgba(22,163,74,.5)",borderColor:dark?"#22c55e":"#16a34a",borderWidth:1,borderRadius:4}],divCAGR:divCAGR_val,divCAGRYears,waterfallData,bmLabels,bmSeries,bmPortfolio};
-  },[history,holdings,portfolio,rates,chartPeriod,benchmarks,prices,dark,periodCutoff]);
-
-  const yFmtMain=useCallback(v=>{
-    if(displayCur==="IDR"){const abs=Math.abs(v);if(abs>=1e9)return`Rp${(v/1e9).toFixed(1)}M`;if(abs>=1e6)return`Rp${(v/1e6).toFixed(1)}Jt`;if(abs>=1e3)return`Rp${(v/1e3).toFixed(0)}Rb`;return`Rp${v.toFixed(0)}`;}
-    if(displayCur==="USD"){const abs=Math.abs(v);if(abs>=1e6)return`US$${(v/1e6).toFixed(1)}M`;if(abs>=1e3)return`US$${(v/1e3).toFixed(1)}K`;return`US$${v.toFixed(2)}`;}
-    const abs=Math.abs(v);if(abs>=1e6)return`A$${(v/1e6).toFixed(1)}M`;if(abs>=1e3)return`A$${(v/1e3).toFixed(1)}K`;return`A$${v.toFixed(2)}`;
-  },[displayCur]);
-
-  const perfRects=useMemo(()=>{const it=holdings.map(h=>({...h,value:h.currentValue})).sort((a,b)=>b.value-a.value);return it.length?squarify(it,0,0,tmSize.w,tmSize.h):[];},[holdings,tmSize]);
-  const divRects=useMemo(()=>{const it=holdings.filter(h=>h.totalDividends>0).map(h=>({...h,value:h.totalDividends})).sort((a,b)=>b.value-a.value);return it.length?squarify(it,0,0,tmSize.w,tmSize.h):[];},[holdings,tmSize]);
-  const dayRects=useMemo(()=>{const it=holdings.map(h=>({...h,value:h.currentValue})).sort((a,b)=>b.value-a.value);return it.length?squarify(it,0,0,tmSize.w,tmSize.h):[];},[holdings,tmSize]);
-
-  const sliderDate=tmSlider!=null&&benchmarks.labels.length>tmSlider?benchmarks.labels[tmSlider]:null;
-  const sliderRects=useMemo(()=>{
-    if(!sliderDate||!benchmarks.holdingPrices)return null;
-    const audIdr=rates.AUD_IDR||12000,audUsd=rates.AUD_USD||0.65;
-    const findPrice=(priceMap,dateStr)=>{if(!priceMap)return null;if(priceMap[dateStr])return priceMap[dateStr];const target=new Date(dateStr).getTime();let best=null,bestDiff=35*86400000;for(const[d,p]of Object.entries(priceMap)){const diff=Math.abs(new Date(d).getTime()-target);if(diff<bestDiff){bestDiff=diff;best=p;}}return best;};
-    const items=[];
-    for(const h of portfolio){
-      let units=0;
-      for(const tx of h.transactions){if(tx.date>sliderDate)continue;if(tx.type==="buy")units+=tx.qty;else if(tx.type==="sell")units-=tx.qty;}
-      if(units<=0)continue;
-      const hp=benchmarks.holdingPrices[h.ticker];
-      let price=hp?.priceMap?findPrice(hp.priceMap,sliderDate):null;
-      if(!price&&prices[h.ticker]>0)price=prices[h.ticker];
-      if(!price)continue;
-      if(h.isBondPct)price=price*(h.faceValue||1000000)/100;
-      let valueAUD=units*price;
-      if(h.currency==="IDR")valueAUD/=audIdr;else if(h.currency==="USD")valueAUD/=audUsd;
-      if(valueAUD>0)items.push({...h,currentValue:valueAUD,value:valueAUD,qty:units});
-    }
-    const sorted=items.sort((a,b)=>b.value-a.value);
-    return sorted.length?squarify(sorted,0,0,tmSize.w,tmSize.h):null;
-  },[sliderDate,benchmarks.holdingPrices,benchmarks.labels,portfolio,prices,rates,tmSize]);
-
-  const rects=tmSlider!=null&&sliderRects!=null&&sliderRects.length>0?sliderRects:(tmMode==="performance"?perfRects:tmMode==="day"?dayRects:divRects);
-  const totalPortfolioDivs=useMemo(()=>holdings.reduce((s,h)=>s+h.totalDividends,0),[holdings]);
-  const selH=holdings.find(h=>h.ticker===selected);
-
-  // ─── What-If simulation ────────────────────────────────────────────────────
-  const runSimulation=useCallback(()=>{
-    if(!holdings.length)return null;
-    const{growthRate,reinvestDividends,fxRate,simulationYears,targetPct}=whatIf;
-    const totalValue=holdings.reduce((s,h)=>s+h.currentValue,0);
-    if(totalValue<=0)return null;
-    const holdingData=holdings.map(h=>{const divYield=h.currentValue>0?h.totalDividends/h.currentValue:0;return{...h,divYield};});
-    const safeTargetPct=targetPct&&typeof targetPct==='object'?targetPct:{};
-    const totalPct=Object.values(safeTargetPct).reduce((s,v)=>s+(typeof v==='number'?v:0),0);
-    let pctMap={...safeTargetPct};
-    if(totalPct===0){const currentPct={};holdings.forEach(h=>{currentPct[h.ticker]=(h.currentValue/totalValue)*100;});pctMap=currentPct;}
-    else{const sum=Object.values(pctMap).reduce((s,v)=>s+(typeof v==='number'?v:0),0);if(sum>0&&Math.abs(sum-100)>0.001){const factor=100/sum;Object.keys(pctMap).forEach(k=>{pctMap[k]=pctMap[k]*factor;});}}
-    let adjustedValue=0;
-    const adjustedHoldings=holdingData.map(h=>{const pct=pctMap[h.ticker]||0;const adjVal=(pct/100)*totalValue;adjustedValue+=adjVal;const adjDiv=adjVal*h.divYield;return{...h,adjustedValue:adjVal,adjustedDividends:adjDiv,targetPct:pct};});
-    const weightedAvgYield=adjustedHoldings.reduce((s,h)=>s+(h.targetPct/100)*h.divYield,0);
-    let portfolioValue=totalValue;let annualDividend=0;const dividendHistory=[];
-    for(let i=0;i<simulationYears;i++){
-      portfolioValue*=(1+growthRate/100);
-      if(fxRate!==0)portfolioValue*=(1+fxRate/100);
-      const div=portfolioValue*weightedAvgYield;annualDividend=div;dividendHistory.push(div);
-      if(reinvestDividends)portfolioValue+=div;
-    }
-    const finalPortfolioValue=portfolioValue;
-    const totalDividendsReceived=dividendHistory.reduce((s,v)=>s+v,0);
-    const avgAnnualDividend=dividendHistory.length>0?totalDividendsReceived/dividendHistory.length:0;
-    let dividendCAGR=null;
-    if(dividendHistory.length>=2&&dividendHistory[0]>0&&dividendHistory[dividendHistory.length-1]>0){
-      const firstDiv=dividendHistory[0];const lastDiv=dividendHistory[dividendHistory.length-1];
-      dividendCAGR=(Math.pow(lastDiv/firstDiv,1/(dividendHistory.length-1))-1)*100;
-    }
-    const maxPct=Math.max(...adjustedHoldings.map(h=>h.targetPct||0));
-    return{finalPortfolioValue,avgAnnualDividend,totalDividendsReceived,dividendCAGR,riskConcentration:maxPct,adjustedHoldings,weightedAvgYield,targetPct:pctMap,totalValue,growthRate,reinvestDividends,fxRate,simulationYears};
-  },[holdings,whatIf]);
-  const simulationResult=useMemo(()=>runSimulation(),[runSimulation]);
-  const whatIfItems=useMemo(()=>{if(!simulationResult)return[];return simulationResult.adjustedHoldings.map(h=>({...h,value:h.adjustedValue}));},[simulationResult]);
-  const whatIfRects=useMemo(()=>{
-    const sorted=[...whatIfItems].filter(i=>i.value>0).sort((a,b)=>b.value-a.value);
-    if(!sorted.length)return[];
-    const w=Math.max(whatIfTmSize.w,120),h=Math.max(whatIfTmSize.h,120);
-    return squarify(sorted,0,0,w,h);
-  },[whatIfItems,whatIfTmSize]);
-
-  useEffect(()=>{
-    const totalValue=holdings.reduce((s,h)=>s+h.currentValue,0);
-    if(totalValue<=0)return;
-    const pctMap={};
-    holdings.forEach(h=>{pctMap[h.ticker]=(h.currentValue/totalValue)*100;});
-    setWhatIf(w=>{
-      const currentKeys=Object.keys(w.targetPct||{});
-      const holdingKeys=holdings.map(h=>h.ticker);
-      const needsUpdate=holdingKeys.some(k=>!currentKeys.includes(k));
-      if(needsUpdate||currentKeys.length===0){return{...w,targetPct:pctMap};}
-      return w;
-    });
-  },[holdings]);
-
-  // ─── Handlers ──────────────────────────────────────────────────────────────
-  const closeModal=()=>{setModal(null);setForm({});};
-  const openAdd=()=>{setModal({mode:"add"});setForm({ticker:"",name:"",qty:"",price:"",date:new Date().toISOString().slice(0,10),currency:"AUD",assetType:"Shares / Stocks",exchange:"",yahooSymbol:"",faceValue:"",isBondPct:false});};
-  const openTrade=(h,type)=>{setModal({mode:"trade",holding:h,tradeType:type});setForm({qty:"",price:h.currentPrice,date:new Date().toISOString().slice(0,10)});};
-  const openDiv=h=>{const hc=computeHolding(h,prices,prevPrices,rates);setModal({mode:"dividend",holding:h});setForm({amountPerShare:"",entitledQty:String(hc.qty),date:new Date().toISOString().slice(0,10)});};
-  const openHistory=h=>setModal({mode:"history",holding:h});
-  const openManualPrice=()=>{
-    const f={displayCur};
-    holdings.forEach(h=>{f["c_"+h.ticker]=prices[h.ticker]||"";f["p_"+h.ticker]=prevPrices[h.ticker]||"";f["ys_"+h.ticker]=h.yahooSymbol||"";});
-    setModal({mode:"price"});setForm(f);
-  };
-  const openImport=()=>{setModal({mode:"import"});setImportSt({step:"idle",rows:[],parsed:[],errors:[],mergeMode:"merge",dragOver:false});};
-
-  const handleImportFile=async file=>{
-    if(!file)return;
-    setImportSt(s=>({...s,step:"parsing",dragOver:false}));
-    try{
-      const raw=await readFileAsRows(file);
-      if(!raw.length){setImportSt(s=>({...s,step:"error",errorMsg:"File is empty or has no data rows."}));return;}
-      const{rows,errors,fieldMap}=parseRows(raw);
-      setImportSt(s=>({...s,step:"preview",rows:raw,parsed:rows,errors,fieldMap,fileName:file.name}));
-    }catch(e){setImportSt(s=>({...s,step:"error",errorMsg:e.message}));}
-  };
-  const confirmImport=()=>{
-    const{parsed,mergeMode}=importSt;
-    const base=mergeMode==="replace"?[]:portfolio;
-    const newPortfolio=buildPortfolioFromRows(parsed,base);
-    setPortfolioRepaired(newPortfolio);
-    setImportSt(s=>({...s,step:"done",importedCount:parsed.filter(r=>!r._errors.length).length}));
-  };
-  const submitAdd=()=>{
-    const{ticker,name,qty,price,date,currency,assetType,exchange,yahooSymbol,faceValue,isBondPct}=form;
-    if(!ticker||!qty||!price)return;
-    const tk=ticker.toUpperCase();
-    const ys=yahooSymbol||suggestYahoo(tk,exchange,assetType);
-    const isBP=isBondPct||false;
-    const fv=faceValue?+faceValue:undefined;
-    setPortfolioRepaired(prev=>{
-      const existing=prev.find(h=>h.ticker===tk);
-      if(existing){return prev.map(h=>h.ticker===tk?{...h,transactions:[...h.transactions,{type:"buy",qty:+qty,price:+price,date}]}:h);}
-      const newH={id:Date.now()+Math.random()*1000,ticker:tk,name:name||tk,currency:currency||"AUD",assetType:assetType||"Shares / Stocks",exchange:exchange||"",yahooSymbol:ys,transactions:[{type:"buy",qty:+qty,price:+price,date}]};
-      if(isBP)newH.isBondPct=true;
-      if(fv)newH.faceValue=fv;
-      setPrices(prevP=>({...prevP,[tk]:+price}));
-      setPrevPrices(prevP=>({...prevP,[tk]:+price}));
-      return[...prev,newH];
-    });
-    closeModal();
-  };
-  const submitTrade=()=>{
-    const{qty,price,date}=form;if(!qty||!price)return;
-    setPortfolioRepaired(prev=>prev.map(h=>h.id===modal.holding.id?{...h,transactions:[...h.transactions,{type:modal.tradeType,qty:+qty,price:+price,date}]}:h));
-    closeModal();
-  };
-  const submitDiv=()=>{
-    const{amountPerShare,entitledQty,date}=form;if(!amountPerShare||!entitledQty)return;
-    const qty=+entitledQty;
-    setPortfolioRepaired(prev=>prev.map(p=>p.id===modal.holding.id?{...p,transactions:[...p.transactions,{type:"dividend",amountPerShare:+amountPerShare,totalAmount:+amountPerShare*qty,entitledQty:qty,date}]}:p));
-    closeModal();
-  };
-  const submitManualPrice=()=>{
-    const c={},p={},ys={};
-    Object.entries(form).forEach(([k,v])=>{
-      if(k.startsWith("c_")&&v!=="")c[k.slice(2)]=+v;
-      if(k.startsWith("p_")&&v!=="")p[k.slice(2)]=+v;
-      if(k.startsWith("ys_"))ys[k.slice(3)]=v;
-    });
-    setPrices(prev=>({...prev,...c}));
-    setPrevPrices(prev=>({...prev,...p}));
-    if(form.displayCur)setDisplayCur(form.displayCur);
-    setPortfolioRepaired(prev=>prev.map(h=>({...h,yahooSymbol:ys[h.ticker]??h.yahooSymbol})));
-    const date=new Date().toISOString().slice(0,10);
-    const hs=portfolio.map(h=>computeHolding(h,{...prices,...c},{...prevPrices,...p},rates)).filter(h=>h.qty>0);
-    const snap={date,totalValueAUD:hs.reduce((s,h)=>s+h.currentValue,0),totalDividendsAUD:hs.reduce((s,h)=>s+h.totalDividends,0)};
-    setHistory(prev=>[...prev.filter(s=>s.date!==date),snap].sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(-90));
-    if(fbUserRef.current&&cloudReady)cloudSaveAll();
-    closeModal();
-  };
-  const repairNow=()=>{setPortfolioRepaired(portfolio);showToast("🔧 Portfolio data repaired ✓");};
-  const handleExport=()=>{exportTransactionsCSV(portfolio);showToast("📤 Exported CSV ✓");};
-
-  const histH=modal?.mode==="history"?portfolio.find(p=>p.id===modal.holding.id):null;
-  const histC=histH?computeHolding(histH,prices,prevPrices,rates):null;
-
-  const fmtNativePrice=(h,v)=>{const cur=h.currency;if(!v&&v!==0)return"—";if(cur==="IDR")return`Rp ${fmtIDR(v)}`;if(cur==="USD")return`US$${fmtAUD(v)}`;return`A$${fmtAUD(v)}`;};
-
-  // ─── Auto refresh ──────────────────────────────────────────────────────────
-  const autoRefresh=useCallback(async()=>{
-    setFetchSt(s=>({...s,loading:true,fetched:0}));
-    let newRates=rates,rateOk=false;
-    try{newRates=await fetchExchangeRates();setRates(newRates);rateOk=true;}catch(e){console.warn("Rate fetch failed:",e.message);}
-    let bmStatus="no benchmark data";
-    try{
-      const BM_DEFS=[
-        {key:"sp500",label:"S&P 500",fetch:()=>fetchBenchmark("^GSPC")},
-        {key:"brk",label:"BRK-B",fetch:()=>fetchBenchmark("BRK-B")},
-        {key:"jkse",label:"IDX Composite",fetch:()=>fetchBenchmark("^JKSE")},
-        {key:"eido",label:"EIDO",fetch:()=>fetchBenchmark("EIDO")},
-        {key:"vas",label:"VAS",fetch:()=>fetchBenchmark("VAS.AX")},
-      ];
-      const results=await Promise.allSettled(BM_DEFS.map(b=>b.fetch()));
-      const successes=results.map((r,i)=>r.status==="fulfilled"?{...BM_DEFS[i],data:r.value}:null).filter(Boolean);
-      if(successes.length>0){
-        const ref=successes.reduce((a,b)=>a.data.labels.length>b.data.labels.length?a:b);
-        const series={};
-        results.forEach((r,i)=>{series[BM_DEFS[i].key]=r.status==="fulfilled"?r.value.pct:null;});
-        const ok=BM_DEFS.map((b,i)=>results[i].status==="fulfilled"?b.label+"✓":null).filter(Boolean);
-        const fail=BM_DEFS.map((b,i)=>results[i].status==="rejected"?b.label:null).filter(Boolean);
-        bmStatus=`${ok.length}/${BM_DEFS.length} loaded${fail.length?` · failed: ${fail.join(", ")}`:""}`;
-        const fetchable=portfolio.filter(h=>h.yahooSymbol);
-        const holdingPriceMaps={};
-        const CONCURRENCY=4;
-        const resultsHist=new Array(fetchable.length);
-        async function fetchOne(h,idx){
-          try{const hist=await fetchHoldingHistory(h.yahooSymbol);if(hist?.priceMap)holdingPriceMaps[h.ticker]=hist.priceMap;else holdingPriceMaps[h.ticker]=null;resultsHist[idx]={status:"fulfilled"};}
-          catch(e){resultsHist[idx]={status:"rejected",reason:e.message};}
-        }
-        let qi=0;
-        while(qi<fetchable.length){const batch=fetchable.slice(qi,qi+CONCURRENCY);await Promise.allSettled(batch.map((h,bi)=>fetchOne(h,qi+bi)));qi+=CONCURRENCY;}
-        setBenchmarks(prev=>({...prev,labels:ref.data.labels,series,holdingPrices:{...prev.holdingPrices,...holdingPriceMaps}}));
-      }else{bmStatus="failed — all benchmarks unavailable";setBenchmarks(prev=>({...prev,holdingPrices:{}}));}
-    }catch(e){bmStatus="error: "+e.message;}
-
-    const fetchablePrices=portfolio.filter(h=>{
-      if(h.yahooSymbol)return true;
-      if(/^(PBS|SBN|SR|ST|FR|ORI|SUKUK)\d/i.test(h.ticker))return true;
-      if(/^[A-Z]{3}\d{4}[A-Z]{2}$/i.test(h.ticker))return true;
-      return false;
-    });
-    const newP={...prices},newPP={...prevPrices};
-    const errors={};let successes=0;
-
-    function fetchPriceFor(h){
-      if(h.yahooSymbol)return fetchYahooPrice(h.yahooSymbol);
-      const tk=h.ticker.toUpperCase();
-      if(/^(PBS|SBN|SR|ST|FR|ORI)\d/i.test(tk))return fetchDJPPRPrice(tk);
-      if(/^[A-Z]{3}\d{4}[A-Z]{2}$/i.test(tk))return fetchAUFundPrice(tk);
-      return Promise.reject(new Error("No price source"));
-    }
-    const CONCURRENCY_PRICE=8;
-    const priceResults=new Array(fetchablePrices.length);
-    async function fetchOnePrice(h,idx){try{const p=await fetchPriceFor(h);priceResults[idx]={status:"fulfilled",value:{h,p}};}catch(e){priceResults[idx]={status:"rejected",reason:e};}}
-    let qiPrice=0;
-    while(qiPrice<fetchablePrices.length){
-      const batch=fetchablePrices.slice(qiPrice,qiPrice+CONCURRENCY_PRICE);
-      await Promise.allSettled(batch.map((h,bi)=>fetchOnePrice(h,qiPrice+bi)));
-      qiPrice+=CONCURRENCY_PRICE;
-      const done=priceResults.filter(Boolean).length;
-      setFetchSt(s=>({...s,fetched:done,total:fetchablePrices.length}));
-    }
-    priceResults.forEach((r,i)=>{
-      const h=fetchablePrices[i];
-      if(r?.status==="fulfilled"){
-        const isDJPPR=!h.yahooSymbol&&/^(PBS|SBN|SR|ST|FR|ORI)\d/i.test(h.ticker);
-        const mult=(h.isBondPct||isDJPPR)?(h.faceValue??1000000)/100:1;
-        newP[h.ticker]=r.value.p.current*mult;
-        newPP[h.ticker]=r.value.p.prev*mult;
-        successes++;
-      }else{errors[h.ticker]=r?.reason?.message||"Failed";}
-    });
-    setPrices(newP);setPrevPrices(newPP);
-    const now=new Date();const date=now.toISOString().slice(0,10);
-    const hs=portfolio.map(h=>computeHolding(h,newP,newPP,newRates)).filter(h=>h.qty>0);
-    const snap={date,totalValueAUD:hs.reduce((s,h)=>s+h.currentValue,0),totalDividendsAUD:hs.reduce((s,h)=>s+h.totalDividends,0)};
-    setHistory(prev=>[...prev.filter(s=>s.date!==date),snap].sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(-90));
-    setFetchSt({loading:false,lastUpdate:now,errors,successes,total:fetchablePrices.length,fetched:fetchablePrices.length,rateOk,bmStatus});
-    showToast(`🔄 Fetched ${successes}/${fetchablePrices.length} prices`,Object.keys(errors).length>0?"warn":"ok");
-  },[portfolio,prices,prevPrices,rates,showToast,cloudSaveAll,cloudReady]);
-
-  // ─── Risk score ────────────────────────────────────────────────────────────
-  const riskScore=useMemo(()=>{
-    let score=0.35;
-    if(riskMetrics.volatility!=null)score=Math.min(1,riskMetrics.volatility/25);
-    return score;
-  },[riskMetrics]);
-  const riskLabel=riskScore>0.66?"HIGH":riskScore>0.33?"MEDIUM":"LOW";
-
-  // ─── Greeting ──────────────────────────────────────────────────────────────
-  const hour=new Date().getHours();
-  const greeting=hour<12?"Good morning!":hour<18?"Good afternoon!":"Good evening!";
-
-  const filteredHoldings=useMemo(()=>{
-    let arr=[...holdings].sort((a,b)=>b.currentValue-a.currentValue);
-    if(pfFilter==="div")arr=arr.filter(h=>h.totalDividends>0);
-    else if(pfFilter==="gain")arr=arr.filter(h=>h.gainPct>0);
-    else if(pfFilter==="loss")arr=arr.filter(h=>h.gainPct<0);
-    if(searchQ.trim()){
-      const q=searchQ.toLowerCase();
-      arr=arr.filter(h=>h.ticker.toLowerCase().includes(q)||(h.name||"").toLowerCase().includes(q));
-    }
-    return arr;
-  },[holdings,pfFilter,searchQ]);
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // RENDER: DASHBOARD
-  // ═══════════════════════════════════════════════════════════════════════════
-  const renderDashboard=()=>{
-    const totROI=totInv>0?((totVal+totDivs-totInv)/totInv)*100:0;
-    const passiveLabel=monthlyPassivePercent!==null?`${monthlyPassivePercent.toFixed(0)}% of target`:"Set target";
-    const passiveValue=monthlyPassivePercent!==null?`${FC(monthlyPassiveNumerator)}`:"—";
-    const passiveColor=monthlyPassivePercent!==null?(monthlyPassivePercent>=100?T.green:monthlyPassivePercent>=50?T.amber:T.red):T.text3;
-    const targetPct=monthlyPassivePercent!==null?Math.min(100,monthlyPassivePercent):0;
-    const divYieldTarget=20;
-
-    return(
-      <>
-        <div className="greeting">
-          <div>
-            <h1>{greeting}</h1>
-            <p>Disciplined investing for a freer tomorrow.</p>
-          </div>
-          <div className="greeting-quote">
-            "We don't chase the market.<br/>We own the future."
-            <span>— Saudagar Kapitalis</span>
-          </div>
-        </div>
-
-        {/* KPI GRID */}
-        <div className="kpi-grid">
-          <div className="kpi-card">
-            <div className="kpi-top">
-              <div className="kpi-icon green"><Icon name="wallet" size={16}/></div>
-              <div className="kpi-label">Portfolio Value</div>
-            </div>
-            <div className="kpi-value">{FC(totVal)}</div>
-            <div className={`kpi-delta ${totDayGain>=0?"up":"down"}`}>
-              {totDayGain>=0?"▲":"▼"} {fmtPct(totDayPct)}
-              <span>vs yesterday</span>
-            </div>
-          </div>
-
-          <div className="kpi-card">
-            <div className="kpi-top">
-              <div className={`kpi-icon ${totGain>=0?"blue":"red"}`}><Icon name={totGain>=0?"trend-up":"trend-down"} size={16}/></div>
-              <div className="kpi-label">Total Return</div>
-            </div>
-            <div className="kpi-value" style={{color:pColor(totGain)}}>{fmtPct(totPct)}</div>
-            <div className={`kpi-delta ${totGain>=0?"up":"down"}`}>
-              {FG(totGain)}<span>unrealized gain</span>
-            </div>
-          </div>
-
-          <div className="kpi-card">
-            <div className="kpi-top">
-              <div className="kpi-icon amber"><Icon name="coins" size={16}/></div>
-              <div className="kpi-label">Passive Income</div>
-            </div>
-            <div className="kpi-value" style={{color:passiveColor}}>{passiveValue}</div>
-            <div className="kpi-delta neutral">
-              {monthlyPassivePercent!==null?`${passiveLabel}`:"Set a target in ⚙️"}
-            </div>
-            {monthlyPassivePercent!==null&&<div className="kpi-progress"><div className="kpi-progress-fill" style={{width:`${targetPct}%`}}/></div>}
-          </div>
-
-          <div className="kpi-card">
-            <div className="kpi-top">
-              <div className="kpi-icon teal"><Icon name="percent" size={16}/></div>
-              <div className="kpi-label">Dividend Yield</div>
-            </div>
-            <div className="kpi-value">{divYieldOnly.toFixed(1)}%</div>
-            <div className="kpi-delta neutral">
-              Target {divYieldTarget}%
-              <span style={{marginLeft:"auto",color:divYieldOnly>=divYieldTarget?T.green:T.amber,fontWeight:700}}>
-                {Math.min(100,(divYieldOnly/divYieldTarget)*100).toFixed(0)}%
-              </span>
-            </div>
-            <div className="kpi-progress"><div className="kpi-progress-fill" style={{width:`${Math.min(100,(divYieldOnly/divYieldTarget)*100)}%`,background:divYieldOnly>=divYieldTarget?"linear-gradient(90deg,#22c55e,#14b8a6)":"linear-gradient(90deg,#f59e0b,#f97316)"}}/></div>
-          </div>
-        </div>
-
-        {/* MAIN CHART + PERFORMANCE SNAPSHOT */}
-        <div className="row-2">
-          <div className="card">
-            <div className="card-header">
-              <div>
-                <div className="card-title">Portfolio Growth vs Benchmarks</div>
-                <div className="card-sub">{displayCur} · {chartPeriod} · {chartData.labels.length} snapshots</div>
-              </div>
-              <div className="period-tabs">
-                {["1M","3M","6M","YTD","1Y","5Y"].map(p=>(
-                  <button key={p} className={`period-tab ${chartPeriod===p?"active":""}`} onClick={()=>setChartPeriod(p)}>{p}</button>
-                ))}
-              </div>
-            </div>
-            <ChartLine
-              labels={chartData.labels}
-              rawDates={chartData.rawDates}
-              datasets={[
-                {label:"Portfolio",data:chartData.vals,borderColor:dark?"#22c55e":"#16a34a",backgroundColor:dark?"rgba(34,197,94,.08)":"rgba(22,163,74,.06)",fill:true,borderWidth:2,yAxisID:"y"},
-                ...(benchmarks.series.jkse?[{label:"IDX Composite",data:benchmarks.series.jkse,borderColor:"#3b82f6",backgroundColor:"transparent",borderWidth:1.5,yAxisID:"y2",borderDash:[]}]:[]),
-                ...(benchmarks.series.sp500?[{label:"S&P 500",data:benchmarks.series.sp500,borderColor:"#f59e0b",backgroundColor:"transparent",borderWidth:1.5,yAxisID:"y2",borderDash:[4,3]}]:[]),
-                ...(benchmarks.series.brk?[{label:"BRK-B",data:benchmarks.series.brk,borderColor:"#a855f7",backgroundColor:"transparent",borderWidth:1.5,yAxisID:"y2",borderDash:[2,2]}]:[]),
-              ]}
-              T={T}
-              yFmt={yFmtMain}
-              y2Fmt={v=>`${v>=0?"+":""}${v.toFixed(0)}%`}
-              height={isMob?180:240}
-            />
-            <div style={{display:"flex",gap:12,marginTop:10,flexWrap:"wrap",fontSize:11,color:T.text3}}>
-              <div style={{display:"flex",alignItems:"center",gap:5}}><span style={{width:8,height:8,borderRadius:2,background:"#22c55e"}}/>Portfolio</div>
-              <div style={{display:"flex",alignItems:"center",gap:5}}><span style={{width:8,height:8,borderRadius:2,background:"#3b82f6"}}/>IDX</div>
-              <div style={{display:"flex",alignItems:"center",gap:5}}><span style={{width:8,height:8,borderRadius:2,background:"#f59e0b"}}/>S&P 500</div>
-              <div style={{display:"flex",alignItems:"center",gap:5}}><span style={{width:8,height:8,borderRadius:2,background:"#a855f7"}}/>BRK-B</div>
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="card-header">
-              <div className="card-title">Performance Snapshot</div>
-            </div>
-            <div className="snapshot-list">
-              {(()=>{
-                const periods=[
-                  {label:"1 Month",cut:new Date(Date.now()-30*86400000)},
-                  {label:"3 Months",cut:new Date(Date.now()-90*86400000)},
-                  {label:"YTD",cut:new Date(new Date().getFullYear(),0,1)},
-                  {label:"1 Year",cut:new Date(Date.now()-365*86400000)},
-                  {label:"5 Years",cut:new Date(Date.now()-5*365*86400000)},
-                ];
-                return periods.map(p=>{
-                  const filtered=history.filter(d=>new Date(d.date)>=p.cut).sort((a,b)=>new Date(a.date)-new Date(b.date));
-                  if(filtered.length<2)return(
-                    <div key={p.label} className="snapshot-row">
-                      <span className="lbl">{p.label}</span>
-                      <span className="val" style={{color:T.text3}}>—</span>
-                    </div>
-                  );
-                  const start=filtered[0].totalValueAUD;
-                  const end=filtered[filtered.length-1].totalValueAUD;
-                  const pct=start>0?((end-start)/start)*100:0;
-                  return(
-                    <div key={p.label} className="snapshot-row">
-                      <span className="lbl">{p.label}</span>
-                      <span className={`val ${pct>=0?"up":"down"}`}>{pct>=0?"+":""}{pct.toFixed(1)}%</span>
-                    </div>
-                  );
-                });
-              })()}
-            </div>
-          </div>
-        </div>
-
-        {/* BOTTOM 4-PANEL ROW */}
-        <div className="row-4">
-          {/* Asset Allocation */}
-          <div className="card">
-            <div className="card-header">
-              <div className="card-title">Asset Allocation</div>
-            </div>
-            <div style={{display:"flex",alignItems:"center",gap:14,flexWrap:"wrap"}}>
-              <div style={{position:"relative",flex:"0 0 120px",width:120,height:120}}>
-                <ChartDoughnut labels={chartData.tLabels} data={chartData.tVals} colors={chartData.palette} T={T} height={120} cutout="70%"/>
-                <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}>
-                  <div style={{fontSize:9,color:T.text3,fontWeight:600,textTransform:"uppercase",letterSpacing:.5}}>Total</div>
-                  <div style={{fontSize:14,fontWeight:800,color:T.text,fontFamily:"'Space Mono',monospace"}}>{FC(totVal,true)}</div>
-                </div>
-              </div>
-              <div style={{flex:1,minWidth:120}} className="alloc-legend">
-                {chartData.tLabels.slice(0,5).map((l,i)=>(
-                  <div key={l} className="alloc-legend-item">
-                    <span className="alloc-dot" style={{background:chartData.palette[i]}}/>
-                    <span className="name">{l}</span>
-                    <span className="pct">{totVal>0?((chartData.tVals[i]/totVal)*100).toFixed(0):0}%</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Currency Allocation */}
-          <div className="card">
-            <div className="card-header">
-              <div className="card-title">Currency Allocation</div>
-            </div>
-            <div style={{display:"flex",alignItems:"center",gap:14,flexWrap:"wrap"}}>
-              <div style={{position:"relative",flex:"0 0 120px",width:120,height:120}}>
-                <ChartDoughnut labels={chartData.byCurLabels} data={chartData.byCurVals} colors={chartData.byCurColors} T={T} height={120} cutout="70%"/>
-                <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}>
-                  <div style={{fontSize:9,color:T.text3,fontWeight:600,textTransform:"uppercase",letterSpacing:.5}}>FX</div>
-                  <div style={{fontSize:12,fontWeight:800,color:T.text,fontFamily:"'Space Mono',monospace"}}>{chartData.byCurLabels.length}</div>
-                </div>
-              </div>
-              <div style={{flex:1,minWidth:120}} className="alloc-legend">
-                {chartData.byCurLabels.map((l,i)=>(
-                  <div key={l} className="alloc-legend-item">
-                    <span className="alloc-dot" style={{background:chartData.byCurColors[i]}}/>
-                    <span className="name">{l}</span>
-                    <span className="pct">{totVal>0?((chartData.byCurVals[i]/totVal)*100).toFixed(0):0}%</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Monthly Dividend Income */}
-          <div className="card">
-            <div className="card-header">
-              <div>
-                <div className="card-title">Monthly Dividend Income</div>
-                <div className="card-sub">Total {FC(totDivs,true)} · {chartData.mLabels.length} months</div>
-              </div>
-            </div>
-            <ChartBar labels={chartData.mLabels.slice(-12)} datasets={chartData.mDatasets.map(d=>({...d,data:d.data.slice(-12)}))} T={T} yFmt={yFmtMain} height={isMob?140:160}/>
-          </div>
-
-          {/* Risk Dashboard */}
-          <div className="card">
-            <div className="card-header">
-              <div className="card-title">Risk Dashboard</div>
-            </div>
-            <RiskGauge score={riskScore} label={riskLabel} T={T}/>
-            <div className="risk-metrics">
-              <div className="risk-metric"><span className="k">Volatility</span><span className="v" style={{color:riskMetrics.volatility>15?T.red:riskMetrics.volatility>8?T.amber:T.green}}>{riskMetrics.volatility!=null?`${riskMetrics.volatility.toFixed(1)}%`:"—"}</span></div>
-              <div className="risk-metric"><span className="k">Max Drawdown</span><span className="v" style={{color:riskMetrics.maxDrawdown>20?T.red:riskMetrics.maxDrawdown>10?T.amber:T.green}}>{riskMetrics.maxDrawdown!=null?`${riskMetrics.maxDrawdown.toFixed(1)}%`:"—"}</span></div>
-              <div className="risk-metric"><span className="k">Best Month</span><span className="v" style={{color:T.green}}>{riskMetrics.bestMonth?`${riskMetrics.bestMonth.ret.toFixed(1)}%`:"—"}</span></div>
-              <div className="risk-metric"><span className="k">Worst Month</span><span className="v" style={{color:T.red}}>{riskMetrics.worstMonth?`${riskMetrics.worstMonth.ret.toFixed(1)}%`:"—"}</span></div>
-            </div>
-          </div>
-        </div>
-
-        {/* INCOME RISK EXPOSURE */}
-        <div className="card" style={{marginBottom:16}}>
-          <div className="card-header">
-            <div>
-              <div className="card-title">📈 Income Risk Exposure</div>
-              <div className="card-sub">Stability & payout risk based on quarterly dividend income</div>
-            </div>
-          </div>
-          {incomeRiskMetrics.totalIncome>0&&incomeRiskMetrics.stability!==null?(()=>{
-            const ir=incomeRiskMetrics;
-            const cards=[
-              {label:"Stability Score",value:(ir.stability*100).toFixed(0)+"%",sub:ir.stability>=0.7?"Very Stable":ir.stability>=0.4?"Moderate":"Fluctuates",color:ir.stability>=0.7?T.green:ir.stability>=0.4?T.amber:T.red,bar:ir.stability*100},
-              {label:"Payout Risk",value:(ir.payoutRisk*100).toFixed(0)+"%",sub:ir.payoutRisk<0.15?"Low":ir.payoutRisk<0.30?"Moderate":"High",color:ir.payoutRisk<0.15?T.green:ir.payoutRisk<0.30?T.amber:T.red,bar:ir.payoutRisk*100},
-              {label:"Cut Probability",value:ir.cutProb,sub:ir.cutProb==="Low"?"✅ Low risk":ir.cutProb==="Low–Medium"?"⚡ Monitor":ir.cutProb==="Medium"?"⚠️ Elevated":"🚨 High",color:ir.cutProb==="Low"?T.green:ir.cutProb==="Low–Medium"||ir.cutProb==="Medium"?T.amber:T.red,bar:ir.cutProb==="Low"?20:ir.cutProb==="Low–Medium"?40:ir.cutProb==="Medium"?60:85},
-              {label:"Concentration",value:(ir.concentration*100).toFixed(0)+"%",sub:ir.concentration<0.4?"Diversified":ir.concentration<0.6?"Moderate":"Concentrated",color:ir.concentration<0.4?T.green:ir.concentration<0.6?T.amber:T.red,bar:ir.concentration*100},
-              {label:"Dividend Growth",value:ir.dividendGrowth!=null?ir.dividendGrowth.toFixed(1)+"%":"—",sub:ir.dividendGrowth!=null?(ir.dividendGrowth>0?`+${ir.dividendGrowth.toFixed(1)}% CAGR`:`${ir.dividendGrowth.toFixed(1)}% CAGR`):"N/A",color:ir.dividendGrowth!=null?(ir.dividendGrowth>0?T.green:T.red):T.text3,bar:ir.dividendGrowth!=null?Math.min(Math.max(ir.dividendGrowth+10,0),100):50},
-            ];
-            return(
-              <div style={{display:"grid",gridTemplateColumns:isMob?"1fr 1fr":"repeat(5,1fr)",gap:8}}>
-                {cards.map((c,i)=>(
-                  <div key={i} style={{background:T.bg3,border:`1px solid ${T.border}`,borderRadius:10,padding:"10px 12px",textAlign:"center"}}>
-                    <div style={{fontSize:9,color:T.text3,textTransform:"uppercase",letterSpacing:.5,fontWeight:600,marginBottom:4}}>{c.label}</div>
-                    <div style={{fontSize:16,fontWeight:800,color:c.color,fontFamily:"'Space Mono',monospace"}}>{c.value}</div>
-                    <div style={{fontSize:10,color:T.text3,marginTop:2,fontWeight:500}}>{c.sub}</div>
-                    <div style={{height:3,borderRadius:2,background:T.bg4,marginTop:6,overflow:"hidden"}}>
-                      <div style={{height:"100%",borderRadius:2,background:c.color,width:`${Math.min(Math.max(c.bar,2),100)}%`,transition:"width .4s"}}/>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            );
-          })():(
-            <div style={{padding:20,textAlign:"center",color:T.text3,fontSize:11}}>
-              {incomeRiskMetrics.totalIncome===0?"No dividend income recorded yet.":"Not enough quarterly data (need at least 3 quarters)."}
-            </div>
-          )}
-        </div>
-      </>
-    );
-  };
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // RENDER: PORTFOLIO
-  // ═══════════════════════════════════════════════════════════════════════════
-  const renderPortfolio=()=>{
-    return(
-      <>
-        <div className="greeting">
-          <div>
-            <h1>Holdings</h1>
-            <p>{holdings.length} positions · {FC(totVal)} total value</p>
-          </div>
-          <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-            <div className="view-toggle">
-              <button className={pfView==="table"?"active":""} onClick={()=>setPfView("table")}><Icon name="list"/>Table</button>
-              <button className={pfView==="map"?"active":""} onClick={()=>setPfView("map")}><Icon name="layout"/>Map</button>
-            </div>
-            <button className="btn btn-primary btn-sm" onClick={openAdd}><Icon name="plus"/>Add</button>
-          </div>
-        </div>
-
-        {pfView==="table"&&(
-          <div className="table-wrap">
-            <div className="table-toolbar">
-              <div className="search-input">
-                <Icon name="search"/>
-                <input placeholder="Search holdings…" value={searchQ} onChange={e=>setSearchQ(e.target.value)}/>
-              </div>
-              <div className="view-toggle">
-                {[["all","All"],["div","Dividends"],["gain","Gainers"],["loss","Losers"]].map(([v,l])=>(
-                  <button key={v} className={pfFilter===v?"active":""} onClick={()=>setPfFilter(v)}>{l}</button>
-                ))}
-              </div>
-            </div>
-            <div className="table-scroll">
-              <table className="modern-table">
-                <thead>
-                  <tr>
-                    <th>Asset</th>
-                    <th>Qty</th>
-                    <th>Avg Cost</th>
-                    <th>Price</th>
-                    <th>Mkt Value</th>
-                    <th>Day</th>
-                    <th>Gain/Loss</th>
-                    <th>Yield</th>
-                    <th style={{textAlign:"right"}}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredHoldings.map(h=>{
-                    const gc=h.gainPct;
-                    return(
-                      <tr key={h.ticker}>
-                        <td>
-                          <div className="ticker-cell">
-                            <div className="ticker-badge">{h.ticker.slice(0,3)}</div>
-                            <div className="ticker-info">
-                              <span className="t">{h.ticker}</span>
-                              <span className="n">{h.name}</span>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="num-cell">{h.qty<1?h.qty.toFixed(4):h.qty.toFixed(2)}</td>
-                        <td className="num-cell">{fmtNativePrice(h,h.costBasis/Math.max(h.qty,1e-9))}</td>
-                        <td className="num-cell">{fmtNativePrice(h,h.currentPrice)}</td>
-                        <td className="num-cell" style={{color:T.text}}>{FC(h.currentValue,true)}</td>
-                        <td>
-                          <span className={`pill ${h.dayGain>=0?"up":"down"}`}>
-                            {h.dayGain>=0?"▲":"▼"} {fmtPct(h.dayGainPct)}
-                          </span>
-                        </td>
-                        <td>
-                          <span className={`pill ${gc>=0?"up":"down"}`}>
-                            {gc>=0?"+":""}{gc.toFixed(1)}%
-                          </span>
-                        </td>
-                        <td className="num-cell" style={{color:T.teal}}>{h.divYieldOnCost.toFixed(1)}%</td>
-                        <td>
-                          <div className="row-actions" style={{justifyContent:"flex-end"}}>
-                            <button className="row-action buy" title="Buy" onClick={()=>openTrade(h,"buy")}>B</button>
-                            <button className="row-action sell" title="Sell" onClick={()=>openTrade(h,"sell")}>S</button>
-                            <button className="row-action div" title="Dividend" onClick={()=>openDiv(h)}>D</button>
-                            <button className="row-action" title="History" onClick={()=>openHistory(h)}>H</button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {filteredHoldings.length===0&&(
-                    <tr><td colSpan={9} style={{padding:60,textAlign:"center",color:T.text3,fontSize:12}}>
-                      No holdings match your filter.
-                    </td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {pfView==="map"&&(
-          <div style={{display:"flex",flexDirection:isMob?"column":"row",gap:12}}>
-            <div style={{flex:1,minWidth:0}}>
-              <div className="card" style={{padding:12,marginBottom:12}}>
-                <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-                  <div className="view-toggle">
-                    {[["performance","📈 Perf"],["day","☀️ Day"],["dividend","💰 Div"]].map(([v,l])=>(
-                      <button key={v} className={tmMode===v?"active":""} onClick={()=>setTmMode(v)}>{l}</button>
-                    ))}
-                  </div>
-                  <div style={{fontSize:10,color:T.text3}}>
-                    {tmMode==="performance"&&"Box size = value · Color = gain/loss"}
-                    {tmMode==="day"&&"Box size = value · Color = day change"}
-                    {tmMode==="dividend"&&"Box size = dividends · Color = yield"}
-                  </div>
-                </div>
-                <div ref={tmContainerRef} className="treemap" style={{height:isMob?400:520}}>
-                  {rects.map(r=>{
-                    let pct=0,colorFn;
-                    if(tmMode==="performance"){pct=r.gainPct;colorFn=getPerformanceColor;}
-                    else if(tmMode==="day"){pct=r.dayGainPct;colorFn=getPerformanceColor;}
-                    else{pct=r.divYieldOnCost;colorFn=getDividendColor;}
-                    const c=colorFn(pct,dark);
-                    const minDim=Math.min(r.w,r.h);
-                    const baseFont=Math.max(7,Math.min(16,minDim/7));
-                    const area=r.w*r.h;
-                    const showExtra=area>2500;
-                    return(
-                      <div key={r.ticker} className="treemap-cell" onClick={()=>setSelected(r.ticker===selected?null:r.ticker)}
-                        style={{left:r.x+1,top:r.y+1,width:r.w-2,height:r.h-2,background:c.bg,border:`1px solid ${c.border}`,outline:r.ticker===selected?`2px solid ${c.text}`:"none"}}>
-                        <span className="tk" style={{fontSize:baseFont,color:c.text}}>{r.ticker}</span>
-                        <span className="pct" style={{fontSize:Math.max(6,baseFont*.65),color:c.text}}>
-                          {tmMode==="performance"?fmtPct(r.gainPct):tmMode==="day"?fmtPct(r.dayGainPct):tmShowVal?FC(r.totalDividends,true):fmtPct(r.divYieldOnCost)+" yld"}
-                        </span>
-                        {showExtra&&tmMode==="day"&&tmShowVal&&<span className="sub" style={{fontSize:8,color:c.text}}>{FG(r.dayGain)}</span>}
-                      </div>
-                    );
-                  })}
-                  {rects.length===0&&<div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",color:T.text3,fontSize:11}}>No holdings</div>}
-                </div>
-              </div>
-            </div>
-
-            {selH&&(
-              <div className="card" style={{width:isMob?"100%":320,flexShrink:0}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
-                  <div style={{flex:1,minWidth:0,marginRight:8}}>
-                    <div style={{fontFamily:"'Space Mono',monospace",fontSize:18,fontWeight:800,color:T.text}}>{selH.ticker}</div>
-                    <div style={{fontSize:11,color:T.text3,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{selH.name}</div>
-                    <div style={{display:"flex",gap:4,marginTop:6,flexWrap:"wrap"}}>
-                      {[selH.assetType,selH.currency,selH.exchange].filter(Boolean).map(tag=>(
-                        <span key={tag} style={{fontSize:9,background:T.bg3,padding:"2px 8px",borderRadius:10,border:`1px solid ${T.border}`,color:T.text3,fontWeight:500}}>{tag}</span>
-                      ))}
-                    </div>
-                  </div>
-                  <button className="icon-btn" onClick={()=>setSelected(null)}><Icon name="x" size={14}/></button>
-                </div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
-                  {[
-                    ["Price",fmtNativePrice(selH,selH.currentPrice),T.text],
-                    ["Day",fmtPct(selH.dayGainPct),pColor(selH.dayGain)],
-                    ["Market Val",FC(selH.currentValue),T.text],
-                    ["Unrealized",FG(selH.unrealizedGain),pColor(selH.unrealizedGain)],
-                    ["Cost Basis",FC(selH.costBasis),T.text2],
-                    ["Income",FC(selH.totalDividends),T.teal],
-                  ].map(([l,v,c])=>(
-                    <div key={l} style={{background:T.bg3,border:`1px solid ${T.border}`,borderRadius:8,padding:"8px 10px"}}>
-                      <div style={{fontSize:9,color:T.text3,textTransform:"uppercase",letterSpacing:.5,fontWeight:600,marginBottom:3}}>{l}</div>
-                      <div style={{fontSize:12,fontWeight:700,color:c,fontFamily:"'Space Mono',monospace",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{v}</div>
-                    </div>
-                  ))}
-                </div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
-                  <button className="btn btn-primary btn-sm" onClick={()=>openTrade(selH,"buy")}>Buy</button>
-                  <button className="btn btn-danger btn-sm" onClick={()=>openTrade(selH,"sell")}>Sell</button>
-                  <button className="btn btn-ghost btn-sm" onClick={()=>openDiv(selH)}>💰 {selH.isBondPct?"Coupon":"Div"}</button>
-                  <button className="btn btn-ghost btn-sm" onClick={()=>openHistory(selH)}>📋 History</button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </>
-    );
-  };
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // RENDER: ANALYTICS (What-If)
-  // ═══════════════════════════════════════════════════════════════════════════
-  const renderAnalytics=()=>{
-    if(!holdings.length){
-      return(
-        <>
-          <div className="greeting"><div><h1>Analytics</h1><p>What-if simulator</p></div></div>
-          <div className="card" style={{padding:40,textAlign:"center",color:T.text3}}>Add holdings first to use the What-If simulator.</div>
-        </>
-      );
-    }
-    const sr=simulationResult;
-    if(!sr)return null;
-    const{finalPortfolioValue,avgAnnualDividend,dividendCAGR,riskConcentration,weightedAvgYield,totalValue,growthRate,reinvestDividends,fxRate,simulationYears}=sr;
-
-    const updateTargetPct=(ticker,value)=>{
-      const newPct=parseFloat(value);
-      if(isNaN(newPct)||newPct<0)return;
-      const current={...whatIf.targetPct};current[ticker]=newPct;
-      setWhatIf(w=>({...w,targetPct:current}));
-    };
-
-    return(
-      <>
-        <div className="greeting">
-          <div>
-            <h1>Analytics</h1>
-            <p>What-if simulator · project your portfolio forward</p>
-          </div>
-        </div>
-
-        {/* Market settings */}
-        <div className="card" style={{marginBottom:12}}>
-          <div className="card-header">
-            <div className="card-title">📈 Market Settings</div>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:isMob?"1fr 1fr":"repeat(4,1fr)",gap:12}}>
-            <div>
-              <div style={{fontSize:10,color:T.text3,fontWeight:600,textTransform:"uppercase",letterSpacing:.5,marginBottom:6}}>Growth Rate (annual)</div>
-              <input type="range" className="whatif-slider" min="0" max="15" step="0.5" value={whatIf.growthRate} onChange={e=>setWhatIf(w=>({...w,growthRate:parseFloat(e.target.value)}))} style={{width:"100%",accentColor:T.green}}/>
-              <div style={{textAlign:"center",fontWeight:700,fontSize:13,color:T.text,fontFamily:"'Space Mono',monospace",marginTop:4}}>{whatIf.growthRate}%</div>
-            </div>
-            <div>
-              <div style={{fontSize:10,color:T.text3,fontWeight:600,textTransform:"uppercase",letterSpacing:.5,marginBottom:6}}>Reinvest Dividends</div>
-              <div style={{display:"flex",gap:6,marginTop:6}}>
-                <button onClick={()=>setWhatIf(w=>({...w,reinvestDividends:true}))} className={`btn btn-sm ${whatIf.reinvestDividends?"btn-primary":"btn-ghost"}`}>Yes</button>
-                <button onClick={()=>setWhatIf(w=>({...w,reinvestDividends:false}))} className={`btn btn-sm ${!whatIf.reinvestDividends?"btn-primary":"btn-ghost"}`}>No</button>
-              </div>
-            </div>
-            <div>
-              <div style={{fontSize:10,color:T.text3,fontWeight:600,textTransform:"uppercase",letterSpacing:.5,marginBottom:6}}>FX Change (%)</div>
-              <input type="range" className="whatif-slider" min="-10" max="10" step="0.5" value={whatIf.fxRate} onChange={e=>setWhatIf(w=>({...w,fxRate:parseFloat(e.target.value)}))} style={{width:"100%",accentColor:T.green}}/>
-              <div style={{textAlign:"center",fontWeight:700,fontSize:13,color:T.text,fontFamily:"'Space Mono',monospace",marginTop:4}}>{whatIf.fxRate>=0?"+":""}{whatIf.fxRate}%</div>
-            </div>
-            <div>
-              <div style={{fontSize:10,color:T.text3,fontWeight:600,textTransform:"uppercase",letterSpacing:.5,marginBottom:6}}>Years</div>
-              <input type="range" className="whatif-slider" min="5" max="10" step="1" value={whatIf.simulationYears} onChange={e=>setWhatIf(w=>({...w,simulationYears:parseInt(e.target.value)}))} style={{width:"100%",accentColor:T.green}}/>
-              <div style={{textAlign:"center",fontWeight:700,fontSize:13,color:T.text,fontFamily:"'Space Mono',monospace",marginTop:4}}>{whatIf.simulationYears}y</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Projection + Adjustments */}
-        <div style={{display:"grid",gridTemplateColumns:isMob?"1fr":"1.2fr 1fr",gap:12,marginBottom:12}}>
-          <div className="card">
-            <div className="card-header">
-              <div className="card-title">📊 Projected Outcome</div>
-            </div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
-              {[
-                {label:"Portfolio Value",value:FC(finalPortfolioValue,true),sub:`in ${simulationYears} years`,color:T.text},
-                {label:"Annual Income",value:FC(avgAnnualDividend,true),sub:"avg dividend/coupon",color:T.teal},
-                {label:"Dividend CAGR",value:dividendCAGR!=null?fmtPct(dividendCAGR):"—",sub:`over ${simulationYears} years`,color:dividendCAGR!=null&&dividendCAGR>=0?T.green:T.red},
-                {label:"Concentration",value:riskConcentration.toFixed(0)+"%",sub:"top holding",color:riskConcentration>30?T.red:riskConcentration>20?T.amber:T.green},
-              ].map((c,i)=>(
-                <div key={i} style={{background:T.bg3,border:`1px solid ${T.border}`,borderRadius:10,padding:"10px 12px"}}>
-                  <div style={{fontSize:9,color:T.text3,textTransform:"uppercase",fontWeight:600,letterSpacing:.5}}>{c.label}</div>
-                  <div style={{fontSize:16,fontWeight:800,color:c.color,fontFamily:"'Space Mono',monospace",marginTop:2}}>{c.value}</div>
-                  <div style={{fontSize:10,color:T.text3,marginTop:2}}>{c.sub}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{display:"flex",gap:8,fontSize:10,color:T.text3,justifyContent:"center",flexWrap:"wrap",paddingTop:8,borderTop:`1px solid ${T.border}`}}>
-              <span>Growth: {growthRate}%</span><span>·</span>
-              <span>Reinvest: {reinvestDividends?"Yes":"No"}</span><span>·</span>
-              <span>FX: {fxRate>=0?"+":""}{fxRate}%</span><span>·</span>
-              <span>Yield: {(weightedAvgYield*100).toFixed(2)}%</span>
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="card-header">
-              <div className="card-title">📊 Adjusted Allocation</div>
-            </div>
-            <div ref={whatIfTmRef} className="treemap" style={{height:isMob?180:220}}>
-              {whatIfRects.map(r=>{
-                const c=getPerformanceColor(r.gainPct||0,dark);
-                const minDim=Math.min(r.w,r.h);
-                const fontSize=Math.max(8,Math.min(14,minDim/6));
-                const pct=r.targetPct!==undefined?r.targetPct:0;
-                return(
-                  <div key={r.ticker} className="treemap-cell" style={{left:r.x,top:r.y,width:r.w,height:r.h,background:c.bg,border:`1px solid ${c.border}`}}>
-                    <span className="tk" style={{fontSize,color:c.text}}>{r.ticker}</span>
-                    <span className="pct" style={{fontSize:fontSize*.75,color:c.text}}>{FC(r.adjustedValue,true)}</span>
-                    <span className="sub" style={{fontSize:fontSize*.7,color:c.text}}>{pct.toFixed(0)}%</span>
-                  </div>
-                );
-              })}
-              {whatIfRects.length===0&&<div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",color:T.text3,fontSize:11}}>No holdings</div>}
-            </div>
-          </div>
-        </div>
-
-        {/* Asset Modifiers */}
-        <div className="card" style={{marginBottom:12}}>
-          <div className="card-header">
-            <div>
-              <div className="card-title">⚙️ Asset Modifiers</div>
-              <div className="card-sub">Adjust target allocation % for each holding</div>
-            </div>
-            <button className="btn btn-ghost btn-sm" onClick={()=>{
-              const pctMap={};const total=holdings.reduce((s,h)=>s+h.currentValue,0);
-              if(total<=0)return;
-              holdings.forEach(h=>{pctMap[h.ticker]=(h.currentValue/total)*100;});
-              setWhatIf(w=>({...w,targetPct:pctMap}));
-            }}>Reset to Current</button>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:isMob?"1fr":"1fr 1fr 1fr",gap:8}}>
-            {holdings.map(h=>{
-              const currentPct=(h.currentValue/totalValue)*100;
-              const target=whatIf.targetPct&&whatIf.targetPct[h.ticker]!==undefined?whatIf.targetPct[h.ticker]:currentPct;
-              const pct=Math.round(target);
-              const diff=pct-currentPct;
-              return(
-                <div key={h.ticker} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 10px",borderRadius:9,background:T.bg3,border:`1px solid ${T.border}`}}>
-                  <span style={{fontWeight:800,fontSize:12,color:T.text,minWidth:50,fontFamily:"'Space Mono',monospace"}}>{h.ticker}</span>
-                  <span style={{fontSize:10,color:T.text3,minWidth:44,textAlign:"right",fontWeight:600}}>{currentPct.toFixed(0)}%</span>
-                  <button onClick={()=>updateTargetPct(h.ticker,Math.max(0,target-2))} style={{width:24,height:24,borderRadius:6,background:T.bg4,color:T.text,fontWeight:700,fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}}>−</button>
-                  <input type="number" value={pct} min="0" max="100" onChange={e=>{const val=parseFloat(e.target.value);if(!isNaN(val)&&val>=0)updateTargetPct(h.ticker,val);}} style={{width:50,background:T.bg,border:`1px solid ${T.border}`,borderRadius:6,padding:"4px 6px",fontSize:12,color:T.text,textAlign:"center",fontWeight:700,outline:"none"}}/>
-                  <button onClick={()=>updateTargetPct(h.ticker,Math.min(100,target+2))} style={{width:24,height:24,borderRadius:6,background:T.bg4,color:T.text,fontWeight:700,fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
-                  <span style={{fontSize:10,fontWeight:700,minWidth:36,textAlign:"right",color:diff>0?T.green:diff<0?T.red:T.text3}}>
-                    {diff>0?`+${diff.toFixed(0)}`:diff<0?diff.toFixed(0):'0'}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Scenarios */}
-        <div className="card">
-          <div className="card-header">
-            <div>
-              <div className="card-title">💾 Scenarios</div>
-              <div className="card-sub">Save and reload your simulations</div>
-            </div>
-            <div style={{display:"flex",gap:6}}>
-              <input placeholder="Scenario name" value={whatIf.scenarioName||""} onChange={e=>setWhatIf(w=>({...w,scenarioName:e.target.value}))} style={{background:T.bg,border:`1px solid ${T.border}`,borderRadius:8,padding:"6px 10px",fontSize:12,color:T.text,outline:"none",width:150}}/>
-              <button className="btn btn-primary btn-sm" onClick={()=>{
-                if(!whatIf.scenarioName)return;
-                const newScenario={id:Date.now(),name:whatIf.scenarioName,growthRate:whatIf.growthRate,reinvestDividends:whatIf.reinvestDividends,fxRate:whatIf.fxRate,targetPct:whatIf.targetPct,simulationYears:whatIf.simulationYears,result:simulationResult};
-                setWhatIf(w=>({...w,scenarios:[...w.scenarios,newScenario],scenarioName:""}));
-              }}>Save</button>
-            </div>
-          </div>
-          {whatIf.scenarios.length>0?(
-            <div style={{display:"grid",gridTemplateColumns:isMob?"1fr":"repeat(3,1fr)",gap:8}}>
-              {whatIf.scenarios.slice().reverse().map(s=>(
-                <div key={s.id} style={{border:`1px solid ${T.border}`,borderRadius:10,padding:"10px 12px",background:T.bg3}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-                    <span style={{fontWeight:700,fontSize:12,color:T.text}}>{s.name}</span>
-                    <button onClick={()=>setWhatIf(w=>({...w,scenarios:w.scenarios.filter(sc=>sc.id!==s.id)}))} style={{color:T.red,fontSize:12}}><Icon name="x" size={12}/></button>
-                  </div>
-                  <div style={{fontSize:10,color:T.text3,lineHeight:1.6}}>
-                    Growth: {s.growthRate}% · Reinvest: {s.reinvestDividends?"Yes":"No"}<br/>
-                    FX: {s.fxRate}% · {s.simulationYears}y
-                  </div>
-                  <button className="btn btn-ghost btn-sm" style={{marginTop:8,width:"100%"}} onClick={()=>{
-                    setWhatIf(w=>({...w,growthRate:s.growthRate,reinvestDividends:s.reinvestDividends,fxRate:s.fxRate,targetPct:s.targetPct,simulationYears:s.simulationYears,activeScenario:s.id}));
-                  }}>Load Scenario</button>
-                </div>
-              ))}
-            </div>
-          ):(
-            <div style={{padding:20,textAlign:"center",color:T.text3,fontSize:11}}>No saved scenarios yet.</div>
-          )}
-        </div>
-      </>
-    );
-  };
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // RENDER: MODALS
-  // ═══════════════════════════════════════════════════════════════════════════
-  const renderImportModal=()=>{
-    const IS=importSt;
-    const valid=IS.parsed.filter(r=>!r._errors.length);
-    const invalid=IS.parsed.filter(r=>r._errors.length);
-    const tickers=[...new Set(valid.map(r=>r.ticker))];
-    return(
-      <>
-        <div className="modal-header">
-          <h2>📥 Import Transactions</h2>
-          <p>Upload CSV or Excel with your buy, sell and dividend history</p>
-        </div>
-        <div className="modal-body">
-          <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
-            <button className="btn btn-ghost btn-sm" onClick={downloadTemplateCSV}><Icon name="download"/>Template CSV</button>
-          </div>
-          <input ref={importFileRef} type="file" accept=".csv,.xlsx,.xls,.ods,.txt" style={{display:"none"}} onChange={e=>{if(e.target.files[0])handleImportFile(e.target.files[0]);e.target.value="";}}/>
-          {(IS.step==="idle"||IS.step==="parsing")&&(
-            <div className={`import-drop ${IS.dragOver?"dragover":""}`}
-              onDragOver={e=>{e.preventDefault();setImportSt(s=>({...s,dragOver:true}));}}
-              onDragLeave={()=>setImportSt(s=>({...s,dragOver:false}))}
-              onDrop={e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f)handleImportFile(f);}}
-              onClick={()=>importFileRef.current&&importFileRef.current.click()}>
-              <div className="ico">📂</div>
-              <div className="ttl">{IS.step==="parsing"?"Parsing file…":"Drag & drop your file here"}</div>
-              <div className="desc">or click to browse · CSV, XLSX, XLS supported</div>
-            </div>
-          )}
-          {IS.step==="error"&&(
-            <div style={{background:T.redBg,border:`1px solid ${T.red}55`,borderRadius:10,padding:"14px 16px",color:T.red}}>
-              <div style={{fontWeight:700,marginBottom:4}}>Could not read file</div>
-              <div style={{fontSize:12}}>{IS.errorMsg}</div>
-              <button className="btn btn-ghost btn-sm" style={{marginTop:10}} onClick={()=>setImportSt(s=>({...s,step:"idle"}))}>Try again</button>
-            </div>
-          )}
-          {IS.step==="preview"&&(
-            <>
-              <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
-                {[[IS.parsed.length+" rows",T.text],[valid.length+" valid",T.green],...(invalid.length?[[invalid.length+" errors",T.amber]]:[]),[tickers.length+" tickers",T.blue]].map(([l,c])=>(
-                  <span key={l} style={{fontSize:11,fontWeight:600,color:c,background:T.bg3,border:`1px solid ${T.border}`,borderRadius:6,padding:"3px 10px"}}>{l}</span>
-                ))}
-              </div>
-              <div style={{display:"flex",gap:8,alignItems:"center",background:T.bg3,border:`1px solid ${T.border}`,borderRadius:10,padding:"10px 14px",marginBottom:12,flexWrap:"wrap"}}>
-                <span style={{fontSize:12,fontWeight:600,color:T.text}}>Mode:</span>
-                {[["merge","Merge"],["replace","Replace"]].map(([v,l])=>(
-                  <button key={v} className={`btn btn-sm ${IS.mergeMode===v?"btn-primary":"btn-ghost"}`} onClick={()=>setImportSt(s=>({...s,mergeMode:v}))}>{l}</button>
-                ))}
-              </div>
-              <div style={{overflowX:"auto",borderRadius:8,border:`1px solid ${T.border}`,marginBottom:12,maxHeight:260,overflowY:"auto"}}>
-                <table className="modern-table" style={{fontSize:11}}>
-                  <thead><tr><th>Row</th><th>Ticker</th><th>Type</th><th>Date</th><th>Qty</th><th>Price</th><th>Ccy</th></tr></thead>
-                  <tbody>
-                    {IS.parsed.map((r,i)=>(
-                      <tr key={i} style={{background:r._errors.length?(dark?"#2a1500":"#fff7ed"):"transparent"}}>
-                        <td style={{color:T.text3,fontSize:10}}>{r._rowNum}</td>
-                        <td style={{fontFamily:"'Space Mono',monospace",fontWeight:700,color:T.text}}>{r.ticker}</td>
-                        <td>{r.type&&<span className={`pill ${r.type==="buy"?"up":r.type==="sell"?"down":"neutral"}`}>{r.type.toUpperCase()}</span>}</td>
-                        <td style={{color:T.text2,fontSize:10}}>{r.date}</td>
-                        <td>{r.qty||"—"}</td>
-                        <td>{r.price||"—"}</td>
-                        <td style={{color:T.text3}}>{r.currency}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          )}
-          {IS.step==="done"&&(
-            <div style={{textAlign:"center",padding:"24px 0"}}>
-              <div style={{fontSize:48,marginBottom:12}}>🎉</div>
-              <div style={{fontSize:18,fontWeight:700,color:T.green,marginBottom:8}}>Import complete!</div>
-              <div style={{fontSize:13,color:T.text2,marginBottom:8}}>{IS.importedCount} transactions imported.</div>
-              <div style={{fontSize:11,color:T.text3}}>Click 🔄 Live Prices to fetch current prices for new holdings.</div>
-            </div>
-          )}
-        </div>
-        <div className="modal-footer">
-          {IS.step==="preview"&&<>
-            <button className="btn btn-ghost" onClick={()=>setImportSt(s=>({...s,step:"idle",parsed:[],rows:[],errors:[]}))}>Upload different file</button>
-            <button className="btn btn-ghost" onClick={closeModal}>Cancel</button>
-            <button className="btn btn-primary" disabled={!valid.length} onClick={confirmImport}>Import {valid.length} rows</button>
-          </>}
-          {IS.step==="done"&&<button className="btn btn-primary" onClick={closeModal}>Done</button>}
-          {(IS.step==="idle"||IS.step==="error")&&<button className="btn btn-ghost" onClick={closeModal}>Cancel</button>}
-        </div>
-      </>
-    );
-  };
-
-  const renderModals=()=>{
-    if(!modal)return null;
-    return(
-      <div className="modal-overlay" onClick={closeModal}>
-        <div className={`modal ${modal.mode==="import"?"modal-lg":""}`} onClick={e=>e.stopPropagation()}>
-          {modal.mode==="add"&&(
-            <>
-              <div className="modal-header"><h2>Add New Position</h2></div>
-              <div className="modal-body">
-                <div className="field-row">
-                  <div className="field"><label>Ticker *</label><input placeholder="e.g. PBS032" value={form.ticker||""} onChange={e=>setForm(f=>({...f,ticker:e.target.value,yahooSymbol:suggestYahoo(e.target.value,f.exchange,f.assetType)}))}/></div>
-                  <div className="field"><label>Currency *</label><select value={form.currency||"AUD"} onChange={e=>setForm(f=>({...f,currency:e.target.value}))}>{CURRENCIES.map(c=><option key={c}>{c}</option>)}</select></div>
-                </div>
-                <div className="field"><label>Name</label><input placeholder="e.g. PBS 032 – Sukuk Negara" value={form.name||""} onChange={e=>setForm(f=>({...f,name:e.target.value}))}/></div>
-                <div className="field-row">
-                  <div className="field"><label>Asset Type</label><select value={form.assetType||"Shares / Stocks"} onChange={e=>setForm(f=>({...f,assetType:e.target.value,isBondPct:e.target.value.includes("Bond")||e.target.value.includes("Sukuk"),faceValue:(e.target.value.includes("Bond")||e.target.value.includes("Sukuk"))?"1000000":f.faceValue}))}>{ASSET_TYPES.map(a=><option key={a}>{a}</option>)}</select></div>
-                  <div className="field"><label>Exchange</label><input placeholder="IDX, ASX, Crypto…" value={form.exchange||""} onChange={e=>setForm(f=>({...f,exchange:e.target.value,yahooSymbol:suggestYahoo(f.ticker,e.target.value,f.assetType)}))}/></div>
-                </div>
-                <div className="field"><label>Yahoo Symbol</label><input placeholder="e.g. BHP.AX" value={form.yahooSymbol||""} onChange={e=>setForm(f=>({...f,yahooSymbol:e.target.value}))}/></div>
-                <div className="field-row-3">
-                  <div className="field"><label>Quantity *</label><input type="number" placeholder="Units" value={form.qty||""} onChange={e=>setForm(f=>({...f,qty:e.target.value}))}/></div>
-                  <div className="field"><label>Price *</label><input type="number" placeholder="Per unit" value={form.price||""} onChange={e=>setForm(f=>({...f,price:e.target.value}))}/></div>
-                  <div className="field"><label>Date</label><input type="date" value={form.date||""} onChange={e=>setForm(f=>({...f,date:e.target.value}))}/></div>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button className="btn btn-ghost" onClick={closeModal}>Cancel</button>
-                <button className="btn btn-primary" onClick={submitAdd}>Add Position</button>
-              </div>
-            </>
-          )}
-
-          {modal.mode==="trade"&&(
-            <>
-              <div className="modal-header"><h2>{modal.tradeType==="buy"?"Buy More":"Sell"} — {modal.holding.ticker}</h2><p>{modal.holding.name} · Held: {modal.holding.qty.toFixed(4)}</p></div>
-              <div className="modal-body">
-                <div className="field-row-3">
-                  <div className="field"><label>Quantity</label><input type="number" value={form.qty||""} onChange={e=>setForm(f=>({...f,qty:e.target.value}))}/></div>
-                  <div className="field"><label>Price ({modal.holding.currency})</label><input type="number" value={form.price||""} onChange={e=>setForm(f=>({...f,price:e.target.value}))}/></div>
-                  <div className="field"><label>Date</label><input type="date" value={form.date||""} onChange={e=>setForm(f=>({...f,date:e.target.value}))}/></div>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button className="btn btn-ghost" onClick={closeModal}>Cancel</button>
-                <button className={`btn ${modal.tradeType==="buy"?"btn-primary":"btn-danger"}`} onClick={submitTrade}>Confirm</button>
-              </div>
-            </>
-          )}
-
-          {modal.mode==="dividend"&&(
-            <>
-              <div className="modal-header"><h2>{modal.holding.isBondPct?"🏦 Record Coupon":"💰 Record Dividend"} — {modal.holding.ticker}</h2><p>{modal.holding.name}</p></div>
-              <div className="modal-body">
-                <div className="field-row-3">
-                  <div className="field"><label>{modal.holding.isBondPct?"Coupon/Unit":"Div/Unit"}</label><input type="number" value={form.amountPerShare||""} onChange={e=>setForm(f=>({...f,amountPerShare:e.target.value}))}/></div>
-                  <div className="field"><label>Entitled Units</label><input type="number" value={form.entitledQty||""} onChange={e=>setForm(f=>({...f,entitledQty:e.target.value}))}/></div>
-                  <div className="field"><label>Date</label><input type="date" value={form.date||""} onChange={e=>setForm(f=>({...f,date:e.target.value}))}/></div>
-                </div>
-                {form.amountPerShare&&form.entitledQty&&(
-                  <div style={{background:T.tealBg,border:`1px solid ${T.teal}55`,borderRadius:8,padding:"10px 12px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                    <span style={{fontSize:11,color:T.teal,fontWeight:600}}>Total:</span>
-                    <strong style={{fontFamily:"'Space Mono',monospace",fontSize:14,color:T.teal}}>
-                      {modal.holding.currency==="IDR"?`Rp ${fmtIDR(+form.amountPerShare*+form.entitledQty)}`:modal.holding.currency==="USD"?`US$${(+form.amountPerShare*+form.entitledQty).toFixed(2)}`:`A$${(+form.amountPerShare*+form.entitledQty).toFixed(2)}`}
-                    </strong>
-                  </div>
-                )}
-              </div>
-              <div className="modal-footer">
-                <button className="btn btn-ghost" onClick={closeModal}>Cancel</button>
-                <button className="btn btn-primary" onClick={submitDiv} disabled={!form.amountPerShare||!form.entitledQty}>Record</button>
-              </div>
-            </>
-          )}
-
-          {modal.mode==="history"&&histH&&histC&&(
-            <>
-              <div className="modal-header"><h2>📋 Transaction History</h2><p>{modal.holding.ticker} — {modal.holding.name}</p></div>
-              <div className="modal-body">
-                <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>
-                  {[["Market Value",FC(histC.currentValue),T.text],["Total G/L",`${FG(histC.totalGain)} (${fmtPct(histC.gainPct)})`,pColor(histC.totalGain)],["Div/Coupons",FC(histC.totalDividends),T.teal]].map(([l,v,c])=>(
-                    <div key={l} style={{background:T.bg3,border:`1px solid ${T.border}`,borderRadius:8,padding:"8px 12px",flex:"1 1 100px"}}>
-                      <div style={{fontSize:9,color:T.text3,textTransform:"uppercase",fontWeight:600,letterSpacing:.5}}>{l}</div>
-                      <div style={{fontSize:12,fontWeight:700,color:c,fontFamily:"'Space Mono',monospace",marginTop:2}}>{v}</div>
-                    </div>
-                  ))}
-                </div>
-                <div style={{overflowX:"auto",borderRadius:8,border:`1px solid ${T.border}`}}>
-                  <table className="modern-table" style={{fontSize:11}}>
-                    <thead><tr><th>Date</th><th>Type</th><th>Units</th><th>Price</th><th>Total</th><th></th></tr></thead>
-                    <tbody>
-                      {[...histH.transactions].sort((a,b)=>new Date(b.date)-new Date(a.date)).map((tx,i)=>{
-                        const origIdx=histH.transactions.indexOf(tx);
-                        const tmap={buy:{l:"BUY",c:T.green},sell:{l:"SELL",c:T.red},dividend:{l:histH.isBondPct?"COUPON":"DIV",c:T.teal}};
-                        const t=tmap[tx.type]||tmap.buy;
-                        const cur=histH.currency;
-                        const fL=v=>cur==="IDR"?`Rp ${fmtIDR(v)}`:cur==="USD"?`US$${v.toFixed(2)}`:`A$${v.toFixed(2)}`;
-                        const units=tx.type==="dividend"?`${(tx.amountPerShare||0).toFixed(tx.amountPerShare>1?2:4)}/u`:`${tx.qty||"—"}`;
-                        const price=fL(tx.type==="dividend"?(tx.amountPerShare||0):(tx.price||0));
-                        const total=fL(tx.type==="dividend"?(tx.totalAmount||0):((tx.qty||0)*(tx.price||0)));
-                        return(
-                          <tr key={i}>
-                            <td style={{color:T.text2,fontSize:10}}>{fmtDate(tx.date)}</td>
-                            <td><span className={`pill ${tx.type==="buy"?"up":tx.type==="sell"?"down":"neutral"}`} style={{background:t.c+"22",color:t.c}}>{t.l}</span></td>
-                            <td>{units}</td>
-                            <td>{price}</td>
-                            <td style={{color:t.c,fontWeight:700}}>{total}</td>
-                            <td>
-                              <div style={{display:"flex",gap:3}}>
-                                <button className="row-action" onClick={()=>setEditTx({holdingId:histH.id,txIndex:origIdx,tx:{...tx}})}>✏️</button>
-                                <button className="row-action" onClick={()=>{if(!confirm("Delete this transaction?"))return;setPortfolioRepaired(p=>p.map(h=>h.id===histH.id?{...h,transactions:h.transactions.filter((_,j)=>j!==origIdx)}:h));}}>🗑️</button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              <div className="modal-footer"><button className="btn btn-ghost" onClick={closeModal}>Close</button></div>
-            </>
-          )}
-
-          {modal.mode==="price"&&(
-            <>
-              <div className="modal-header"><h2>✏️ Manual Price Override</h2><p>Override prices or edit Yahoo symbols</p></div>
-              <div className="modal-body">
-                <div className="field" style={{maxWidth:200}}>
-                  <label>Display Currency</label>
-                  <select value={form.displayCur||displayCur} onChange={e=>setForm(f=>({...f,displayCur:e.target.value}))}>{CURRENCIES.map(c=><option key={c}>{c}</option>)}</select>
-                </div>
-                {holdings.map(h=>(
-                  <div key={h.ticker} style={{marginBottom:14,paddingBottom:14,borderBottom:`1px solid ${T.border}`}}>
-                    <div style={{fontSize:12,fontWeight:700,color:T.text,fontFamily:"'Space Mono',monospace",marginBottom:6}}>{h.ticker}<span style={{fontFamily:"Inter",color:T.text3,fontWeight:400}}> — {h.name}</span></div>
-                    <div className="field-row-3">
-                      <div className="field"><label>Current Price</label><input type="number" placeholder={String(prices[h.ticker]||"")} value={form["c_"+h.ticker]||""} onChange={e=>setForm(f=>({...f,["c_"+h.ticker]:e.target.value}))}/></div>
-                      <div className="field"><label>Prev Close</label><input type="number" placeholder={String(prevPrices[h.ticker]||"")} value={form["p_"+h.ticker]||""} onChange={e=>setForm(f=>({...f,["p_"+h.ticker]:e.target.value}))}/></div>
-                      <div className="field"><label>Yahoo Symbol</label><input value={form["ys_"+h.ticker]??h.yahooSymbol??""} onChange={e=>setForm(f=>({...f,["ys_"+h.ticker]:e.target.value}))}/></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="modal-footer">
-                <button className="btn btn-ghost" onClick={closeModal}>Cancel</button>
-                <button className="btn btn-primary" onClick={submitManualPrice}>💾 Save</button>
-              </div>
-            </>
-          )}
-
-          {modal.mode==="import"&&renderImportModal()}
-        </div>
-      </div>
-    );
-  };
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // MAIN RENDER
-  // ═══════════════════════════════════════════════════════════════════════════
-  return(
-    <ErrorBoundary>
-      <div className="app">
-        <header className="header">
-          <div className="header-inner">
-            <div className="logo">
-              <div className="logo-mark">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <path d="M4 20 L8 12 L12 16 L20 4" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-                  <circle cx="20" cy="4" r="2" fill="#fff"/>
-                </svg>
-              </div>
-              <div className="logo-text">
-                <b>SAUDAGAR KAPITALIS</b>
-                <span>Invest. Grow. Freedom.</span>
-              </div>
-            </div>
-            <nav className="header-nav">
-              {[["dashboard","Dashboard","dashboard"],["portfolio","Portfolio","wallet"],["analytics","Analytics","chart"]].map(([v,l,ic])=>(
-                <button key={v} className={`nav-tab ${view===v?"active":""}`} onClick={()=>setView(v)}>
-                  <Icon name={ic} size={15}/>{l}
-                </button>
-              ))}
-            </nav>
-            <div className="header-actions">
-              <div className="currency-pill">
-                <select value={displayCur} onChange={e=>setDisplayCur(e.target.value)}>
-                  {CURRENCIES.map(c=><option key={c}>{c}</option>)}
-                </select>
-              </div>
-              <button className="icon-btn" title={valuesHidden?"Show values":"Hide values"} onClick={()=>setValuesHidden(v=>!v)}>
-                <Icon name={valuesHidden?"eye-off":"eye"} size={16}/>
-              </button>
-              <button className="icon-btn" title="Passive income settings" onClick={()=>setShowPassiveModal(true)}>
-                <Icon name="settings" size={16}/>
-              </button>
-              <button className="icon-btn" title={dark?"Light mode":"Dark mode"} onClick={()=>setDark(d=>!d)}>
-                <Icon name={dark?"sun":"moon"} size={16}/>
-              </button>
-              <button className="icon-btn" title="Refresh prices" onClick={autoRefresh} disabled={fetchSt.loading}>
-                <span className={fetchSt.loading?"spin":""}><Icon name="refresh" size={16}/></span>
-              </button>
-              <button className="icon-btn" title="Manual price override" onClick={openManualPrice}>
-                <Icon name="edit" size={16}/>
-              </button>
-              <button className="icon-btn" title="Import" onClick={openImport}>
-                <Icon name="download" size={16}/>
-              </button>
-              <button className="icon-btn" title="Export" onClick={handleExport}>
-                <Icon name="upload" size={16}/>
-              </button>
-              {FB_CONFIGURED?(
-                fbUser?(
-                  <>
-                    <button className="icon-btn" title="Load from cloud" onClick={()=>cloudLoadAll()} disabled={syncSt==="loading"||syncSt==="saving"}>
-                      <span className={syncSt==="loading"?"spin":""}><Icon name="cloud" size={16}/></span>
-                    </button>
-                    <button className="icon-btn" title="Save to cloud" onClick={()=>cloudSaveAll()} disabled={syncSt==="loading"||syncSt==="saving"}>
-                      <Icon name="check" size={16}/>
-                    </button>
-                    <button className="avatar" title={fbUser.displayName||fbUser.email} onClick={handleSignOut}>
-                      {fbUser.photoURL?<img src={fbUser.photoURL} alt=""/>:(fbUser.displayName||"U").slice(0,1).toUpperCase()}
-                    </button>
-                  </>
-                ):(
-                  <button className="icon-btn" title="Sign in" onClick={handleSignIn}>
-                    <Icon name="cloud" size={16}/>
-                  </button>
-                )
-              ):null}
-            </div>
-          </div>
-        </header>
-
-        <main className="main">
-          {view==="dashboard"&&renderDashboard()}
-          {view==="portfolio"&&renderPortfolio()}
-          {view==="analytics"&&renderAnalytics()}
-        </main>
-
-        <nav className="bottom-nav">
-          <div className="bottom-nav-inner">
-            {[["dashboard","Dashboard","dashboard"],["portfolio","Portfolio","wallet"],["analytics","Analytics","chart"]].map(([v,l,ic])=>(
-              <button key={v} className={`bottom-nav-item ${view===v?"active":""}`} onClick={()=>setView(v)}>
-                <Icon name={ic} size={20}/>
-                <span>{l}</span>
-              </button>
-            ))}
-          </div>
-        </nav>
-
-        {renderModals()}
-
-        {/* Edit transaction modal */}
-        {editTx&&(()=>{
-          const h=portfolio.find(p=>p.id===editTx.holdingId);
-          if(!h)return null;
-          const tx=editTx.tx;
-          const cur=h.currency||"AUD";
-          const save=()=>{
-            setPortfolioRepaired(p=>p.map(holding=>holding.id===editTx.holdingId?{...holding,transactions:holding.transactions.map((t,j)=>j===editTx.txIndex?{...editTx.tx}:t)}:holding));
-            setEditTx(null);
-          };
-          return(
-            <div className="modal-overlay" onClick={()=>setEditTx(null)}>
-              <div className="modal" onClick={e=>e.stopPropagation()} style={{maxWidth:380}}>
-                <div className="modal-header"><h2>✏️ Edit Transaction</h2><p>{h.ticker} — {tx.type?.toUpperCase()}</p></div>
-                <div className="modal-body">
-                  <div className="field"><label>Date</label><input type="date" value={tx.date??""} onChange={e=>setEditTx(s=>({...s,tx:{...s.tx,date:e.target.value}}))}/></div>
-                  {tx.type!=="dividend"&&<>
-                    <div className="field"><label>Units</label><input type="number" value={tx.qty??""} onChange={e=>setEditTx(s=>({...s,tx:{...s.tx,qty:parseFloat(e.target.value)||0}}))}/></div>
-                    <div className="field"><label>Price ({cur})</label><input type="number" value={tx.price??""} onChange={e=>setEditTx(s=>({...s,tx:{...s.tx,price:parseFloat(e.target.value)||0}}))}/></div>
-                  </>}
-                  {tx.type==="dividend"&&<>
-                    <div className="field"><label>Amount per Unit ({cur})</label><input type="number" value={tx.amountPerShare??""} onChange={e=>setEditTx(s=>({...s,tx:{...s.tx,amountPerShare:parseFloat(e.target.value)||0}}))}/></div>
-                    <div className="field"><label>Entitled Units</label><input type="number" value={tx.entitledQty??""} onChange={e=>setEditTx(s=>({...s,tx:{...s.tx,entitledQty:parseFloat(e.target.value)||0}}))}/></div>
-                    <div className="field"><label>Total Amount ({cur})</label><input type="number" value={tx.totalAmount??""} onChange={e=>setEditTx(s=>({...s,tx:{...s.tx,totalAmount:parseFloat(e.target.value)||0}}))}/></div>
-                  </>}
-                </div>
-                <div className="modal-footer">
-                  <button className="btn btn-ghost" onClick={()=>setEditTx(null)}>Cancel</button>
-                  <button className="btn btn-primary" onClick={save}>Save</button>
-                </div>
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* Passive income settings modal */}
-        {showPassiveModal&&(
-          <div className="modal-overlay" onClick={()=>setShowPassiveModal(false)}>
-            <div className="modal" onClick={e=>e.stopPropagation()} style={{maxWidth:400}}>
-              <div className="modal-header"><h2>⚙️ Passive Income Settings</h2><p>Set your monthly target & super draw rate</p></div>
-              <div className="modal-body">
-                <div className="field"><label>Monthly Target (AUD)</label><input type="number" step="100" value={monthlyTargetAud} onChange={e=>setMonthlyTargetAud(parseFloat(e.target.value)||0)} placeholder="e.g. 5000"/></div>
-                <div className="field"><label>Super Annual Draw Rate (%)</label><input type="number" step="0.1" value={superDrawRate} onChange={e=>setSuperDrawRate(parseFloat(e.target.value)||0)} placeholder="e.g. 4.0"/><div style={{fontSize:10,color:T.text3,marginTop:4}}>Applied to NUL5339AU + NUL7270AU</div></div>
-                <div className="field"><label>Average Super Balance (AUD)</label><input type="number" step="1000" value={avgSuperBalanceAud} onChange={e=>setAvgSuperBalanceAud(parseFloat(e.target.value)||0)} placeholder="e.g. 100000"/></div>
-              </div>
-              <div className="modal-footer"><button className="btn btn-primary" onClick={()=>setShowPassiveModal(false)}>Save</button></div>
-            </div>
-          </div>
-        )}
-
-        {/* Toast */}
-        {toast&&(
-          <div style={{
-            position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",zIndex:200,
-            background:toast.type==="warn"?T.amberBg:T.greenBg,
-            border:`1px solid ${toast.type==="warn"?T.amber:T.green}66`,
-            color:toast.type==="warn"?T.amber:T.green,
-            padding:"10px 18px",borderRadius:12,fontSize:12,fontWeight:600,
-            boxShadow:"0 8px 24px rgba(0,0,0,.4)",animation:"slideUp .2s ease",
-            maxWidth:"90vw",textAlign:"center"
-          }}>{toast.msg}</div>
-        )}
-      </div>
-    </ErrorBoundary>
-  );
-}
-
-ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
-</script>
-</body>
-</html>
+    if(tx.type==="buy"){lots.push({qty:tx.qty,
