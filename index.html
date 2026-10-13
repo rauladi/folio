@@ -48,6 +48,18 @@
   .risk-card .value{font-size:16px;font-weight:700;font-family:'Space Mono',monospace;margin-top:2px}
   .risk-card .sub{font-size:10px;color:var(--text3,#9aa0a6);margin-top:1px;font-weight:400}
 
+  /* Net Buy Flow summary strip */
+  .bf-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:12px}
+  @media (max-width:640px){.bf-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  .bf-sum-card{background:var(--bg4,#333);border:1px solid var(--border,#3d3d3d);border-radius:8px;padding:8px 10px}
+  .bf-sum-label{font-size:8px;color:var(--text3,#9aa0a6);letter-spacing:.8px;text-transform:uppercase;font-weight:600;margin-bottom:3px}
+  .bf-sum-value{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;line-height:1.2}
+  .bf-sum-sub{font-size:8px;color:var(--text4,#6c7278);font-weight:500;margin-top:2px}
+  .bf-legend{display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;font-size:9px;color:var(--text3,#9aa0a6)}
+  .bf-legend-item{display:flex;align-items:center;gap:4px}
+  .bf-legend-dot{width:9px;height:9px;border-radius:2px}
+  .bf-legend-line{width:14px;height:2px;border-radius:1px}
+
   .table-container{overflow:auto;max-height:600px;border-radius:12px;border:1px solid var(--border,#3d3d3d)}
   .table-container table{border-collapse:separate;border-spacing:0;width:100%}
   .table-container thead th{position:sticky;top:0;z-index:10;background:var(--bg2,#1e1e1e);
@@ -798,6 +810,92 @@ function ChartWaterfall({data,T,yFmt,height=240}){
   );
 }
 
+/* ── Net Buy Flow (mixed bar + line) ── */
+function ChartBuyFlow({labels,buys,sells,cumulative,T,yFmt,height=240}){
+  const ref=useRef(null);
+  const inst=useRef(null);
+  const sig=useMemo(()=>{try{return JSON.stringify({labels,buys,sells,cumulative});}
+    catch{return String(Date.now());}},[labels,buys,sells,cumulative]);
+
+  useEffect(()=>{
+    if(!ref.current||typeof Chart==="undefined")return;
+    if(inst.current){inst.current.destroy();inst.current=null;}
+    inst.current=new Chart(ref.current,{
+      data:{
+        labels,
+        datasets:[
+          {type:"bar",label:"Buys",data:buys,
+            backgroundColor:"rgba(52,168,83,.75)",borderColor:"#34a853",borderWidth:1,
+            borderRadius:4,borderSkipped:false,yAxisID:"y",order:2},
+          {type:"bar",label:"Sells",data:sells,
+            backgroundColor:"rgba(234,67,53,.75)",borderColor:"#ea4335",borderWidth:1,
+            borderRadius:4,borderSkipped:false,yAxisID:"y",order:2},
+          {type:"line",label:"Cumulative Net Invested",data:cumulative,
+            borderColor:"#8ab4f8",backgroundColor:"rgba(138,180,248,.08)",
+            borderWidth:2,borderDash:[5,4],pointRadius:3,
+            pointBackgroundColor:"#8ab4f8",pointBorderColor:T.bg2,pointBorderWidth:1.5,
+            pointHoverRadius:5,tension:0.3,fill:false,yAxisID:"y2",order:1},
+        ],
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        animation:{duration:320},
+        interaction:{mode:"index",intersect:false},
+        plugins:{
+          legend:{display:false},
+          tooltip:{
+            backgroundColor:T.bg2,borderColor:T.border,borderWidth:1,
+            titleColor:T.text,bodyColor:T.text2,padding:10,cornerRadius:8,
+            callbacks:{
+              label:ctx=>{
+                const v=ctx.parsed.y;
+                const name=ctx.dataset.label;
+                if(name==="Cumulative Net Invested")
+                  return `  ${name}: ${yFmt?yFmt(v):v}`;
+                if(name==="Sells"&&v===0)return null;
+                const prefix=v>=0?"+":"−";
+                return `  ${name}: ${prefix}${yFmt?yFmt(Math.abs(v)):Math.abs(v)}`;
+              },
+              footer:items=>{
+                const i=items[0].dataIndex;
+                const net=buys[i]+sells[i];
+                const sign=net>=0?"+":"−";
+                return `Net: ${sign}${yFmt?yFmt(Math.abs(net)):Math.abs(net)}`;
+              },
+            },
+          },
+        },
+        scales:{
+          x:{grid:{color:"transparent"},
+            ticks:{color:T.chartTick,font:{size:10,weight:"500"},maxRotation:0,
+              autoSkip:true,maxTicksLimit:8},
+            border:{color:T.border}},
+          y:{position:"left",grid:{color:T.chartGrid},
+            ticks:{color:T.chartTick,font:{size:10,weight:"500"},callback:yFmt||(v=>v)},
+            border:{color:T.border}},
+          y2:{position:"right",grid:{drawOnChartArea:false},
+            ticks:{color:"#8ab4f8",font:{size:10,weight:"500"},callback:yFmt||(v=>v)},
+            border:{color:T.border}},
+        },
+      },
+    });
+    return()=>{if(inst.current){inst.current.destroy();inst.current=null;}};
+  },[sig,T,yFmt]);
+
+  const empty=!labels?.length;
+  return (
+    <div className="chart-wrap" style={{height}}>
+      <canvas ref={ref}/>
+      {empty&&(
+        <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",
+          justifyContent:"center",color:T.text3,fontSize:11,fontWeight:500,pointerEvents:"none"}}>
+          No buy / sell activity in this period
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    IMPORT / EXPORT
    ═══════════════════════════════════════════════════════════════════ */
@@ -1358,6 +1456,7 @@ function App(){
 
   const chartData=useMemo(()=>{
     const cutoff=periodCutoff(chartPeriod);
+    const cutoffStr=cutoff.toISOString().slice(0,10);
     const filtered=history.filter(d=>new Date(d.date)>=cutoff);
     const sorted=[...filtered].sort((a,b)=>new Date(a.date)-new Date(b.date));
     const labels=sorted.map(d=>d.date);
@@ -1409,7 +1508,6 @@ function App(){
       const fw=sorted[0]?.totalValueAUD||0, lw=sorted[sorted.length-1]?.totalValueAUD||0;
       waterfallData.push({label:"Start",value:fw,type:"start"});
       const buys={},sells={},divs={};
-      const cutoffStr=cutoff.toISOString().slice(0,10);
       portfolio.forEach(h=>h.transactions.forEach(tx=>{
         if(tx.type==="buy"){
           const d=tx.date||"1900-01-01";
@@ -1434,12 +1532,46 @@ function App(){
       waterfallData.push({label:"End",value:lw,type:"total"});
     }
 
+    /* ── NET BUY FLOW ── */
+    const buyFlowMap={};
+    portfolio.forEach(h=>h.transactions.forEach(tx=>{
+      if(!tx.date||tx.date<cutoffStr)return;
+      if(tx.type!=="buy"&&tx.type!=="sell")return;
+      const m=tx.date.slice(0,7);
+      if(!buyFlowMap[m])buyFlowMap[m]={buys:0,sells:0,buyCount:0,sellCount:0};
+      const amt=toAUD((tx.qty||0)*(tx.price||0),h.currency,rates);
+      if(tx.type==="buy"){buyFlowMap[m].buys+=amt;buyFlowMap[m].buyCount++;}
+      else{buyFlowMap[m].sells+=amt;buyFlowMap[m].sellCount++;}
+    }));
+    const bfMonths=Object.keys(buyFlowMap).sort();
+    const bfLabels=bfMonths.map(m=>fmtMon(m));
+    const bfBuys=bfMonths.map(m=>buyFlowMap[m].buys);
+    const bfSells=bfMonths.map(m=>-buyFlowMap[m].sells);
+    let runningNet=0;
+    const bfCumulative=bfMonths.map(m=>{
+      runningNet+=buyFlowMap[m].buys-buyFlowMap[m].sells;
+      return runningNet;
+    });
+    const bfTotalBought=bfBuys.reduce((s,v)=>s+v,0);
+    const bfTotalSold=Object.values(buyFlowMap).reduce((s,v)=>s+v.sells,0);
+    const bfNetDeployed=bfTotalBought-bfTotalSold;
+    const bfBuyCount=Object.values(buyFlowMap).reduce((s,v)=>s+v.buyCount,0);
+    const bfSellCount=Object.values(buyFlowMap).reduce((s,v)=>s+v.sellCount,0);
+    const now=new Date();
+    const thisMonthKey=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+    const bfThisMonthNet=buyFlowMap[thisMonthKey]?
+      (buyFlowMap[thisMonthKey].buys-buyFlowMap[thisMonthKey].sells):0;
+    const bfThisMonthCount=buyFlowMap[thisMonthKey]?buyFlowMap[thisMonthKey].buyCount:0;
+
     return {labels,rawDates,vals,divCumul,startVal,endVal,tLabels,tVals,palette,
       byCurLabels,byCurVals,byCurColors,mLabels,mVals,
       mDatasets:[{label:"Income",data:mVals,
         backgroundColor:dark?"rgba(138,180,248,.6)":"rgba(26,115,232,.5)",
         borderColor:dark?"#8ab4f8":"#1a73e8",borderWidth:1,borderRadius:4}],
-      divCAGR:divCAGR_val,divCAGRYears,waterfallData};
+      divCAGR:divCAGR_val,divCAGRYears,waterfallData,
+      bfLabels,bfBuys,bfSells,bfCumulative,
+      bfTotalBought,bfTotalSold,bfNetDeployed,bfBuyCount,bfSellCount,
+      bfThisMonthNet,bfThisMonthCount};
   },[history,holdings,portfolio,rates,chartPeriod,dark,periodCutoff]);
 
   const yFmtMain=useCallback(v=>{
@@ -2613,29 +2745,82 @@ function App(){
                 </div>
               </div>
 
+              {/* Row: Net Buy Flow (wide) + Monthly Income (narrow) */}
               <div className="chart-row">
+                <div style={card({padding:14})}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10,flexWrap:"wrap",gap:6}}>
+                    <div>
+                      <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>💸 Net Buy Flow — Buys vs Sells</div>
+                      <div style={{fontSize:10,color:T.text3,fontWeight:400}}>Monthly capital deployed · {chartPeriod} · {displayCur}</div>
+                    </div>
+                  </div>
+
+                  <div className="bf-summary">
+                    <div className="bf-sum-card">
+                      <div className="bf-sum-label">Total Bought</div>
+                      <div className="bf-sum-value" style={{color:T.green}}>
+                        {chartData.bfTotalBought>0?`+${FC(chartData.bfTotalBought,true)}`:"—"}
+                      </div>
+                      <div className="bf-sum-sub">{chartData.bfBuyCount} {chartData.bfBuyCount===1?"buy":"buys"}</div>
+                    </div>
+                    <div className="bf-sum-card">
+                      <div className="bf-sum-label">Total Sold</div>
+                      <div className="bf-sum-value" style={{color:T.red}}>
+                        {chartData.bfTotalSold>0?`−${FC(chartData.bfTotalSold,true)}`:"—"}
+                      </div>
+                      <div className="bf-sum-sub">{chartData.bfSellCount} {chartData.bfSellCount===1?"sell":"sells"}</div>
+                    </div>
+                    <div className="bf-sum-card">
+                      <div className="bf-sum-label">Net Deployed</div>
+                      <div className="bf-sum-value" style={{color:chartData.bfNetDeployed>=0?T.teal:T.red}}>
+                        {chartData.bfNetDeployed>=0?"+":"−"}{FC(Math.abs(chartData.bfNetDeployed),true)}
+                      </div>
+                      <div className="bf-sum-sub">{chartData.bfNetDeployed>=0?"net capital in":"net capital out"}</div>
+                    </div>
+                    <div className="bf-sum-card">
+                      <div className="bf-sum-label">This Month</div>
+                      <div className="bf-sum-value" style={{color:chartData.bfThisMonthNet>=0?T.text:T.red}}>
+                        {chartData.bfThisMonthNet>=0?"+":"−"}{FC(Math.abs(chartData.bfThisMonthNet),true)}
+                      </div>
+                      <div className="bf-sum-sub">{chartData.bfThisMonthCount} {chartData.bfThisMonthCount===1?"buy":"buys"}</div>
+                    </div>
+                  </div>
+
+                  <ChartBuyFlow labels={chartData.bfLabels}
+                    buys={chartData.bfBuys}
+                    sells={chartData.bfSells}
+                    cumulative={chartData.bfCumulative}
+                    T={T} yFmt={yFmtMain} height={isMob?220:260}/>
+
+                  <div className="bf-legend">
+                    <div className="bf-legend-item">
+                      <div className="bf-legend-dot" style={{background:"#34a853"}}></div>Buys (capital in)
+                    </div>
+                    <div className="bf-legend-item">
+                      <div className="bf-legend-dot" style={{background:"#ea4335"}}></div>Sells (capital out)
+                    </div>
+                    <div className="bf-legend-item">
+                      <div className="bf-legend-line" style={{background:"#8ab4f8"}}></div>Cumulative Net Invested
+                    </div>
+                  </div>
+                </div>
+
                 <div style={card({padding:14})}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
                     <div>
                       <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>Monthly Income — Div &amp; Coupons</div>
                       <div style={{fontSize:10,color:T.text3,fontWeight:400}}>{chartData.mLabels.length} months · {chartPeriod} · {displayCur}</div>
                     </div>
-                    {chartData.divCAGR!=null&&<div style={{textAlign:"right"}}>
-                      <div style={{fontSize:8,color:T.text3,letterSpacing:.5,textTransform:"uppercase",fontWeight:600}}>Div CAGR</div>
-                      <div style={{fontFamily:"'Space Mono',monospace",fontSize:14,fontWeight:700,
-                        color:chartData.divCAGR>=0?T.green:T.red}}>
-                        {chartData.divCAGR>=0?"+":""}{chartData.divCAGR.toFixed(1)}%</div>
-                      <div style={{fontSize:8,color:T.text3,fontWeight:400}}>{chartData.divCAGRYears}yr</div>
-                    </div>}
                   </div>
+                  {chartData.divCAGR!=null&&<div style={{textAlign:"right",marginBottom:6}}>
+                    <div style={{fontSize:8,color:T.text3,letterSpacing:.5,textTransform:"uppercase",fontWeight:600}}>Div CAGR</div>
+                    <div style={{fontFamily:"'Space Mono',monospace",fontSize:13,fontWeight:700,
+                      color:chartData.divCAGR>=0?T.green:T.red}}>
+                      {chartData.divCAGR>=0?"+":""}{chartData.divCAGR.toFixed(1)}%</div>
+                    <div style={{fontSize:8,color:T.text3,fontWeight:400}}>{chartData.divCAGRYears}yr</div>
+                  </div>}
                   <ChartBar labels={chartData.mLabels} datasets={chartData.mDatasets}
                     T={T} yFmt={yFmtMain} height={isMob?180:220}/>
-                </div>
-                <div style={card({padding:14})}>
-                  <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>Currency Split</div>
-                  <div style={{fontSize:10,color:T.text3,marginBottom:8,fontWeight:400}}>by holding currency · {displayCur}</div>
-                  <ChartDoughnut labels={chartData.byCurLabels} data={chartData.byCurVals}
-                    colors={chartData.byCurColors} T={T} height={isMob?180:220}/>
                 </div>
               </div>
 
