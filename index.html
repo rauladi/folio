@@ -25,18 +25,12 @@
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
   .pulse{animation:pulse 1.5s ease-in-out infinite}
 
-  /* ─── Modern card / surface ─── */
   .surface{background:var(--card-bg,#252525);border:1px solid var(--border,#3d3d3d);
            border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.25),0 8px 24px -12px rgba(0,0,0,.5)}
-
-  /* ─── Chart canvas wrapper ─── */
   .chart-wrap{position:relative;width:100%;min-width:0}
-
-  /* ─── Generic chart row that collapses cleanly on mobile ─── */
   .chart-row{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px;align-items:stretch}
   @media (max-width:900px){.chart-row{grid-template-columns:1fr}}
 
-  /* ─── Header ─── */
   .hdr-desktop{display:flex}
   .hdr-mobile{display:none}
   .header-kpis{display:flex;gap:18px;align-items:baseline;flex-wrap:wrap}
@@ -44,10 +38,8 @@
   .header-kpi .label{font-size:9px;letter-spacing:1.1px;text-transform:uppercase;font-weight:600;color:var(--kpi-label,#9aa0a6)}
   .header-kpi .value{font-size:17px;font-weight:700;font-family:'Space Mono',monospace;letter-spacing:-0.3px;line-height:1.2}
   .header-kpi .sub{font-size:10px;font-weight:500;opacity:.7}
-
   .header-sysinfo{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:10px;color:var(--sysinfo-color,#9aa0a6)}
 
-  /* ─── Risk / income cards ─── */
   .risk-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:6px}
   .income-risk-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:6px}
   .risk-card{border-radius:10px;padding:10px 12px;background:var(--card-bg,#252525);
@@ -56,7 +48,6 @@
   .risk-card .value{font-size:16px;font-weight:700;font-family:'Space Mono',monospace;margin-top:2px}
   .risk-card .sub{font-size:10px;color:var(--text3,#9aa0a6);margin-top:1px;font-weight:400}
 
-  /* ─── Table ─── */
   .table-container{overflow:auto;max-height:600px;border-radius:12px;border:1px solid var(--border,#3d3d3d)}
   .table-container table{border-collapse:separate;border-spacing:0;width:100%}
   .table-container thead th{position:sticky;top:0;z-index:10;background:var(--bg2,#1e1e1e);
@@ -70,7 +61,6 @@
   .light .table-container tbody tr:hover td{background:var(--hover-bg,#f1f3f4)}
   .light .table-container tbody tr:hover td:first-child{background:var(--hover-bg,#f1f3f4)}
 
-  /* ─── What-If ─── */
   .whatif-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;
                  align-items:stretch;width:100%;min-height:420px}
   .whatif-holdings{display:grid;grid-template-columns:1fr 1fr;gap:5px}
@@ -87,11 +77,9 @@
   .adj-row .adj-btn:hover{background:var(--bg5,#555)}
   .adj-row .diff-label{font-size:10px;min-width:40px;text-align:right;color:var(--text3,#9aa0a6);
                         font-weight:600;flex-shrink:0}
-
   .scenario-card{border-radius:10px;padding:12px 14px;border:1px solid var(--border,#3d3d3d);
                  background:var(--bg3,#2a2a2a)}
 
-  /* ─── Tablet ─── */
   @media (max-width:900px){
     .header-kpis{gap:12px}
     .header-kpi .value{font-size:15px}
@@ -99,8 +87,6 @@
     .income-risk-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
     .whatif-layout{grid-template-columns:1fr;min-height:auto}
   }
-
-  /* ─── Mobile ─── */
   @media (max-width:640px){
     body{font-size:13px}
     header{padding:6px 8px !important}
@@ -129,21 +115,10 @@
     .adj-row .adj-btn{width:22px;height:22px;font-size:13px}
     .adj-row .diff-label{font-size:9px;min-width:30px}
   }
-
   @media (max-width:400px){
     .header-kpi{flex:1 1 100%}
     .header-kpi .value{font-size:14px}
   }
-
-  /* ─── Buttons ─── */
-  .repair-btn{font-size:11px;padding:6px 12px;border-radius:20px;border:1px solid #f59e0b66;
-              background:transparent;color:#f59e0b;font-weight:500}
-  .repair-btn:hover{background:#f59e0b22}
-  .export-btn{font-size:11px;padding:6px 12px;border-radius:20px;border:1px solid #4ade8066;
-              background:transparent;color:#4ade80;font-weight:500}
-  .export-btn:hover{background:#4ade8022}
-
-  /* Prevent canvas overflow */
   canvas{max-width:100%}
 </style>
 </head>
@@ -161,7 +136,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
 <script>
-  /* ─── Firebase bootstrap (unchanged) ─── */
   const FIREBASE_CONFIG = {
     apiKey: "AIzaSyBp20SC2Yt9IWkevpLgU6-nXZtA7HuNbN0",
     authDomain: "folio-sync.firebaseapp.com",
@@ -195,7 +169,6 @@
 <script type="text/babel">
 const {useState,useMemo,useCallback,useEffect,useRef,useLayoutEffect}=React;
 
-/* ─── Error boundary ─── */
 class ErrorBoundary extends React.Component{
   constructor(p){super(p);this.state={hasError:false,error:null};}
   static getDerivedStateFromError(e){return {hasError:true,error:e};}
@@ -211,7 +184,6 @@ class ErrorBoundary extends React.Component{
   }
 }
 
-/* ─── Constants ─── */
 const ASSET_TYPES=["Shares / Stocks","ETF","Mutual Fund","Index Fund","Superannuation",
   "Bond – Government","Bond – Corporate","Bond – Indonesia (SBN)","Bond – Sharia (Sukuk)",
   "Commodity","Cryptocurrency","Forex","REIT / Property","Cash / Term Deposit","Other"];
@@ -220,7 +192,6 @@ const DIVIDEND_PAYING_TYPES=new Set(["Shares / Stocks","ETF","Mutual Fund","Inde
   "REIT / Property","Bond – Government","Bond – Corporate","Bond – Indonesia (SBN)","Bond – Sharia (Sukuk)"]);
 const INCOME_RISK_EXCLUDED_TICKERS=new Set(["SHIB","BTC","GOLD","NUL5339AU","NUL7270AU"]);
 
-/* ─── Themes ─── */
 const DARK={bg:"#121212",bg2:"#1e1e1e",bg3:"#2a2a2a",bg4:"#333",bg5:"#3d3d3d",border:"#3d3d3d",border2:"#555",
   text:"#e8eaed",text2:"#bdc1c6",text3:"#9aa0a6",text4:"#6c7278",green:"#81c995",greenBtn:"#34a853",
   red:"#f28b82",redBtn:"#ea4335",teal:"#8ab4f8",tealBtn:"#1a73e8",amber:"#fdd663",amberBg:"#332d1a",
@@ -232,7 +203,6 @@ const LIGHT={bg:"#f1f3f4",bg2:"#fff",bg3:"#f8f9fa",bg4:"#e8eaed",bg5:"#dadce0",b
   shadow:"0 2px 12px rgba(0,0,0,.12)",chartGrid:"rgba(0,0,0,.06)",chartTick:"#5f6368",
   cardBg:"#fff",hoverBg:"#f1f3f4",kpiLabel:"#5f6368",sysinfoColor:"#5f6368",borderColor:"#dadce0"};
 
-/* ─── Squarify ─── */
 function squarify(items,x,y,w,h){
   if(!items.length)return[];
   const r=[]; _layout(items,x,y,w,h,items.reduce((s,i)=>s+i.value,0),r); return r;
@@ -256,7 +226,6 @@ function _layout(it,x,y,w,h,tot,r){
   hz?_layout(rem,x+rd,y,w-rd,h,remT,r):_layout(rem,x,y+rd,w,h-rd,remT,r);
 }
 
-/* ─── Colors ─── */
 function getPerformanceColor(pct,dark){
   const maxAbs=10;
   const clamped=Math.max(-maxAbs,Math.min(maxAbs,pct));
@@ -279,7 +248,6 @@ function getDividendColor(yieldPct,dark){
 }
 const divColor=(y,d)=>getDividendColor(y,d);
 
-/* ─── Currency ─── */
 const toAUD=(a,c,R)=>{if(c==="IDR")return a/R.AUD_IDR; if(c==="USD")return a/R.AUD_USD; return a;};
 const fromAUD=(a,c,R)=>{if(c==="IDR")return a*R.AUD_IDR; if(c==="USD")return a*R.AUD_USD; return a;};
 function fmtIDR(n){try{return Math.round(n).toLocaleString("id-ID");}catch{return Math.round(n).toString()
@@ -312,7 +280,6 @@ const fmtDate=d=>{try{return new Date(d+"T12:00:00").toLocaleDateString("en-AU",
 const fmtMon=d=>{try{return new Date(d+"-01").toLocaleDateString("en-AU",{month:"short",year:"2-digit"});}catch{return d;}};
 const fmtTime=d=>{if(!d)return"—";try{return d.toLocaleTimeString("en-AU",{hour:"2-digit",minute:"2-digit"});}catch{return"—";}};
 
-/* ─── Yahoo symbol suggester ─── */
 function suggestYahoo(ticker,exchange,assetType){
   const ex=(exchange||"").toUpperCase().trim(); const at=assetType||""; const tk=ticker.toUpperCase();
   if(ex==="ASX")return tk+".AX";
@@ -328,51 +295,81 @@ function suggestYahoo(ticker,exchange,assetType){
   return"";
 }
 
-/* ─── Price fetchers (unchanged logic, kept terse) ─── */
 const YAHOO_BASE="https://query2.finance.yahoo.com/v8/finance/chart/";
 const YAHOO_BASE1="https://query1.finance.yahoo.com/v8/finance/chart/";
 const YAHOO_V7="https://query1.finance.yahoo.com/v7/finance/quote?symbols=";
 const RATES_URL="https://open.er-api.com/v6/latest/AUD";
+
+const CF_PROXY=(()=>{try{return localStorage.getItem("f6_cfproxy")||"";}catch{return"";}})();
 const PROXIES=[
-  u=>"https://corsproxy.io/?"+encodeURIComponent(u),
-  u=>"https://api.allorigins.win/raw?url="+encodeURIComponent(u),
-  u=>"https://cors.eu.org/"+u,
+  ...(CF_PROXY?[u=>`${CF_PROXY}?url=${encodeURIComponent(u)}`]:[]),
+  u=>"https://r.jina.ai/"+u,
   u=>"https://api.codetabs.com/v1/proxy?quest="+encodeURIComponent(u),
-  u=>"https://corsproxy.org/?"+encodeURIComponent(u),
-  u=>"https://api.allorigins.win/get?url="+encodeURIComponent(u),
+  u=>"https://api.allorigins.win/raw?url="+encodeURIComponent(u),
+  u=>"https://corsproxy.io/?url="+encodeURIComponent(u),
+  u=>"https://corsproxy.org/?url="+encodeURIComponent(u),
+  u=>"https://cors.eu.org/"+u,
 ];
-async function fetchWithProxyRaw(url,timeoutMs=10000){
-  return new Promise((resolve,reject)=>{
-    let settled=false, pending=PROXIES.length;
-    PROXIES.forEach(proxy=>{
-      fetch(proxy(url),{signal:AbortSignal.timeout(timeoutMs)}).then(async r=>{
-        if(!r.ok)throw new Error("HTTP "+r.status);
-        const t=await r.text(); if(!t||t.length<10)throw new Error("Empty");
-        if(t.trim().startsWith("{")&&t.includes('"contents"')){
-          try{const j=JSON.parse(t); if(j.contents){if(!settled){settled=true;resolve(j.contents);}return;}}catch(e){}
-        }
-        if(!settled){settled=true;resolve(t);}
-      }).catch(()=>{pending--; if(pending===0&&!settled)reject(new Error("All proxies failed"));});
-    });
-  });
+let _workingProxyIndex=-1;
+
+function unwrapJina(t){
+  if(typeof t!=="string")return t;
+  const m=t.match(/Markdown Content:\s*([\s\S]*)$/);
+  if(m)return m[1].trim();
+  return t;
 }
+
 async function tryProxy(proxyUrl,timeoutMs){
-  const r=await fetch(proxyUrl,{signal:AbortSignal.timeout(timeoutMs)});
+  const r=await fetch(proxyUrl,{signal:AbortSignal.timeout(timeoutMs),credentials:"omit",mode:"cors"});
   if(!r.ok)throw new Error("HTTP "+r.status);
-  const t=await r.text(); if(!t||t.length<10)throw new Error("Empty");
-  let parsed=JSON.parse(t);
-  if(parsed?.contents&&typeof parsed.contents==="string")parsed=JSON.parse(parsed.contents);
-  return parsed;
+  let t=await r.text();
+  if(!t||t.length<10)throw new Error("Empty response");
+  t=unwrapJina(t);
+  try{
+    let parsed=JSON.parse(t);
+    if(parsed?.contents&&typeof parsed.contents==="string")parsed=JSON.parse(parsed.contents);
+    return parsed;
+  }catch{return t;}
 }
-async function fetchWithProxy(url,timeoutMs=10000){
-  return new Promise((resolve,reject)=>{
-    let settled=false, pending=PROXIES.length;
-    PROXIES.forEach(proxy=>{
-      tryProxy(proxy(url),timeoutMs).then(d=>{if(!settled){settled=true;resolve(d);}})
-        .catch(()=>{pending--; if(pending===0&&!settled)reject(new Error("All proxies failed"));});
-    });
-  });
+
+async function fetchWithProxy(url,timeoutMs=8000){
+  const order=_workingProxyIndex>=0
+    ?[_workingProxyIndex,...PROXIES.map((_,i)=>i).filter(i=>i!==_workingProxyIndex)]
+    :PROXIES.map((_,i)=>i);
+  const attempts=order.map(i=>tryProxy(PROXIES[i](url),timeoutMs).then(data=>({data,i})));
+  try{
+    const result=await Promise.any(attempts);
+    _workingProxyIndex=result.i;
+    return result.data;
+  }catch{
+    _workingProxyIndex=-1;
+    throw new Error("All "+PROXIES.length+" proxies failed for "+url.split("?")[0]);
+  }
 }
+
+async function fetchWithProxyRaw(url,timeoutMs=8000){
+  const order=_workingProxyIndex>=0
+    ?[_workingProxyIndex,...PROXIES.map((_,i)=>i).filter(i=>i!==_workingProxyIndex)]
+    :PROXIES.map((_,i)=>i);
+  const attempts=order.map(i=>
+    fetch(PROXIES[i](url),{signal:AbortSignal.timeout(timeoutMs),credentials:"omit",mode:"cors"})
+      .then(async r=>{
+        if(!r.ok)throw new Error("HTTP "+r.status);
+        const t=await r.text();
+        if(!t||t.length<10)throw new Error("Empty");
+        return{data:unwrapJina(t),i};
+      })
+  );
+  try{
+    const result=await Promise.any(attempts);
+    _workingProxyIndex=result.i;
+    return result.data;
+  }catch{
+    _workingProxyIndex=-1;
+    throw new Error("All proxies failed (raw) for "+url.split("?")[0]);
+  }
+}
+
 function toStooqSymbol(y){
   const s=y.toUpperCase();
   if(s.endsWith(".AX"))return s.replace(".AX",".AU").toLowerCase();
@@ -382,6 +379,7 @@ function toStooqSymbol(y){
   if(!s.includes(".")&&!s.includes("-")&&!s.includes("="))return s.toLowerCase()+".us";
   return null;
 }
+
 async function fetchStooq(y){
   const stooq=toStooqSymbol(y); if(!stooq)throw new Error("No Stooq symbol");
   const now=new Date(), d1=new Date(now); d1.setDate(d1.getDate()-7);
@@ -399,6 +397,7 @@ async function fetchStooq(y){
   if(!cur)throw new Error("Stooq: zero");
   return {current:cur,prev};
 }
+
 async function fetchYahooPrice(symbol){
   const sym=encodeURIComponent(symbol);
   const parseChart=d=>{
@@ -424,22 +423,7 @@ async function fetchYahooPrice(symbol){
   try{const r=await fetchStooq(symbol); if(r?.current>0)return r;}catch(e){}
   throw new Error("All price sources failed for "+symbol);
 }
-async function fetchBenchmark(symbol){
-  const sym=encodeURIComponent(symbol);
-  const urls=[YAHOO_BASE+sym+"?interval=1mo&range=5y",YAHOO_BASE1+sym+"?interval=1mo&range=5y"];
-  let lastErr="No data";
-  for(const url of urls){
-    try{
-      const d=await fetchWithProxy(url); const res=d?.chart?.result?.[0]; if(!res)continue;
-      const ts=res.timestamp||[], cl=res.indicators?.quote?.[0]?.close||[];
-      if(!ts.length||!cl.length)continue;
-      const base=cl.find(v=>v!=null)||1;
-      return {labels:ts.map(t=>new Date(t*1000).toISOString().slice(0,10)),
-        pct:cl.map(v=>v!=null?((v-base)/base)*100:null),raw:cl};
-    }catch(e){lastErr=e.message;}
-  }
-  throw new Error(lastErr);
-}
+
 async function fetchHoldingHistory(y){
   const sym=encodeURIComponent(y);
   for(const url of [YAHOO_BASE+sym+"?interval=1mo&range=5y",YAHOO_BASE1+sym+"?interval=1mo&range=5y"]){
@@ -454,12 +438,14 @@ async function fetchHoldingHistory(y){
   }
   return null;
 }
+
 async function fetchExchangeRates(){
   const r=await fetch(RATES_URL,{signal:AbortSignal.timeout(10000)});
   if(!r.ok)throw new Error("Rate API HTTP "+r.status);
   const d=await r.json(); if(!d.rates)throw new Error("Invalid rate");
   return {AUD_IDR:d.rates.IDR,AUD_USD:d.rates.USD};
 }
+
 async function fetchDJPPRPrice(seriSBN){
   const sn=seriSBN.toUpperCase().trim();
   const idxSingle=[`https://api-apps.idx.co.id/api/Bond/GetBondData?BondCode=${sn}`,
@@ -489,6 +475,7 @@ async function fetchDJPPRPrice(seriSBN){
   }catch(e){}
   throw new Error(sn+": bond price unavailable");
 }
+
 const MS_IDS={"NUL7270AU":"46182"};
 async function fetchAUFundPrice(apir){
   const ap=apir.toUpperCase().trim();
@@ -506,7 +493,6 @@ async function fetchAUFundPrice(apir){
   throw new Error(`${ap}: fund NAV unavailable`);
 }
 
-/* ─── computeHolding ─── */
 function computeHolding(h,prices,prevPrices,R){
   let qty=0,cbL=0,rgL=0,lots=[],divL=0;
   const txs=[...h.transactions].sort((a,b)=>new Date(a.date)-new Date(b.date));
@@ -530,7 +516,6 @@ function computeHolding(h,prices,prevPrices,R){
     divYieldOnCost:divYoc,totalInvested:totalInv};
 }
 
-/* ─── Repair ─── */
 let globalIdCounter=Date.now();
 function repairPortfolio(p){
   if(!Array.isArray(p))return[];
@@ -545,7 +530,6 @@ function repairPortfolio(p){
   });
 }
 
-/* ─── Seed ─── */
 const INIT_RATES={AUD_IDR:10550,AUD_USD:0.645};
 const SEED=[
   {id:1,ticker:"BHP",name:"BHP Group Ltd",currency:"AUD",assetType:"Shares / Stocks",exchange:"ASX",
@@ -613,43 +597,26 @@ function useWindowSize(){
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   CHART COMPONENTS — FIXED
+   CHART COMPONENTS
    ═══════════════════════════════════════════════════════════════════ */
-
-/* ── Line chart ──
-   FIXES:
-   1. Removed duplicate `plugins` key that was overriding legend/tooltip.
-   2. Removed unstable `plugins` prop from deps (was forcing a full
-      destroy + rebuild on every render).
-   3. Added empty-data placeholder so the chart never silently blanks.
-   4. Cheap “signature” dep so we only rebuild when the data actually
-      changes, not on every parent re-render. */
 function ChartLine({labels,rawDates,datasets,T,yFmt,y2Fmt,height=220,spanGaps=false}){
   const ref=useRef(null);
   const inst=useRef(null);
-
-  // Serialised signature — cheap and stable, prevents useless rebuilds.
   const sig=useMemo(()=>{
-    try{
-      return JSON.stringify({
-        l:labels,
-        d:datasets.map(d=>({y:d.yAxisID||"y",data:d.data})),
-      });
-    }catch{return String(Date.now());}
+    try{return JSON.stringify({l:labels,d:datasets.map(d=>({y:d.yAxisID||"y",data:d.data}))});}
+    catch{return String(Date.now());}
   },[labels,datasets]);
 
   useEffect(()=>{
     if(!ref.current||typeof Chart==="undefined")return;
     if(inst.current){inst.current.destroy();inst.current=null;}
-
     const hasY2=y2Fmt&&datasets.some(d=>d.yAxisID==="y2");
     const scales={
       x:{grid:{color:T.chartGrid},
          ticks:{color:T.chartTick,font:{size:10,weight:"500"},maxRotation:0,autoSkip:true,maxTicksLimit:8},
          border:{color:T.border}},
       y:{grid:{color:T.chartGrid},
-         ticks:{color:T.chartTick,font:{size:10,weight:"500"},
-                callback:yFmt||(v=>`${v}`)},
+         ticks:{color:T.chartTick,font:{size:10,weight:"500"},callback:yFmt||(v=>`${v}`)},
          border:{color:T.border},position:"left"},
     };
     if(hasY2){
@@ -657,43 +624,29 @@ function ChartLine({labels,rawDates,datasets,T,yFmt,y2Fmt,height=220,spanGaps=fa
         ticks:{color:"#1a73e8",font:{size:10,weight:"500"},callback:y2Fmt},
         border:{color:T.border},position:"right"};
     }
-
     inst.current=new Chart(ref.current,{
       type:"line",
       data:{labels,rawDates,datasets},
       options:{
-        spanGaps,
-        responsive:true,
-        maintainAspectRatio:false,
+        spanGaps,responsive:true,maintainAspectRatio:false,
         animation:{duration:280},
         interaction:{mode:"index",intersect:false},
-        /* ← The old code had TWO `plugins:` keys here. The 2nd (an
-           empty array) silently overrode the first, wiping legend
-           and tooltip config. Now there is exactly one. */
         plugins:{
-          legend:{
-            display:true,
+          legend:{display:true,
             labels:{color:T.text2,font:{family:"Roboto",size:11,weight:"500"},
-                    boxWidth:10,padding:12,usePointStyle:true},
-          },
-          tooltip:{
-            backgroundColor:T.bg2,borderColor:T.border,borderWidth:1,
+                    boxWidth:10,padding:12,usePointStyle:true}},
+          tooltip:{backgroundColor:T.bg2,borderColor:T.border,borderWidth:1,
             titleColor:T.text,bodyColor:T.text2,padding:10,cornerRadius:8,
-            callbacks:{
-              label:(ctx)=>{
-                const fmt=ctx.dataset.yAxisID==="y2"&&y2Fmt?y2Fmt:yFmt||(v=>`${v}`);
-                return` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)}`;
-              },
-            },
-          },
+            callbacks:{label:(ctx)=>{
+              const fmt=ctx.dataset.yAxisID==="y2"&&y2Fmt?y2Fmt:yFmt||(v=>`${v}`);
+              return` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)}`;
+            }}},
         },
         scales,
         elements:{line:{tension:0.4},point:{radius:2,hoverRadius:5}},
       },
     });
-
     return()=>{if(inst.current){inst.current.destroy();inst.current=null;}};
-    /* eslint-disable-next-line react-hooks/exhaustive-deps */
   },[sig,T,yFmt,y2Fmt,spanGaps]);
 
   const empty=!labels?.length||!datasets?.some(d=>d.data&&d.data.some(v=>v!=null));
@@ -710,13 +663,11 @@ function ChartLine({labels,rawDates,datasets,T,yFmt,y2Fmt,height=220,spanGaps=fa
   );
 }
 
-/* ── Bar chart ── */
 function ChartBar({labels,datasets,T,yFmt,height=200,stacked=false}){
   const ref=useRef(null);
   const inst=useRef(null);
   const sig=useMemo(()=>{try{return JSON.stringify({l:labels,d:datasets.map(d=>d.data)});}
     catch{return String(Date.now());}},[labels,datasets]);
-
   useEffect(()=>{
     if(!ref.current||typeof Chart==="undefined")return;
     if(inst.current){inst.current.destroy();inst.current=null;}
@@ -724,8 +675,7 @@ function ChartBar({labels,datasets,T,yFmt,height=200,stacked=false}){
       type:"bar",
       data:{labels,datasets},
       options:{
-        responsive:true,maintainAspectRatio:false,
-        animation:{duration:280},
+        responsive:true,maintainAspectRatio:false,animation:{duration:280},
         plugins:{
           legend:{display:stacked,labels:{color:T.text2,font:{family:"Roboto",size:9,weight:"500"},
             boxWidth:8,padding:6,usePointStyle:true}},
@@ -741,13 +691,10 @@ function ChartBar({labels,datasets,T,yFmt,height=200,stacked=false}){
       },
     });
     return()=>{if(inst.current){inst.current.destroy();inst.current=null;}};
-  /* eslint-disable-next-line react-hooks/exhaustive-deps */
   },[sig,T,yFmt,stacked]);
-
   return <div className="chart-wrap" style={{height}}><canvas ref={ref} /></div>;
 }
 
-/* ── Doughnut ── */
 function ChartDoughnut({labels,data,colors,T,height=230}){
   const ref=useRef(null);
   const inst=useRef(null);
@@ -767,17 +714,14 @@ function ChartDoughnut({labels,data,colors,T,height=230}){
       },
     });
     return()=>{if(inst.current){inst.current.destroy();inst.current=null;}};
-  /* eslint-disable-next-line react-hooks/exhaustive-deps */
   },[sig,T]);
   return <div className="chart-wrap" style={{height}}><canvas ref={ref} /></div>;
 }
 
-/* ── Waterfall ── */
 function ChartWaterfall({data,T,yFmt,height=240}){
   const ref=useRef(null);
   const inst=useRef(null);
   const sig=useMemo(()=>JSON.stringify(data),[data]);
-
   useEffect(()=>{
     if(!ref.current||typeof Chart==="undefined"||!data.length)return;
     if(inst.current){inst.current.destroy();inst.current=null;}
@@ -812,14 +756,12 @@ function ChartWaterfall({data,T,yFmt,height=240}){
     const useCompressed=interRange>0&&interRange/bigVal<0.15&&bigVal>0;
     const yMin=useCompressed?Math.max(0,interMin-interRange*2):0;
     const yMax=useCompressed?Math.min(bigVal,interMax+interRange*2):bigVal*1.05;
-
     inst.current=new Chart(ref.current,{
       type:"bar",
       data:{labels,datasets:[{data:floatData,backgroundColor:bgColors,borderColor:borderColors,
         borderWidth:1.5,borderRadius:4,borderSkipped:false}]},
       options:{
-        responsive:true,maintainAspectRatio:false,
-        animation:{duration:280},
+        responsive:true,maintainAspectRatio:false,animation:{duration:280},
         plugins:{
           legend:{display:false},
           tooltip:{backgroundColor:T.bg2,borderColor:T.border,borderWidth:1,titleColor:T.text,
@@ -839,14 +781,131 @@ function ChartWaterfall({data,T,yFmt,height=240}){
       },
     });
     return()=>{if(inst.current){inst.current.destroy();inst.current=null;}};
-  /* eslint-disable-next-line react-hooks/exhaustive-deps */
   },[sig,T,yFmt]);
-
   return (
     <div className="chart-wrap" style={{height}}>
       {data.length?<canvas ref={ref}/>:
         <div style={{height,display:"flex",alignItems:"center",justifyContent:"center",
           color:T.text3,fontSize:12,fontWeight:500}}>No data for selected period</div>}
+    </div>
+  );
+}
+
+/* ── Holding Duration ── */
+function HoldingDuration({holdings,T,dark}){
+  const rows=useMemo(()=>{
+    const now=Date.now();
+    return holdings.map(h=>{
+      const buys=h.transactions.filter(t=>t.type==="buy"&&t.date)
+        .sort((a,b)=>new Date(a.date)-new Date(b.date));
+      if(!buys.length)return null;
+      const first=new Date(buys[0].date).getTime();
+      const days=Math.max(1,Math.floor((now-first)/86400000));
+      return {
+        ticker:h.ticker,
+        name:h.name,
+        firstBuyDate:buys[0].date,
+        days,
+        currentValue:h.currentValue,
+        gainPct:h.gainPct,
+      };
+    }).filter(Boolean).sort((a,b)=>b.days-a.days);
+  },[holdings]);
+
+  if(!rows.length){
+    return (
+      <div style={{padding:20,textAlign:"center",color:T.text3,fontSize:11,fontWeight:500}}>
+        No buy transactions recorded yet.
+      </div>
+    );
+  }
+
+  const maxDays=Math.max(...rows.map(r=>r.days));
+  const oldest=rows[0];
+  const newest=rows[rows.length-1];
+  const avgDays=Math.round(rows.reduce((s,r)=>s+r.days,0)/rows.length);
+
+  const fmtDur=d=>{
+    if(d<30)return`${d}d`;
+    if(d<365)return`${Math.floor(d/30)}mo`;
+    const y=Math.floor(d/365.25);
+    const m=Math.floor((d-y*365.25)/30);
+    return m>0?`${y}y ${m}mo`:`${y}y`;
+  };
+
+  const rowH=26, gap=6, totalH=rows.length*(rowH+gap);
+
+  return (
+    <div>
+      <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
+        {[
+          ["Oldest",`${oldest.ticker} · ${fmtDur(oldest.days)}`,T.green],
+          ["Newest",`${newest.ticker} · ${fmtDur(newest.days)}`,T.amber],
+          ["Average",fmtDur(avgDays),T.teal],
+          ["Positions",String(rows.length),T.text2],
+        ].map(([l,v,c])=>(
+          <div key={l} style={{
+            background:T.bg4,border:"1px solid "+T.border,borderRadius:6,
+            padding:"5px 10px",flex:"1 1 100px",minWidth:90,
+          }}>
+            <div style={{fontSize:8,color:T.text3,letterSpacing:.8,textTransform:"uppercase",fontWeight:600}}>{l}</div>
+            <div style={{fontFamily:"'Space Mono',monospace",fontSize:11,fontWeight:700,color:c,marginTop:2}}>{v}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{position:"relative",height:totalH}}>
+        {rows.map((r,i)=>{
+          const pct=(r.days/maxDays)*100;
+          const gc=getPerformanceColor(r.gainPct||0,dark);
+          return (
+            <div key={r.ticker} style={{
+              position:"absolute",left:0,right:0,
+              top:i*(rowH+gap),height:rowH,
+              display:"flex",alignItems:"center",gap:8,
+            }}>
+              <div style={{
+                width:62,flexShrink:0,fontFamily:"'Space Mono',monospace",
+                fontSize:11,fontWeight:700,color:T.text,
+                overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
+              }}>{r.ticker}</div>
+              <div style={{
+                flex:1,minWidth:0,height:rowH,
+                background:T.bg4,borderRadius:4,
+                position:"relative",overflow:"hidden",
+                border:"1px solid "+T.border,
+              }}>
+                <div style={{
+                  position:"absolute",left:0,top:0,bottom:0,
+                  width:pct+"%",
+                  background:`linear-gradient(90deg, ${gc.bg}cc, ${gc.bg})`,
+                  borderRadius:3,transition:"width .4s",
+                }} />
+                <div style={{
+                  position:"absolute",inset:0,
+                  display:"flex",alignItems:"center",
+                  padding:"0 10px",gap:8,
+                  fontSize:10,fontWeight:600,
+                  fontFamily:"'Space Mono',monospace",
+                }}>
+                  <span style={{color:"#fff",mixBlendMode:"difference",fontWeight:700}}>
+                    {fmtDur(r.days)}
+                  </span>
+                  <span style={{color:"rgba(255,255,255,.75)",mixBlendMode:"difference",fontSize:9,fontWeight:500}}>
+                    since {fmtDate(r.firstBuyDate)}
+                  </span>
+                </div>
+              </div>
+              <div style={{
+                width:56,flexShrink:0,textAlign:"right",
+                fontFamily:"'Space Mono',monospace",fontSize:10,fontWeight:600,
+                color:gc.bg,
+              }}>
+                {fmtPct(r.gainPct||0)}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -1026,7 +1085,6 @@ function downloadTemplateCSV(){
   a.href=URL.createObjectURL(blob); a.download="folio_import_template.csv"; a.click();
 }
 function downloadTemplateXLSX(){
-  /* Simple single-sheet template — no external b64 blob needed */
   const wb=XLSX.utils.book_new();
   const data=[
     ["ticker","name","type","date","qty","price","currency","asset_type","exchange","yahoo_symbol",
@@ -1081,7 +1139,6 @@ function exportTransactionsCSV(portfolio){
   a.href=URL.createObjectURL(blob); a.click(); URL.revokeObjectURL(a.href);
 }
 
-/* ─── Risk metrics ─── */
 function computeRiskMetrics(hist){
   if(!hist||hist.length<3)return{volatility:null,maxDrawdown:null,bestMonth:null,worstMonth:null};
   const sorted=[...hist].sort((a,b)=>new Date(a.date)-new Date(b.date));
@@ -1111,7 +1168,6 @@ function computeRiskMetrics(hist){
     worstMonth:worst.ret!==Infinity?{date:worst.date,ret:worst.ret*100}:null};
 }
 
-/* ─── Income risk metrics ─── */
 function computeIncomeRiskMetrics(portfolio,rates){
   if(!Array.isArray(portfolio))return{totalIncome:0,stability:null,payoutRisk:null,cutProb:null,
     concentration:null,dividendGrowth:null};
@@ -1183,14 +1239,11 @@ function App(){
   const [tmMode,setTmMode]=useState("performance");
   const [tmShowVal,setTmShowVal]=useState(true);
   const [tmSize,setTmSize]=useState({w:600,h:420});
-  const [tmSlider,setTmSlider]=useState(null);
   const [chartPeriod,setChartPeriod]=useState("1Y");
-  const [benchmarks,setBenchmarks]=useState({labels:[],series:{},holdingPrices:{}});
-  const [bmVisible,setBmVisible]=useState({sp500:true,brk:false,jkse:true,eido:true,vas:false});
   const [valuesHidden,setValuesHidden]=useState(false);
   const [editTx,setEditTx]=useState(null);
   const [fetchSt,setFetchSt]=useState({loading:false,lastUpdate:null,errors:{},successes:0,total:0,
-    fetched:0,rateOk:null,bmStatus:null});
+    fetched:0,rateOk:null});
   const [fbUser,setFbUser]=useState(null);
   const [syncSt,setSyncSt]=useState("idle");
   const [syncMsg,setSyncMsg]=useState("");
@@ -1222,7 +1275,6 @@ function App(){
   const isMob=winW<640;
   const isTablet=winW>=640&&winW<900;
 
-  /* ── Resize observers ── */
   useLayoutEffect(()=>{
     const el=tmContainerRef.current; if(!el)return;
     const upd=()=>{const r=el.getBoundingClientRect();
@@ -1257,7 +1309,6 @@ function App(){
     return()=>clearTimeout(t);
   },[view]);
 
-  /* ── Persistence ── */
   useEffect(()=>{localStorage.setItem("f6_p",JSON.stringify(portfolio));},[portfolio]);
   useEffect(()=>{localStorage.setItem("f6_pr",JSON.stringify(prices));},[prices]);
   useEffect(()=>{localStorage.setItem("f6_pp",JSON.stringify(prevPrices));},[prevPrices]);
@@ -1271,7 +1322,6 @@ function App(){
   useEffect(()=>{localStorage.setItem("f6_whatif",JSON.stringify(whatIf));},[whatIf]);
   useEffect(()=>{document.body.style.background=T.bg;document.body.style.color=T.text;},[T]);
 
-  /* ── Cloud sync ── */
   const cloudLoadAll=useCallback(async(userParam)=>{
     let user=userParam||fbUserRef.current||(fbAuth&&fbAuth.currentUser);
     if(!user){setSyncMsg("⚠️ Sign in first");return;}
@@ -1344,7 +1394,6 @@ function App(){
     setPortfolio(prev=>repairPortfolio(typeof updater==="function"?updater(prev):updater));
   },[]);
 
-  /* ── Derived holdings ── */
   const holdings=useMemo(()=>{
     const sp=Array.isArray(portfolio)?portfolio:[];
     const spr=prices&&typeof prices==="object"?prices:{};
@@ -1358,7 +1407,6 @@ function App(){
   const totInv=holdings.reduce((s,h)=>s+h.totalInvested,0);
   const totPct=totInv>0?(totGain/totInv)*100:0;
   const totDayGain=holdings.reduce((s,h)=>s+h.dayGain,0);
-  const prevTot=totVal-totDayGain;
   const totDivs=holdings.reduce((s,h)=>s+h.totalDividends,0);
 
   const divYieldOnly=useMemo(()=>{
@@ -1420,7 +1468,6 @@ function App(){
     return new Date(0);
   },[]);
 
-  /* ── Chart data ── */
   const chartData=useMemo(()=>{
     const cutoff=periodCutoff(chartPeriod);
     const filtered=history.filter(d=>new Date(d.date)>=cutoff);
@@ -1499,46 +1546,13 @@ function App(){
       waterfallData.push({label:"End",value:lw,type:"total"});
     }
 
-    const bmLabels=benchmarks.labels||[];
-    const bmSeries=benchmarks.series||{};
-    const bmPortfolio=[];
-    if(bmLabels.length>1&&holdings.length>0){
-      const audIdr=rates.AUD_IDR||12000, audUsd=rates.AUD_USD||0.65;
-      const priceMaps=benchmarks.holdingPrices||{};
-      bmLabels.forEach(dateStr=>{
-        let total=0;
-        portfolio.forEach(h=>{
-          let units=0;
-          for(const tx of h.transactions){
-            if(tx.date>dateStr)continue;
-            if(tx.type==="buy")units+=tx.qty;
-            else if(tx.type==="sell")units-=tx.qty;
-          }
-          if(units<=0)return;
-          const hp=priceMaps[h.ticker];
-          let price=hp?.priceMap?hp.priceMap[dateStr]:null;
-          if(!price&&prices[h.ticker]>0)price=prices[h.ticker];
-          if(!price)return;
-          if(h.isBondPct)price=price*(h.faceValue||1000000)/100;
-          let v=units*price;
-          if(h.currency==="IDR")v/=audIdr;
-          else if(h.currency==="USD")v/=audUsd;
-          total+=v;
-        });
-        bmPortfolio.push(total);
-      });
-      const base=bmPortfolio.find(v=>v>0)||1;
-      const pct=bmPortfolio.map(v=>v>0?((v-base)/base)*100:null);
-      bmPortfolio.length=0; bmPortfolio.push(...pct);
-    }
-
     return {labels,rawDates,vals,divCumul,startVal,endVal,tLabels,tVals,palette,
       byCurLabels,byCurVals,byCurColors,mLabels,mVals,
       mDatasets:[{label:"Income",data:mVals,
         backgroundColor:dark?"rgba(138,180,248,.6)":"rgba(26,115,232,.5)",
         borderColor:dark?"#8ab4f8":"#1a73e8",borderWidth:1,borderRadius:4}],
-      divCAGR:divCAGR_val,divCAGRYears,waterfallData,bmLabels,bmSeries,bmPortfolio};
-  },[history,holdings,portfolio,rates,chartPeriod,benchmarks,prices,dark,periodCutoff]);
+      divCAGR:divCAGR_val,divCAGRYears,waterfallData};
+  },[history,holdings,portfolio,rates,chartPeriod,dark,periodCutoff]);
 
   const yFmtMain=useCallback(v=>{
     const abs=Math.abs(v);
@@ -1558,7 +1572,6 @@ function App(){
     }
   },[displayCur]);
 
-  /* ── Treemap rects ── */
   const perfRects=useMemo(()=>{
     const it=holdings.map(h=>({...h,value:h.currentValue})).sort((a,b)=>b.value-a.value);
     return it.length?squarify(it,0,0,tmSize.w,tmSize.h):[];
@@ -1573,49 +1586,10 @@ function App(){
     return it.length?squarify(it,0,0,tmSize.w,tmSize.h):[];
   },[holdings,tmSize]);
 
-  const sliderDate=tmSlider!=null&&benchmarks.labels.length>tmSlider?benchmarks.labels[tmSlider]:null;
-  const sliderRects=useMemo(()=>{
-    if(!sliderDate||!benchmarks.holdingPrices)return null;
-    const audIdr=rates.AUD_IDR||12000, audUsd=rates.AUD_USD||0.65;
-    const findPrice=(pm,ds)=>{
-      if(!pm)return null;
-      if(pm[ds])return pm[ds];
-      const target=new Date(ds).getTime();
-      let best=null,bd=35*86400000;
-      for(const[d,p]of Object.entries(pm)){
-        const diff=Math.abs(new Date(d).getTime()-target);
-        if(diff<bd){bd=diff;best=p;}
-      }
-      return best;
-    };
-    const items=[];
-    for(const h of portfolio){
-      let units=0;
-      for(const tx of h.transactions){
-        if(tx.date>sliderDate)continue;
-        if(tx.type==="buy")units+=tx.qty;
-        else if(tx.type==="sell")units-=tx.qty;
-      }
-      if(units<=0)continue;
-      const hp=benchmarks.holdingPrices[h.ticker];
-      let p=hp?.priceMap?findPrice(hp.priceMap,sliderDate):null;
-      if(!p&&prices[h.ticker]>0)p=prices[h.ticker];
-      if(!p)continue;
-      if(h.isBondPct)p=p*(h.faceValue||1000000)/100;
-      let v=units*p;
-      if(h.currency==="IDR")v/=audIdr; else if(h.currency==="USD")v/=audUsd;
-      if(v>0)items.push({...h,currentValue:v,value:v,qty:units});
-    }
-    const s=items.sort((a,b)=>b.value-a.value);
-    return s.length?squarify(s,0,0,tmSize.w,tmSize.h):null;
-  },[sliderDate,benchmarks.holdingPrices,benchmarks.labels,portfolio,prices,rates,tmSize]);
-
-  const rects=tmSlider!=null&&sliderRects!=null&&sliderRects.length>0?
-    sliderRects:(tmMode==="performance"?perfRects:tmMode==="day"?dayRects:divRects);
+  const rects=tmMode==="performance"?perfRects:tmMode==="day"?dayRects:divRects;
   const totalPortfolioDivs=useMemo(()=>holdings.reduce((s,h)=>s+h.totalDividends,0),[holdings]);
   const selH=holdings.find(h=>h.ticker===selected);
 
-  /* ── What-If ── */
   const runSimulation=useCallback(()=>{
     if(!holdings.length)return null;
     const{growthRate,reinvestDividends,fxRate,simulationYears,targetPct}=whatIf;
@@ -1649,9 +1623,9 @@ function App(){
       if(reinvestDividends)pv+=d;
     }
     const fPV=pv;
-const tot=dh.reduce((s,v)=>s+v,0);
-const avg=dh.length?tot/dh.length:0;
-   let dCAGR=null;
+    const tot=dh.reduce((s,v)=>s+v,0);
+    const avg=dh.length?tot/dh.length:0;
+    let dCAGR=null;
     if(dh.length>=2&&dh[0]>0&&dh[dh.length-1]>0)
       dCAGR=(Math.pow(dh[dh.length-1]/dh[0],1/(dh.length-1))-1)*100;
     const maxPct=Math.max(...adjustedHoldings.map(h=>h.targetPct||0));
@@ -1682,7 +1656,6 @@ const avg=dh.length?tot/dh.length:0;
     });
   },[holdings]);
 
-  /* ── Modal helpers ── */
   const closeModal=()=>{setModal(null);setForm({});};
   const openAdd=()=>{
     setModal({mode:"add"});
@@ -1812,54 +1785,11 @@ const avg=dh.length?tot/dh.length:0;
   const fetchBarColor=fetchSt.loading?T.amber:Object.keys(fetchSt.errors).length>0?T.amber:
     fetchSt.lastUpdate?T.green:T.text3;
 
-  /* ── autoRefresh ── */
   const autoRefresh=useCallback(async()=>{
     setFetchSt(s=>({...s,loading:true,fetched:0}));
     let newRates=rates, rateOk=false;
     try{newRates=await fetchExchangeRates();setRates(newRates);rateOk=true;}
     catch(e){console.warn("Rate fetch failed:",e.message);}
-
-    let bmStatus="no benchmark data";
-    try{
-      const BM_DEFS=[
-        {key:"sp500",label:"S&P 500",fetch:()=>fetchBenchmark("^GSPC")},
-        {key:"brk",label:"BRK-B",fetch:()=>fetchBenchmark("BRK-B")},
-        {key:"jkse",label:"IDX Composite",fetch:()=>fetchBenchmark("^JKSE")},
-        {key:"eido",label:"EIDO",fetch:()=>fetchBenchmark("EIDO")},
-        {key:"vas",label:"VAS",fetch:()=>fetchBenchmark("VAS.AX")},
-      ];
-      const results=await Promise.allSettled(BM_DEFS.map(b=>b.fetch()));
-      const success=results.map((r,i)=>r.status==="fulfilled"?{...BM_DEFS[i],data:r.value}:null).filter(Boolean);
-      if(success.length>0){
-        const ref=success.reduce((a,b)=>a.data.labels.length>b.data.labels.length?a:b);
-        const series={};
-        results.forEach((r,i)=>{series[BM_DEFS[i].key]=r.status==="fulfilled"?r.value.pct:null;});
-        const ok=BM_DEFS.map((b,i)=>results[i].status==="fulfilled"?b.label+"✓":null).filter(Boolean);
-        const fail=BM_DEFS.map((b,i)=>results[i].status==="rejected"?b.label:null).filter(Boolean);
-        bmStatus=`${ok.length}/${BM_DEFS.length} loaded${fail.length?` · failed: ${fail.join(", ")}`:""}`;
-
-        const fetchable=portfolio.filter(h=>h.yahooSymbol);
-        const holdingPriceMaps={};
-        const CONCURRENCY=4;
-        const rH=new Array(fetchable.length);
-        async function f1(h,idx){
-          try{const hh=await fetchHoldingHistory(h.yahooSymbol);
-            holdingPriceMaps[h.ticker]=hh?.priceMap||null; rH[idx]={status:"fulfilled"};}
-          catch(e){rH[idx]={status:"rejected",reason:e.message};}
-        }
-        let qi=0;
-        while(qi<fetchable.length){
-          const batch=fetchable.slice(qi,qi+CONCURRENCY);
-          await Promise.allSettled(batch.map((h,bi)=>f1(h,qi+bi)));
-          qi+=CONCURRENCY;
-        }
-        setBenchmarks(prev=>({...prev,labels:ref.data.labels,series,
-          holdingPrices:{...prev.holdingPrices,...holdingPriceMaps}}));
-      }else{
-        bmStatus="failed — all benchmarks unavailable";
-        setBenchmarks(prev=>({...prev,holdingPrices:{}}));
-      }
-    }catch(e){bmStatus="error: "+e.message;}
 
     const fetchablePrices=portfolio.filter(h=>{
       if(h.yahooSymbol)return true;
@@ -1908,19 +1838,16 @@ const avg=dh.length?tot/dh.length:0;
     setHistory(prev=>[...prev.filter(s=>s.date!==date),snap]
       .sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(-90));
     setFetchSt({loading:false,lastUpdate:now,errors,successes,total:fetchablePrices.length,
-      fetched:fetchablePrices.length,rateOk,bmStatus});
+      fetched:fetchablePrices.length,rateOk});
   },[portfolio,prices,prevPrices,rates]);
 
-  /* ═════════════════════════════════════════════════════════════════
-     RENDER: What-If
-     ═════════════════════════════════════════════════════════════════ */
+  /* ── What-If render ── */
   const renderWhatIf=()=>{
     if(!holdings.length)
       return <div style={{padding:40,textAlign:"center",color:T.text3}}>Add holdings first to use the What-If simulator.</div>;
     const sr=simulationResult; if(!sr)return null;
     const{finalPortfolioValue,avgAnnualDividend,dividendCAGR,riskConcentration,
-      adjustedHoldings,weightedAvgYield,totalValue,growthRate,reinvestDividends,fxRate,
-      simulationYears}=sr;
+      weightedAvgYield,totalValue,growthRate,reinvestDividends,fxRate,simulationYears}=sr;
     const treemapHeight=isMob?200:280;
     const updateTargetPct=(ticker,value)=>{
       const v=parseFloat(value); if(isNaN(v)||v<0)return;
@@ -2110,9 +2037,6 @@ const avg=dh.length?tot/dh.length:0;
     );
   };
 
-  /* ═════════════════════════════════════════════════════════════════
-     RENDER: Import modal
-     ═════════════════════════════════════════════════════════════════ */
   const renderImportModal=()=>{
     const IS=importSt;
     const valid=IS.parsed.filter(r=>!r._errors.length);
@@ -2290,13 +2214,9 @@ const avg=dh.length?tot/dh.length:0;
     );
   };
 
-  /* ═════════════════════════════════════════════════════════════════
-     MAIN RENDER
-     ═════════════════════════════════════════════════════════════════ */
   return (
     <ErrorBoundary>
       <div style={{minHeight:"100vh",background:T.bg,color:T.text}}>
-        {/* ── HEADER ── */}
         <header style={{background:T.bg2,borderBottom:"1px solid "+T.border,position:"sticky",top:0,
           zIndex:20,boxShadow:T.shadow,padding:"8px 14px"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
@@ -2434,7 +2354,6 @@ const avg=dh.length?tot/dh.length:0;
           </div>
         </header>
 
-        {/* ── View switcher ── */}
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
           padding:"6px 14px",borderBottom:"1px solid "+T.border,background:T.bg2,flexWrap:"wrap",gap:4}}>
           <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
@@ -2502,7 +2421,6 @@ const avg=dh.length?tot/dh.length:0;
         </div>
 
         <main style={{padding:"12px 14px"}}>
-          {/* ═════════ TREEMAP VIEW ═════════ */}
           {view==="treemap"&&(
             <div className="tm-wrap" style={{display:"flex",gap:12,alignItems:"flex-start",
               flexWrap:isMob?"wrap":"nowrap"}}>
@@ -2628,7 +2546,6 @@ const avg=dh.length?tot/dh.length:0;
             </div>
           )}
 
-          {/* ═════════ TABLE VIEW ═════════ */}
           {view==="table"&&(
             <div className="table-container" style={{maxHeight:600}}>
               <table style={{width:"100%",borderCollapse:"collapse",fontSize:10}}>
@@ -2718,10 +2635,8 @@ const avg=dh.length?tot/dh.length:0;
             </div>
           )}
 
-          {/* ═════════ CHART VIEW ═════════ */}
           {view==="chart"&&(
             <div style={{display:"flex",flexDirection:"column",gap:14}}>
-              {/* KPI row */}
               <div style={{display:"grid",
                 gridTemplateColumns:isMob?"1fr 1fr":isTablet?"repeat(3,1fr)":"repeat(5,1fr)",gap:8}}>
                 {(()=>{
@@ -2746,7 +2661,6 @@ const avg=dh.length?tot/dh.length:0;
                 })()}
               </div>
 
-              {/* Period selector */}
               <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                 <span style={{fontSize:10,color:T.text3,fontWeight:500}}>Period:</span>
                 <div style={{display:"flex",gap:3,background:T.bg3,padding:3,borderRadius:14,
@@ -2762,7 +2676,6 @@ const avg=dh.length?tot/dh.length:0;
                 <span style={{fontSize:9,color:T.text3,marginLeft:2,fontWeight:400}}>{chartData.labels.length} pts</span>
               </div>
 
-              {/* Main line chart + allocation doughnut */}
               <div className="chart-row">
                 <div style={card({padding:14})}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
@@ -2797,7 +2710,6 @@ const avg=dh.length?tot/dh.length:0;
                 </div>
               </div>
 
-              {/* Monthly income + currency */}
               <div className="chart-row">
                 <div style={card({padding:14})}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
@@ -2824,7 +2736,6 @@ const avg=dh.length?tot/dh.length:0;
                 </div>
               </div>
 
-              {/* Capital risk */}
               <div style={card({padding:14})}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
                   marginBottom:8,flexWrap:"wrap",gap:6}}>
@@ -2861,7 +2772,6 @@ const avg=dh.length?tot/dh.length:0;
                 </div>
               </div>
 
-              {/* Income risk */}
               <div style={card({padding:14})}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
                   marginBottom:8,flexWrap:"wrap",gap:6}}>
@@ -2920,7 +2830,6 @@ const avg=dh.length?tot/dh.length:0;
                 )}
               </div>
 
-              {/* Waterfall */}
               <div style={card({padding:14})}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",
                   marginBottom:8,flexWrap:"wrap",gap:6}}>
@@ -2941,96 +2850,15 @@ const avg=dh.length?tot/dh.length:0;
                 <ChartWaterfall data={chartData.waterfallData} T={T} yFmt={yFmtMain} height={isMob?200:260}/>
               </div>
 
-              {/* Benchmark — FIXED data flow */}
+              {/* Holding Duration */}
               <div style={card({padding:14})}>
-                <div style={{marginBottom:8}}>
-                  <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>📐 Benchmark Comparison</div>
+                <div style={{marginBottom:10}}>
+                  <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>⏳ Holding Duration</div>
                   <div style={{fontSize:10,color:T.text3,fontWeight:400}}>
-                    Your portfolio vs benchmarks · % return from period start
-                    {fetchSt.bmStatus&&<span style={{marginLeft:6,color:T.text4}}>· {fetchSt.bmStatus}</span>}
+                    Days since first purchase · bar length = relative age · colour = total return
                   </div>
-                  {(()=>{
-                    const BM_DEF=[
-                      {key:"sp500",label:"S&P 500",color:"#6366f1"},
-                      {key:"brk",label:"BRK-B",color:"#f59e0b"},
-                      {key:"jkse",label:"IDX Composite",color:"#ea4335"},
-                      {key:"eido",label:"EIDO",color:"#8b5cf6"},
-                      {key:"vas",label:"VAS",color:"#1a73e8"},
-                    ];
-                    return (
-                      <div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:6}}>
-                        {BM_DEF.map(({key,label,color})=>{
-                          const on=bmVisible[key];
-                          const hasData=benchmarks.series[key]?.some(v=>v!=null);
-                          return (
-                            <button key={key} onClick={()=>setBmVisible(v=>({...v,[key]:!on}))}
-                              style={{padding:"3px 10px",borderRadius:12,
-                                border:"1.5px solid "+color,
-                                background:on?color:"transparent",
-                                color:on?"#fff":color,fontSize:9,fontWeight:600,cursor:"pointer",
-                                opacity:hasData?1:0.45,transition:"all .15s"}}>
-                              {label}{!hasData?" ✗":""}</button>
-                          );
-                        })}
-                      </div>
-                    );
-                  })()}
                 </div>
-                {chartData.bmLabels.length>1?(()=>{
-                  const BM_DEF=[
-                    {key:"sp500",label:"S&P 500",color:"#6366f1",dash:[]},
-                    {key:"brk",label:"BRK-B",color:"#f59e0b",dash:[4,3]},
-                    {key:"jkse",label:"IDX Composite",color:"#ea4335",dash:[2,2]},
-                    {key:"eido",label:"EIDO",color:"#8b5cf6",dash:[6,2]},
-                    {key:"vas",label:"VAS (ASX)",color:"#1a73e8",dash:[4,2]},
-                  ];
-                  const datasets=[
-                    {label:"Your Portfolio",data:chartData.bmPortfolio,
-                      borderColor:dark?"#34a853":"#1e8e3e",
-                      backgroundColor:dark?"rgba(52,168,83,.08)":"rgba(30,142,62,.06)",
-                      fill:true,borderWidth:2.5,borderDash:[],spanGaps:false},
-                    ...BM_DEF.filter(b=>bmVisible[b.key]).map(b=>({
-                      label:b.label,data:chartData.bmSeries[b.key]||[],
-                      borderColor:b.color,backgroundColor:"transparent",
-                      borderWidth:2,borderDash:b.dash,spanGaps:false,
-                    })),
-                  ];
-                  const lastPort=chartData.bmPortfolio.filter(v=>v!=null).slice(-1)[0]??0;
-                  return (<>
-                    <ChartLine labels={chartData.bmLabels} datasets={datasets} T={T}
-                      yFmt={v=>`${v>=0?"+":""}${v.toFixed(1)}%`} height={isMob?220:280} spanGaps={false}/>
-                    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(110px,1fr))",
-                      gap:6,marginTop:8}}>
-                      <div style={{background:T.bg4,border:"1.5px solid "+(dark?"#34a853":"#1e8e3e"),
-                        borderRadius:6,padding:"6px 10px"}}>
-                        <div style={{fontSize:8,color:T.text3,fontWeight:500,marginBottom:1}}>Your Portfolio</div>
-                        <div style={{fontFamily:"'Space Mono',monospace",fontSize:13,fontWeight:700,
-                          color:dark?"#34a853":"#1e8e3e"}}>{lastPort>=0?"+":""}{lastPort.toFixed(2)}%</div>
-                      </div>
-                      {BM_DEF.filter(b=>bmVisible[b.key]&&(chartData.bmSeries[b.key]||[]).some(v=>v!=null)).map(b=>{
-                        const last=(chartData.bmSeries[b.key]||[]).filter(v=>v!=null).slice(-1)[0]??0;
-                        const diff=lastPort-last;
-                        return (
-                          <div key={b.key} style={{background:T.bg4,border:"1.5px solid "+b.color,
-                            borderRadius:6,padding:"6px 10px"}}>
-                            <div style={{fontSize:8,color:T.text3,fontWeight:500,marginBottom:1}}>{b.label}</div>
-                            <div style={{fontFamily:"'Space Mono',monospace",fontSize:13,fontWeight:700,color:b.color}}>
-                              {last>=0?"+":""}{last.toFixed(2)}%</div>
-                            <div style={{fontSize:8,color:diff>=0?T.green:T.red,fontWeight:600,marginTop:1}}>
-                              {diff>=0?"▲ ":"▼ "}{Math.abs(diff).toFixed(1)}% vs you</div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </>);
-                })():(
-                  <div style={{height:160,display:"flex",flexDirection:"column",alignItems:"center",
-                    justifyContent:"center",gap:6,color:T.text3,fontWeight:500}}>
-                    <div style={{fontSize:28,opacity:.3}}>📐</div>
-                    <div style={{fontSize:11}}>Benchmark data not loaded yet</div>
-                    <div style={{fontSize:10}}>Hit <b style={{color:T.text2}}>🔄 Live Prices</b> to fetch</div>
-                  </div>
-                )}
+                <HoldingDuration holdings={holdings} T={T} dark={dark}/>
               </div>
             </div>
           )}
@@ -3038,7 +2866,6 @@ const avg=dh.length?tot/dh.length:0;
           {view==="whatif"&&renderWhatIf()}
         </main>
 
-        {/* ── MODALS ── */}
         {modal&&(
           <div onClick={closeModal}
             style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",backdropFilter:"blur(6px)",
@@ -3136,15 +2963,6 @@ const avg=dh.length?tot/dh.length:0;
                           onChange={e=>setForm(f=>({...f,[k]:e.target.value}))}/></div>
                     ))}
                   </div>
-                  {form.qty&&form.price&&(
-                    <div style={{background:T.bg4,border:"1px solid "+T.border,borderRadius:6,
-                      padding:"8px 12px",fontSize:11,color:T.text2,fontWeight:500,marginBottom:10}}>
-                      Total: <strong style={{color:T.text,fontWeight:700}}>
-                        {modal.holding.currency==="IDR"?`Rp ${fmtIDR(+form.qty*+form.price)}`:
-                         modal.holding.currency==="USD"?`US$${(+form.qty*+form.price).toFixed(2)}`:
-                         `A$${(+form.qty*+form.price).toFixed(2)}`}</strong>
-                    </div>
-                  )}
                   <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
                     <button style={bO(T.text2,{fontSize:11})} onClick={closeModal}>Cancel</button>
                     <button style={bS(modal.tradeType==="buy"?T.greenBtn:T.redBtn,"#fff",{fontSize:11})}
@@ -3344,7 +3162,6 @@ const avg=dh.length?tot/dh.length:0;
           </div>
         )}
 
-        {/* ── Edit transaction modal ── */}
         {editTx&&(()=>{
           const h=portfolio.find(p=>p.id===editTx.holdingId);
           if(!h)return null;
@@ -3391,7 +3208,6 @@ const avg=dh.length?tot/dh.length:0;
           );
         })()}
 
-        {/* ── Passive income settings modal ── */}
         {showPassiveModal&&(
           <div onClick={()=>setShowPassiveModal(false)}
             style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",backdropFilter:"blur(6px)",
