@@ -295,6 +295,28 @@ function suggestYahoo(ticker,exchange,assetType){
   return"";
 }
 
+/* ── Duration helpers (shared) ── */
+function getHeldDays(h){
+  const buys=h.transactions.filter(t=>t.type==="buy"&&t.date);
+  if(!buys.length)return 0;
+  const sorted=[...buys].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const first=new Date(sorted[0].date).getTime();
+  return Math.max(1,Math.floor((Date.now()-first)/86400000));
+}
+function getFirstBuyDate(h){
+  const buys=h.transactions.filter(t=>t.type==="buy"&&t.date);
+  if(!buys.length)return null;
+  const sorted=[...buys].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  return sorted[0].date;
+}
+function fmtDur(d){
+  if(d<30)return`${d}d`;
+  if(d<365)return`${Math.floor(d/30)}mo`;
+  const y=Math.floor(d/365.25);
+  const m=Math.floor((d-y*365.25)/30);
+  return m>0?`${y}y ${m}mo`:`${y}y`;
+}
+
 const YAHOO_BASE="https://query2.finance.yahoo.com/v8/finance/chart/";
 const YAHOO_BASE1="https://query1.finance.yahoo.com/v8/finance/chart/";
 const YAHOO_V7="https://query1.finance.yahoo.com/v7/finance/quote?symbols=";
@@ -422,21 +444,6 @@ async function fetchYahooPrice(symbol){
   }
   try{const r=await fetchStooq(symbol); if(r?.current>0)return r;}catch(e){}
   throw new Error("All price sources failed for "+symbol);
-}
-
-async function fetchHoldingHistory(y){
-  const sym=encodeURIComponent(y);
-  for(const url of [YAHOO_BASE+sym+"?interval=1mo&range=5y",YAHOO_BASE1+sym+"?interval=1mo&range=5y"]){
-    try{
-      const d=await fetchWithProxy(url), res=d?.chart?.result?.[0]; if(!res)continue;
-      const ts=res.timestamp||[], cl=res.indicators?.quote?.[0]?.close||[];
-      if(!ts.length||!cl.length)continue;
-      const pm={};
-      ts.forEach((t,i)=>{if(cl[i]!=null)pm[new Date(t*1000).toISOString().slice(0,10)]=cl[i];});
-      return {priceMap:pm,currency:res.meta?.currency||"AUD"};
-    }catch(e){}
-  }
-  return null;
 }
 
 async function fetchExchangeRates(){
@@ -794,17 +801,13 @@ function ChartWaterfall({data,T,yFmt,height=240}){
 /* ── Holding Duration ── */
 function HoldingDuration({holdings,T,dark}){
   const rows=useMemo(()=>{
-    const now=Date.now();
     return holdings.map(h=>{
-      const buys=h.transactions.filter(t=>t.type==="buy"&&t.date)
-        .sort((a,b)=>new Date(a.date)-new Date(b.date));
-      if(!buys.length)return null;
-      const first=new Date(buys[0].date).getTime();
-      const days=Math.max(1,Math.floor((now-first)/86400000));
+      const days=getHeldDays(h);
+      if(!days)return null;
       return {
         ticker:h.ticker,
         name:h.name,
-        firstBuyDate:buys[0].date,
+        firstBuyDate:getFirstBuyDate(h),
         days,
         currentValue:h.currentValue,
         gainPct:h.gainPct,
@@ -824,14 +827,6 @@ function HoldingDuration({holdings,T,dark}){
   const oldest=rows[0];
   const newest=rows[rows.length-1];
   const avgDays=Math.round(rows.reduce((s,r)=>s+r.days,0)/rows.length);
-
-  const fmtDur=d=>{
-    if(d<30)return`${d}d`;
-    if(d<365)return`${Math.floor(d/30)}mo`;
-    const y=Math.floor(d/365.25);
-    const m=Math.floor((d-y*365.25)/30);
-    return m>0?`${y}y ${m}mo`:`${y}y`;
-  };
 
   const rowH=26, gap=6, totalH=rows.length*(rowH+gap);
 
@@ -1841,7 +1836,6 @@ function App(){
       fetched:fetchablePrices.length,rateOk});
   },[portfolio,prices,prevPrices,rates]);
 
-  /* ── What-If render ── */
   const renderWhatIf=()=>{
     if(!holdings.length)
       return <div style={{padding:40,textAlign:"center",color:T.text3}}>Add holdings first to use the What-If simulator.</div>;
@@ -2500,6 +2494,7 @@ function App(){
                         ["Price",fmtNativePrice(selH,selH.currentPrice),T.text],
                         ["Day G/L",`${FG(selH.dayGain)} (${fmtPct(selH.dayGainPct)})`,pColor(selH.dayGain)]]},
                       {title:"Position",rows:[
+                        ["Held",fmtDur(getHeldDays(selH))+" since "+fmtDate(getFirstBuyDate(selH)||"—"),T.text2],
                         ["Units",selH.qty<1?selH.qty.toFixed(6):selH.qty.toFixed(4),T.text],
                         ["Market Val",FC(selH.currentValue),T.text],
                         ["Cost Basis",FC(selH.costBasis),T.text2],
@@ -2547,91 +2542,117 @@ function App(){
           )}
 
           {view==="table"&&(
-            <div className="table-container" style={{maxHeight:600}}>
-              <table style={{width:"100%",borderCollapse:"collapse",fontSize:10}}>
-                <thead>
-                  <tr>{["Ticker","Type","CCY","Units","Avg Cost","Current","Day G/L","Mkt Value",
-                    "Unrealzd","Realzd","Div/Coupon","Div Yld","ROI","Total G/L","G/L%","Actions"].map(c=>(
-                      <th key={c} style={{padding:"7px 9px",textAlign:"left",fontSize:8,letterSpacing:1,
-                        color:T.text3,textTransform:"uppercase",background:T.bg2,
-                        borderBottom:"2px solid "+T.border,whiteSpace:"nowrap",fontWeight:600,
-                        zIndex:c==="Ticker"?15:10,position:"sticky",
-                        left:c==="Ticker"?0:"auto",top:0}}>{c}</th>
-                  ))}</tr>
-                </thead>
-                <tbody>
-                  {holdings.slice().sort((a,b)=>b.currentValue-a.currentValue).map((h,i)=>{
-                    const gc=getPerformanceColor(h.gainPct,dark);
-                    const bg=i%2===0?T.bg3:T.bg2;
-                    return (
-                      <tr key={h.ticker} style={{background:bg}}
-                        onMouseEnter={e=>e.currentTarget.style.background=T.hoverBg}
-                        onMouseLeave={e=>e.currentTarget.style.background=bg}>
-                        <td style={{padding:"7px 9px",fontFamily:"'Space Mono',monospace",fontWeight:700,
-                          color:T.text,fontSize:10,borderBottom:"1px solid "+T.border,
-                          whiteSpace:"nowrap",position:"sticky",left:0,zIndex:5,background:bg}}>
-                          {h.ticker}{h.isBondPct&&<span style={{fontSize:7,color:T.teal,marginLeft:3,fontWeight:500}}>BOND</span>}
-                        </td>
-                        <td style={{padding:"7px 9px",color:T.text3,maxWidth:80,overflow:"hidden",
-                          textOverflow:"ellipsis",borderBottom:"1px solid "+T.border,
-                          whiteSpace:"nowrap",fontWeight:500}}>{h.assetType||"—"}</td>
-                        <td style={{padding:"7px 9px",fontFamily:"'Space Mono',monospace",color:T.text3,
-                          fontSize:9,borderBottom:"1px solid "+T.border,fontWeight:500}}>{h.currency}</td>
-                        <td style={{padding:"7px 9px",fontFamily:"'Space Mono',monospace",color:T.text2,
-                          borderBottom:"1px solid "+T.border,fontWeight:500}}>
-                          {h.qty<1?h.qty.toFixed(6):h.qty.toFixed(4)}</td>
-                        <td style={{padding:"7px 9px",fontFamily:"'Space Mono',monospace",color:T.text2,
-                          borderBottom:"1px solid "+T.border,whiteSpace:"nowrap",fontWeight:500}}>
-                          {FC(h.costBasis/Math.max(h.qty,1e-9),false)}</td>
-                        <td style={{padding:"7px 9px",fontFamily:"'Space Mono',monospace",color:T.text,
-                          borderBottom:"1px solid "+T.border,whiteSpace:"nowrap",fontWeight:500}}>
-                          {fmtNativePrice(h,h.currentPrice)}</td>
-                        <td style={{padding:"7px 9px",fontFamily:"'Space Mono',monospace",color:pColor(h.dayGain),
-                          borderBottom:"1px solid "+T.border,whiteSpace:"nowrap",fontWeight:600}}>
-                          {FG(h.dayGain)}<br/><span style={{fontSize:8,opacity:.7,fontWeight:500}}>{fmtPct(h.dayGainPct)}</span></td>
-                        <td style={{padding:"7px 9px",fontFamily:"'Space Mono',monospace",color:T.text,
-                          fontWeight:700,borderBottom:"1px solid "+T.border,whiteSpace:"nowrap"}}>{FC(h.currentValue,true)}</td>
-                        <td style={{padding:"7px 9px",fontFamily:"'Space Mono',monospace",color:pColor(h.unrealizedGain),
-                          borderBottom:"1px solid "+T.border,whiteSpace:"nowrap",fontWeight:600}}>{FG(h.unrealizedGain)}</td>
-                        <td style={{padding:"7px 9px",fontFamily:"'Space Mono',monospace",color:pColor(h.realizedGain),
-                          borderBottom:"1px solid "+T.border,whiteSpace:"nowrap",fontWeight:600}}>{FG(h.realizedGain)}</td>
-                        <td style={{padding:"7px 9px",fontFamily:"'Space Mono',monospace",color:T.teal,
-                          borderBottom:"1px solid "+T.border,whiteSpace:"nowrap",fontWeight:600}}>{FC(h.totalDividends,true)}</td>
-                        <td style={{padding:"7px 9px",fontFamily:"'Space Mono',monospace",color:T.teal,
-                          borderBottom:"1px solid "+T.border,whiteSpace:"nowrap",fontWeight:600}}>{fmtPct(h.divYieldOnCost)}</td>
-                        <td style={{padding:"7px 9px",borderBottom:"1px solid "+T.border,whiteSpace:"nowrap"}}>
-                          {(()=>{const roi=h.totalInvested>0?((h.currentValue+h.totalDividends-h.totalInvested)/h.totalInvested)*100:0;
-                            const rc=getPerformanceColor(roi,dark);
-                            return(<span style={{padding:"2px 9px",borderRadius:16,background:rc.bg,
-                              color:rc.text,fontFamily:"'Space Mono',monospace",fontSize:8,fontWeight:700}}>{fmtPct(roi)}</span>);
-                          })()}
-                        </td>
-                        <td style={{padding:"7px 9px",fontFamily:"'Space Mono',monospace",color:pColor(h.totalGain),
-                          fontWeight:700,borderBottom:"1px solid "+T.border,whiteSpace:"nowrap"}}>{FG(h.totalGain)}</td>
-                        <td style={{padding:"7px 9px",borderBottom:"1px solid "+T.border,whiteSpace:"nowrap"}}>
-                          <span style={{padding:"2px 9px",borderRadius:16,background:gc.bg,color:gc.text,
-                            fontFamily:"'Space Mono',monospace",fontSize:8,fontWeight:700}}>{fmtPct(h.gainPct)}</span></td>
-                        <td style={{padding:"7px 9px",borderBottom:"1px solid "+T.border,whiteSpace:"nowrap"}}>
-                          <div style={{display:"flex",gap:3}}>
-                            {[["B",()=>openTrade(h,"buy"),T.greenBtn],
-                              ["S",()=>openTrade(h,"sell"),T.redBtn],
-                              ["D",()=>openDiv(h),T.tealBtn],
-                              ["H",()=>openHistory(h),T.bg5]].map(([l,fn,bg])=>(
-                                <button key={l} onClick={fn}
-                                  style={{width:22,height:22,borderRadius:11,border:"none",background:bg,
-                                    color:bg===T.bg5?T.text2:"#fff",fontSize:9,fontWeight:700,
-                                    display:"flex",alignItems:"center",justifyContent:"center"}}>{l}</button>
-                            ))}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {holdings.length===0&&<tr><td colSpan={16} style={{padding:40,textAlign:"center",
-                    color:T.text4,fontFamily:"'Space Mono',monospace",fontSize:10,fontWeight:500}}>
-                    No holdings — tap "+ Add" to get started</td></tr>}
-                </tbody>
-              </table>
+            <div style={{display:"flex",flexDirection:"column",gap:14}}>
+              <div style={card({padding:14})}>
+                <div style={{marginBottom:10}}>
+                  <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>⏳ Holding Duration</div>
+                  <div style={{fontSize:10,color:T.text3,fontWeight:400}}>
+                    Days since first purchase · bar length = relative age · colour = total return
+                  </div>
+                </div>
+                <HoldingDuration holdings={holdings} T={T} dark={dark}/>
+              </div>
+              <div className="table-container" style={{maxHeight:600}}>
+                <table style={{width:"100%",borderCollapse:"collapse",fontSize:10}}>
+                  <thead>
+                    <tr>{["Ticker","Held","Type","CCY","Units","Avg Cost","Current","Day G/L","Mkt Value",
+                      "Unrealzd","Realzd","Div/Coupon","Div Yld","ROI","Total G/L","G/L%","Actions"].map(c=>(
+                        <th key={c} style={{padding:"7px 9px",textAlign:"left",fontSize:8,letterSpacing:1,
+                          color:T.text3,textTransform:"uppercase",background:T.bg2,
+                          borderBottom:"2px solid "+T.border,whiteSpace:"nowrap",fontWeight:600,
+                          zIndex:c==="Ticker"?15:10,position:"sticky",
+                          left:c==="Ticker"?0:"auto",top:0}}>{c}</th>
+                    ))}</tr>
+                  </thead>
+                  <tbody>
+                    {holdings.slice().sort((a,b)=>b.currentValue-a.currentValue).map((h,i)=>{
+                      const gc=getPerformanceColor(h.gainPct,dark);
+                      const bg=i%2===0?T.bg3:T.bg2;
+                      return (
+                        <tr key={h.ticker} style={{background:bg}}
+                          onMouseEnter={e=>e.currentTarget.style.background=T.hoverBg}
+                          onMouseLeave={e=>e.currentTarget.style.background=bg}>
+                          <td style={{padding:"7px 9px",fontFamily:"'Space Mono',monospace",fontWeight:700,
+                            color:T.text,fontSize:10,borderBottom:"1px solid "+T.border,
+                            whiteSpace:"nowrap",position:"sticky",left:0,zIndex:5,background:bg}}>
+                            {h.ticker}{h.isBondPct&&<span style={{fontSize:7,color:T.teal,marginLeft:3,fontWeight:500}}>BOND</span>}
+                          </td>
+                          <td style={{padding:"7px 9px",fontFamily:"'Space Mono',monospace",fontSize:10,
+                            color:T.text2,borderBottom:"1px solid "+T.border,whiteSpace:"nowrap",
+                            fontWeight:600}}>
+                            {(()=>{
+                              const d=getHeldDays(h);
+                              if(!d)return<span style={{color:T.text4}}>—</span>;
+                              const first=getFirstBuyDate(h);
+                              return(<>
+                                <span style={{color:T.text}}>{fmtDur(d)}</span>
+                                <div style={{fontSize:8,color:T.text4,fontWeight:400,marginTop:1}}>
+                                  {first?fmtDate(first).replace(/ \d{4}$/,""):""}
+                                </div>
+                              </>);
+                            })()}
+                          </td>
+                          <td style={{padding:"7px 9px",color:T.text3,maxWidth:80,overflow:"hidden",
+                            textOverflow:"ellipsis",borderBottom:"1px solid "+T.border,
+                            whiteSpace:"nowrap",fontWeight:500}}>{h.assetType||"—"}</td>
+                          <td style={{padding:"7px 9px",fontFamily:"'Space Mono',monospace",color:T.text3,
+                            fontSize:9,borderBottom:"1px solid "+T.border,fontWeight:500}}>{h.currency}</td>
+                          <td style={{padding:"7px 9px",fontFamily:"'Space Mono',monospace",color:T.text2,
+                            borderBottom:"1px solid "+T.border,fontWeight:500}}>
+                            {h.qty<1?h.qty.toFixed(6):h.qty.toFixed(4)}</td>
+                          <td style={{padding:"7px 9px",fontFamily:"'Space Mono',monospace",color:T.text2,
+                            borderBottom:"1px solid "+T.border,whiteSpace:"nowrap",fontWeight:500}}>
+                            {FC(h.costBasis/Math.max(h.qty,1e-9),false)}</td>
+                          <td style={{padding:"7px 9px",fontFamily:"'Space Mono',monospace",color:T.text,
+                            borderBottom:"1px solid "+T.border,whiteSpace:"nowrap",fontWeight:500}}>
+                            {fmtNativePrice(h,h.currentPrice)}</td>
+                          <td style={{padding:"7px 9px",fontFamily:"'Space Mono',monospace",color:pColor(h.dayGain),
+                            borderBottom:"1px solid "+T.border,whiteSpace:"nowrap",fontWeight:600}}>
+                            {FG(h.dayGain)}<br/><span style={{fontSize:8,opacity:.7,fontWeight:500}}>{fmtPct(h.dayGainPct)}</span></td>
+                          <td style={{padding:"7px 9px",fontFamily:"'Space Mono',monospace",color:T.text,
+                            fontWeight:700,borderBottom:"1px solid "+T.border,whiteSpace:"nowrap"}}>{FC(h.currentValue,true)}</td>
+                          <td style={{padding:"7px 9px",fontFamily:"'Space Mono',monospace",color:pColor(h.unrealizedGain),
+                            borderBottom:"1px solid "+T.border,whiteSpace:"nowrap",fontWeight:600}}>{FG(h.unrealizedGain)}</td>
+                          <td style={{padding:"7px 9px",fontFamily:"'Space Mono',monospace",color:pColor(h.realizedGain),
+                            borderBottom:"1px solid "+T.border,whiteSpace:"nowrap",fontWeight:600}}>{FG(h.realizedGain)}</td>
+                          <td style={{padding:"7px 9px",fontFamily:"'Space Mono',monospace",color:T.teal,
+                            borderBottom:"1px solid "+T.border,whiteSpace:"nowrap",fontWeight:600}}>{FC(h.totalDividends,true)}</td>
+                          <td style={{padding:"7px 9px",fontFamily:"'Space Mono',monospace",color:T.teal,
+                            borderBottom:"1px solid "+T.border,whiteSpace:"nowrap",fontWeight:600}}>{fmtPct(h.divYieldOnCost)}</td>
+                          <td style={{padding:"7px 9px",borderBottom:"1px solid "+T.border,whiteSpace:"nowrap"}}>
+                            {(()=>{const roi=h.totalInvested>0?((h.currentValue+h.totalDividends-h.totalInvested)/h.totalInvested)*100:0;
+                              const rc=getPerformanceColor(roi,dark);
+                              return(<span style={{padding:"2px 9px",borderRadius:16,background:rc.bg,
+                                color:rc.text,fontFamily:"'Space Mono',monospace",fontSize:8,fontWeight:700}}>{fmtPct(roi)}</span>);
+                            })()}
+                          </td>
+                          <td style={{padding:"7px 9px",fontFamily:"'Space Mono',monospace",color:pColor(h.totalGain),
+                            fontWeight:700,borderBottom:"1px solid "+T.border,whiteSpace:"nowrap"}}>{FG(h.totalGain)}</td>
+                          <td style={{padding:"7px 9px",borderBottom:"1px solid "+T.border,whiteSpace:"nowrap"}}>
+                            <span style={{padding:"2px 9px",borderRadius:16,background:gc.bg,color:gc.text,
+                              fontFamily:"'Space Mono',monospace",fontSize:8,fontWeight:700}}>{fmtPct(h.gainPct)}</span></td>
+                          <td style={{padding:"7px 9px",borderBottom:"1px solid "+T.border,whiteSpace:"nowrap"}}>
+                            <div style={{display:"flex",gap:3}}>
+                              {[["B",()=>openTrade(h,"buy"),T.greenBtn],
+                                ["S",()=>openTrade(h,"sell"),T.redBtn],
+                                ["D",()=>openDiv(h),T.tealBtn],
+                                ["H",()=>openHistory(h),T.bg5]].map(([l,fn,bg])=>(
+                                  <button key={l} onClick={fn}
+                                    style={{width:22,height:22,borderRadius:11,border:"none",background:bg,
+                                      color:bg===T.bg5?T.text2:"#fff",fontSize:9,fontWeight:700,
+                                      display:"flex",alignItems:"center",justifyContent:"center"}}>{l}</button>
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {holdings.length===0&&<tr><td colSpan={17} style={{padding:40,textAlign:"center",
+                      color:T.text4,fontFamily:"'Space Mono',monospace",fontSize:10,fontWeight:500}}>
+                      No holdings — tap "+ Add" to get started</td></tr>}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
@@ -2849,17 +2870,6 @@ function App(){
                 </div>
                 <ChartWaterfall data={chartData.waterfallData} T={T} yFmt={yFmtMain} height={isMob?200:260}/>
               </div>
-
-              {/* Holding Duration */}
-              <div style={card({padding:14})}>
-                <div style={{marginBottom:10}}>
-                  <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>⏳ Holding Duration</div>
-                  <div style={{fontSize:10,color:T.text3,fontWeight:400}}>
-                    Days since first purchase · bar length = relative age · colour = total return
-                  </div>
-                </div>
-                <HoldingDuration holdings={holdings} T={T} dark={dark}/>
-              </div>
             </div>
           )}
 
@@ -3037,6 +3047,7 @@ function App(){
                   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(110px,1fr))",
                     gap:8,marginBottom:12}}>
                     {[["Market Value",FC(histC.currentValue),T.text],
+                      ["Held",fmtDur(getHeldDays(histH))+" since "+fmtDate(getFirstBuyDate(histH)||"—"),T.text2],
                       ["Total G/L",`${FG(histC.totalGain)} (${fmtPct(histC.gainPct)})`,pColor(histC.totalGain)],
                       ["Div/Coupons",FC(histC.totalDividends),T.teal]].map(([l,v,c])=>(
                       <div key={l} style={{background:T.bg4,border:"1px solid "+T.border,
