@@ -1649,9 +1649,9 @@ function App(){
       if(reinvestDividends)pv+=d;
     }
     const fPV=pv;
-    const tot=d h.reduce((s,v)=>s+v,0);
-    const avg=d h.length?tot/dh.length:0;
-    let dCAGR=null;
+const tot=dh.reduce((s,v)=>s+v,0);
+const avg=dh.length?tot/dh.length:0;
+   let dCAGR=null;
     if(dh.length>=2&&dh[0]>0&&dh[dh.length-1]>0)
       dCAGR=(Math.pow(dh[dh.length-1]/dh[0],1/(dh.length-1))-1)*100;
     const maxPct=Math.max(...adjustedHoldings.map(h=>h.targetPct||0));
