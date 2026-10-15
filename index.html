@@ -110,7 +110,6 @@
   .scenario-card{border-radius:10px;padding:12px 14px;border:1px solid var(--border,#3d3d3d);
                  background:var(--bg3,#2a2a2a)}
 
-  /* Modern hero KPI cards (chart tab) */
   .hero-kpi{position:relative;border-radius:14px;padding:14px 16px;
     background:var(--card-bg,#252525);border:1px solid var(--border,#3d3d3d);
     overflow:hidden;transition:transform .2s ease,box-shadow .2s ease}
@@ -123,7 +122,6 @@
     line-height:1.15;letter-spacing:-0.5px;font-variant-numeric:tabular-nums}
   .hero-kpi .h-sub{font-size:10px;color:var(--text3,#9aa0a6);margin-top:4px;font-weight:500}
 
-  /* View tab bar */
   .view-tabs{display:flex;background:var(--bg4,#333);border-radius:14px;padding:2px;
     border:1px solid var(--border,#3d3d3d)}
   .view-tabs button{padding:4px 10px;border-radius:12px;border:none;font-size:10px;font-weight:500;
@@ -143,7 +141,6 @@
     header{padding:6px 10px !important}
     main{padding:10px 10px 90px !important}
 
-    /* Header KPI scroll strip */
     .header-kpis{overflow-x:auto;flex-wrap:nowrap;gap:8px;padding:2px 0 6px;
       scrollbar-width:none;-webkit-overflow-scrolling:touch}
     .header-kpis::-webkit-scrollbar{display:none}
@@ -161,7 +158,6 @@
     .risk-card{padding:8px 10px}
     .risk-card .value{font-size:14px}
 
-    /* Table priority column hiding */
     .table-container{max-height:480px;font-size:10px;border-radius:10px}
     .table-container th,.table-container td{padding:6px 8px !important;font-size:10px !important}
     .table-container th:nth-child(3),.table-container td:nth-child(3),
@@ -180,7 +176,6 @@
     .adj-row .adj-btn{width:24px;height:24px;font-size:14px}
     .adj-row .diff-label{font-size:9px;min-width:32px}
 
-    /* Mobile bottom nav for view tabs */
     .view-tabs{display:none !important}
     .view-tabs-mobile{display:flex !important;position:fixed;bottom:0;left:0;right:0;
       background:var(--card-bg,#252525);border-top:1px solid var(--border,#3d3d3d);
@@ -193,7 +188,6 @@
     .view-tabs-mobile button .ic{font-size:16px;line-height:1}
     .view-tabs-mobile button.active{background:linear-gradient(135deg,rgba(52,168,83,.2),rgba(26,115,232,.2))}
 
-    /* Modal as bottom sheet */
     .modal-sheet{align-items:flex-end !important;padding:0 !important}
     .modal-sheet > div{border-radius:20px 20px 0 0 !important;max-height:94vh !important;
       width:100% !important;max-width:100% !important;
@@ -208,12 +202,10 @@
     .header-kpi .value{font-size:12px}
   }
 
-  /* Smooth input focus rings */
   input:focus,select:focus{border-color:#1a73e8 !important;box-shadow:0 0 0 3px rgba(26,115,232,.18)}
   canvas{max-width:100%}
   .modal-sheet{align-items:center}
 
-  /* Range slider (What-If) */
   input[type=range].whatif-slider{-webkit-appearance:none;width:100%;height:4px;border-radius:2px;
     background:linear-gradient(90deg,#34a853,#1a73e8);outline:none;margin-top:10px}
   input[type=range].whatif-slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;
@@ -354,4 +346,10 @@ const fromAUD=(a,c,R)=>{if(c==="IDR")return a*R.AUD_IDR; if(c==="USD")return a*R
 function fmtIDR(n){try{return Math.round(n).toLocaleString("id-ID");}catch{return Math.round(n).toString()
   .replace(/\B(?=(\d{3})+(?!\d))/g,".");}}
 function fmtAUD(n){return Math.abs(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,",");}
-function fmtCur(aud,dc,R
+function fmtCur(aud,dc,R,compact=false){
+  const a=fromAUD(aud,dc,R);
+  if(dc==="IDR"){const abs=Math.abs(a);
+    if(compact&&abs>=1e9)return`Rp${(a/1e9).toFixed(1)}M`;
+    if(compact&&abs>=1e6)return`Rp${(a/1e6).toFixed(1)}Jt`;
+    if(compact&&abs>=1e3)return`Rp${(a/1e3).toFixed(0)}Rb`;
+    retur
