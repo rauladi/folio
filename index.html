@@ -9,7 +9,8 @@
   html,body{height:100%;width:100%;overflow-x:hidden}
   body{min-height:100vh;font-family:'Roboto','Segoe UI',system-ui,sans-serif;font-size:14px;
        -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;overflow-x:hidden;
-       background:#121212;color:#e8eaed;transition:background .25s,color .25s;
+       background:var(--bg,#121212);color:var(--text,#e8eaed);
+       transition:background .25s,color .25s;
        font-variant-numeric:tabular-nums}
   #root{width:100%;overflow-x:hidden}
   input,select,button{font-family:inherit}
@@ -20,8 +21,7 @@
   button:active{transform:scale(.97)}
   ::-webkit-scrollbar{width:6px;height:6px}
   ::-webkit-scrollbar-track{background:transparent}
-  ::-webkit-scrollbar-thumb{border-radius:4px;background:#555}
-  .light ::-webkit-scrollbar-thumb{background:#ccc}
+  ::-webkit-scrollbar-thumb{border-radius:4px;background:var(--border2,#555)}
   @keyframes spin{to{transform:rotate(360deg)}}
   .spin{display:inline-block;animation:spin .9s linear infinite}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
@@ -81,12 +81,8 @@
                             border-bottom:2px solid var(--border,#3d3d3d)}
   .table-container tbody td:first-child{position:sticky;left:0;z-index:5;background:var(--bg3,#2a2a2a)}
   .table-container thead th:first-child{z-index:15;left:0;background:var(--bg2,#1e1e1e)}
-  .light .table-container tbody td:first-child{background:var(--bg3,#f8f9fa)}
-  .light .table-container thead th{background:var(--bg2,#fff)}
-  .light .table-container thead th:first-child{background:var(--bg2,#fff)}
   .table-container tbody tr:hover td{background:var(--hover-bg,#333)}
-  .light .table-container tbody tr:hover td{background:var(--hover-bg,#f1f3f4)}
-  .light .table-container tbody tr:hover td:first-child{background:var(--hover-bg,#f1f3f4)}
+  .table-container tbody tr:hover td:first-child{background:var(--hover-bg,#333)}
 
   .whatif-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;
                  align-items:stretch;width:100%;min-height:420px}
@@ -180,7 +176,7 @@
     .view-tabs-mobile{display:flex !important;position:fixed;bottom:0;left:0;right:0;
       background:var(--card-bg,#252525);border-top:1px solid var(--border,#3d3d3d);
       padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px));gap:4px;z-index:60;
-      box-shadow:0 -8px 24px rgba(0,0,0,.35);backdrop-filter:blur(10px);
+      box-shadow:0 -8px 24px rgba(0,0,0,.18);backdrop-filter:blur(10px);
       -webkit-backdrop-filter:blur(10px)}
     .view-tabs-mobile button{flex:1;padding:8px 2px;border-radius:10px;font-size:10px;
       font-weight:600;display:flex;flex-direction:column;align-items:center;gap:3px;
@@ -191,7 +187,9 @@
     .modal-sheet{align-items:flex-end !important;padding:0 !important}
     .modal-sheet > div{border-radius:20px 20px 0 0 !important;max-height:94vh !important;
       width:100% !important;max-width:100% !important;
-      padding-bottom:calc(20px + env(safe-area-inset-bottom,0px)) !important}
+      padding-bottom:calc(20px + env(safe-area-inset-bottom,0px)) !important;
+      border-top:1px solid var(--border,#3d3d3d);
+      box-shadow:0 -12px 36px rgba(0,0,0,.25) !important}
 
     .hero-kpi{padding:12px 14px}
     .hero-kpi .h-value{font-size:17px}
@@ -735,7 +733,7 @@ function ChartLine({labels,datasets,T,yFmt,y2Fmt,height=220,spanGaps=false,mobil
     };
     if(hasY2){
       scales.y2={grid:{drawOnChartArea:false},
-        ticks:{color:"#1a73e8",font:{size:tickSize,weight:"500"},callback:y2Fmt},
+        ticks:{color:dark?T.teal:"#1a73e8",font:{size:tickSize,weight:"500"},callback:y2Fmt},
         border:{color:T.border},position:"right",beginAtZero:true};
     }
     inst.current=new Chart(ref.current,{
@@ -931,9 +929,9 @@ function ChartBuyFlow({labels,buys,sells,cumulative,T,yFmt,height=240,mobile=fal
             backgroundColor:"rgba(234,67,53,.75)",borderColor:"#ea4335",borderWidth:1,
             borderRadius:4,borderSkipped:false,yAxisID:"y",order:2},
           {type:"line",label:"Cumulative Net Invested",data:cumulative,
-            borderColor:"#8ab4f8",backgroundColor:"rgba(138,180,248,.08)",
+            borderColor:T.teal,backgroundColor:dark?"rgba(138,180,248,.08)":"rgba(26,115,232,.05)",
             borderWidth:2,borderDash:[5,4],pointRadius:mobile?2:3,
-            pointBackgroundColor:"#8ab4f8",pointBorderColor:T.bg2,pointBorderWidth:1.5,
+            pointBackgroundColor:T.teal,pointBorderColor:T.bg2,pointBorderWidth:1.5,
             pointHoverRadius:5,tension:0.3,fill:false,yAxisID:"y2",order:1},
         ],
       },
@@ -974,7 +972,7 @@ function ChartBuyFlow({labels,buys,sells,cumulative,T,yFmt,height=240,mobile=fal
             ticks:{color:T.chartTick,font:{size:tickSize,weight:"500"},callback:yFmt||(v=>v)},
             border:{color:T.border}},
           y2:{position:"right",grid:{drawOnChartArea:false},
-            ticks:{color:"#8ab4f8",font:{size:tickSize,weight:"500"},callback:yFmt||(v=>v)},
+            ticks:{color:T.teal,font:{size:tickSize,weight:"500"},callback:yFmt||(v=>v)},
             border:{color:T.border}},
         },
       },
@@ -1406,7 +1404,29 @@ function App(){
   useEffect(()=>{localStorage.setItem("f6_superRate",JSON.stringify(superDrawRate));},[superDrawRate]);
   useEffect(()=>{localStorage.setItem("f6_avgSuper",JSON.stringify(avgSuperBalanceAud));},[avgSuperBalanceAud]);
   useEffect(()=>{localStorage.setItem("f6_whatif",JSON.stringify(whatIf));},[whatIf]);
-  useEffect(()=>{document.body.style.background=T.bg;document.body.style.color=T.text;},[T]);
+
+  /* ── Theme CSS variables + body styles ── */
+  useEffect(()=>{
+    document.body.style.background=T.bg;
+    document.body.style.color=T.text;
+    const r=document.documentElement.style;
+    r.setProperty("--bg",T.bg);
+    r.setProperty("--bg2",T.bg2);
+    r.setProperty("--bg3",T.bg3);
+    r.setProperty("--bg4",T.bg4);
+    r.setProperty("--bg5",T.bg5);
+    r.setProperty("--border",T.border);
+    r.setProperty("--border2",T.border2);
+    r.setProperty("--card-bg",T.cardBg);
+    r.setProperty("--text",T.text);
+    r.setProperty("--text2",T.text2);
+    r.setProperty("--text3",T.text3);
+    r.setProperty("--text4",T.text4);
+    r.setProperty("--hover-bg",T.hoverBg);
+    r.setProperty("--kpi-label",T.kpiLabel);
+    r.setProperty("--sysinfo-color",T.sysinfoColor);
+    r.setProperty("--shadow",T.shadow);
+  },[T]);
 
   const cloudLoadAll=useCallback(async(userParam)=>{
     let user=userParam||fbUserRef.current||(fbAuth&&fbAuth.currentUser);
@@ -1681,7 +1701,29 @@ function App(){
       (buyFlowMap[thisMonthKey].buys-buyFlowMap[thisMonthKey].sells):0;
     const bfThisMonthCount=buyFlowMap[thisMonthKey]?buyFlowMap[thisMonthKey].buyCount:0;
 
-    return {labels,rawDates,vals,divCumul,startVal,endVal,tLabels,tVals,palette,
+    /* Invested capital over time vs portfolio value */
+    const investedSeries=[];
+    {
+      const txs=[];
+      portfolio.forEach(h=>h.transactions.forEach(tx=>{
+        if((tx.type==="buy"||tx.type==="sell")&&tx.date){
+          txs.push({date:tx.date,amt:toAUD((tx.qty||0)*(tx.price||0),h.currency,rates),
+            type:tx.type});
+        }
+      }));
+      txs.sort((a,b)=>new Date(a.date)-new Date(b.date));
+      let running=0, ti=0;
+      for(const pt of sorted){
+        const pd=pt.date;
+        while(ti<txs.length&&txs[ti].date<=pd){
+          running+=txs[ti].type==="buy"?txs[ti].amt:-txs[ti].amt;
+          ti++;
+        }
+        investedSeries.push(Math.max(0,running));
+      }
+    }
+
+    return {labels,rawDates,vals,divCumul,investedSeries,startVal,endVal,tLabels,tVals,palette,
       byCurLabels,byCurVals,byCurColors,mLabels,mVals,
       mDatasets:[{label:"Income",data:mVals,
         backgroundColor:dark?"rgba(138,180,248,.6)":"rgba(26,115,232,.5)",
@@ -2504,38 +2546,43 @@ function App(){
         </header>
 
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
-          padding:"6px 14px",borderBottom:"1px solid "+T.border,background:T.bg2,flexWrap:"wrap",gap:4}}>
-          <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
-            {view==="treemap"&&tmMode==="performance"&&<>
-              <span style={{fontSize:8,color:T.text3,letterSpacing:1,textTransform:"uppercase",fontWeight:500}}>G/L:</span>
-              <div style={{display:"flex",alignItems:"center",gap:3}}>
-                <span style={{fontSize:8,color:T.text3}}>−</span>
-                <div style={{width:80,height:5,borderRadius:3,
-                  background:dark?"linear-gradient(to right, #ea4335, #3d3d3d, #34a853)":"linear-gradient(to right, #ea4335, #e8eaed, #34a853)"}}/>
-                <span style={{fontSize:8,color:T.text3}}>+</span>
-              </div>
-              <span style={{fontSize:8,color:T.text4}}>· Box size = value</span>
-            </>}
-            {view==="treemap"&&tmMode==="day"&&<>
-              <span style={{fontSize:8,color:T.text3,letterSpacing:1,textTransform:"uppercase",fontWeight:500}}>Day:</span>
-              <div style={{display:"flex",alignItems:"center",gap:3}}>
-                <span style={{fontSize:8,color:T.text3}}>−</span>
-                <div style={{width:80,height:5,borderRadius:3,
-                  background:dark?"linear-gradient(to right, #ea4335, #3d3d3d, #34a853)":"linear-gradient(to right, #ea4335, #e8eaed, #34a853)"}}/>
-                <span style={{fontSize:8,color:T.text3}}>+</span>
-              </div>
-              <span style={{fontSize:8,color:T.text4}}>· Box size = value</span>
-            </>}
-            {view==="treemap"&&tmMode==="dividend"&&<>
-              <span style={{fontSize:8,color:T.text3,letterSpacing:1,textTransform:"uppercase",fontWeight:500}}>Div yld:</span>
-              {[[-1,"0%"],[0.5,">0%"],[2,"+2%"],[4,"+4%"],[6,"+6%+"]].map(([y,l])=>{
-                const c=divColor(y,dark);
-                return(<div key={l} style={{display:"flex",alignItems:"center",gap:3}}>
-                  <div style={{width:9,height:9,borderRadius:2,background:c.bg,border:"1px solid "+c.border}}/>
-                  <span style={{fontSize:8,color:T.text3}}>{l}</span></div>);
-              })}
-              <span style={{fontSize:8,color:T.text4}}>· Box size = dividends</span>
-            </>}
+          padding:"6px 14px",borderBottom:"1px solid "+T.border,background:T.bg2,flexWrap:"wrap",gap:4,
+          minHeight:42}}>
+          <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",minHeight:22}}>
+            {view==="treemap"&&(
+              <>
+                {tmMode==="performance"&&<>
+                  <span style={{fontSize:8,color:T.text3,letterSpacing:1,textTransform:"uppercase",fontWeight:500}}>G/L:</span>
+                  <div style={{display:"flex",alignItems:"center",gap:3}}>
+                    <span style={{fontSize:8,color:T.text3}}>−</span>
+                    <div style={{width:80,height:5,borderRadius:3,
+                      background:dark?"linear-gradient(to right, #ea4335, #3d3d3d, #34a853)":"linear-gradient(to right, #ea4335, #e8eaed, #34a853)"}}/>
+                    <span style={{fontSize:8,color:T.text3}}>+</span>
+                  </div>
+                  <span style={{fontSize:8,color:T.text4}}>· Box size = value</span>
+                </>}
+                {tmMode==="day"&&<>
+                  <span style={{fontSize:8,color:T.text3,letterSpacing:1,textTransform:"uppercase",fontWeight:500}}>Day:</span>
+                  <div style={{display:"flex",alignItems:"center",gap:3}}>
+                    <span style={{fontSize:8,color:T.text3}}>−</span>
+                    <div style={{width:80,height:5,borderRadius:3,
+                      background:dark?"linear-gradient(to right, #ea4335, #3d3d3d, #34a853)":"linear-gradient(to right, #ea4335, #e8eaed, #34a853)"}}/>
+                    <span style={{fontSize:8,color:T.text3}}>+</span>
+                  </div>
+                  <span style={{fontSize:8,color:T.text4}}>· Box size = value</span>
+                </>}
+                {tmMode==="dividend"&&<>
+                  <span style={{fontSize:8,color:T.text3,letterSpacing:1,textTransform:"uppercase",fontWeight:500}}>Div yld:</span>
+                  {[[-1,"0%"],[0.5,">0%"],[2,"+2%"],[4,"+4%"],[6,"+6%+"]].map(([y,l])=>{
+                    const c=divColor(y,dark);
+                    return(<div key={l} style={{display:"flex",alignItems:"center",gap:3}}>
+                      <div style={{width:9,height:9,borderRadius:2,background:c.bg,border:"1px solid "+c.border}}/>
+                      <span style={{fontSize:8,color:T.text3}}>{l}</span></div>);
+                  })}
+                  <span style={{fontSize:8,color:T.text4}}>· Box size = dividends</span>
+                </>}
+              </>
+            )}
           </div>
           <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
             {view==="treemap"&&(
@@ -2842,29 +2889,59 @@ function App(){
 
               <div className="chart-row">
                 <div style={card({padding:14})}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8,flexWrap:"wrap",gap:6}}>
                     <div>
-                      <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>Portfolio Value Over Time</div>
-                      <div style={{fontSize:10,color:T.text3,fontWeight:400}}>{displayCur} · {chartPeriod} · {holdings.length} holdings</div>
+                      <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>💼 Invested Capital vs Portfolio Value</div>
+                      <div style={{fontSize:10,color:T.text3,fontWeight:400}}>
+                        How much you've put in vs what it's worth · {displayCur} · {chartPeriod}
+                      </div>
                     </div>
-                    {chartData.labels.length>=2&&<div style={{textAlign:"right"}}>
-                      <div style={{fontSize:9,color:T.text3,fontWeight:400}}>Period return</div>
-                      <div style={{fontFamily:"'Space Mono',monospace",fontSize:13,fontWeight:700,
-                        color:pColor(chartData.endVal-chartData.startVal)}}>
-                        {fmtPct(chartData.startVal>0?(chartData.endVal-chartData.startVal)/chartData.startVal*100:0)}</div>
-                    </div>}
+                    {chartData.labels.length>=2&&(()=>{
+                      const inv=chartData.investedSeries?.[chartData.investedSeries.length-1]||0;
+                      const val=chartData.endVal;
+                      const gain=val-inv;
+                      const gainPct=inv>0?(gain/inv)*100:0;
+                      return (
+                        <div style={{textAlign:"right"}}>
+                          <div style={{fontSize:9,color:T.text3,fontWeight:400}}>Total gain (value − invested)</div>
+                          <div style={{fontFamily:"'Space Mono',monospace",fontSize:14,fontWeight:700,
+                            color:pColor(gain)}}>
+                            {FC(gain,true)}
+                            <span style={{fontSize:11,marginLeft:5,opacity:.8}}>{fmtPct(gainPct)}</span>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                   <ChartLine labels={chartData.labels}
                     datasets={[
                       {label:"Portfolio Value",data:chartData.vals,
                         borderColor:dark?"#34a853":"#1e8e3e",
-                        backgroundColor:dark?"rgba(52,168,83,.08)":"rgba(30,142,62,.06)",
+                        backgroundColor:dark?"rgba(52,168,83,.15)":"rgba(30,142,62,.1)",
                         fill:true,borderWidth:2,yAxisID:"y"},
-                      {label:"Cum. Dividends / Coupons",data:chartData.divCumul,
+                      {label:"Net Invested Capital",data:chartData.investedSeries||[],
                         borderColor:dark?"#8ab4f8":"#1a73e8",
-                        backgroundColor:"transparent",borderDash:[5,4],borderWidth:1.5,yAxisID:"y2"},
+                        backgroundColor:dark?"rgba(138,180,248,.08)":"rgba(26,115,232,.05)",
+                        borderDash:[6,4],borderWidth:1.75,fill:true,yAxisID:"y"},
                     ]}
-                    T={T} yFmt={yFmtMain} y2Fmt={yFmtMain} height={isMob?220:260} mobile={isMob}/>
+                    T={T} yFmt={yFmtMain} height={isMob?220:260} mobile={isMob}/>
+                  <div style={{display:"flex",gap:14,marginTop:8,flexWrap:"wrap",fontSize:9,color:T.text3}}>
+                    <div style={{display:"flex",alignItems:"center",gap:5}}>
+                      <div style={{width:14,height:3,borderRadius:2,background:dark?"#34a853":"#1e8e3e"}}/>
+                      <span>Portfolio Value</span>
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:5}}>
+                      <div style={{width:14,height:3,borderRadius:2,
+                        background:"repeating-linear-gradient(90deg,"+(dark?"#8ab4f8":"#1a73e8")+" 0 4px,transparent 4px 7px)"}}/>
+                      <span>Net Invested Capital</span>
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:5}}>
+                      <div style={{width:14,height:8,borderRadius:2,
+                        background:dark?"rgba(52,168,83,.25)":"rgba(30,142,62,.15)",
+                        border:"1px dashed "+(dark?"#34a85377":"#1e8e3e77")}}/>
+                      <span>Gain zone (value above invested)</span>
+                    </div>
+                  </div>
                 </div>
                 <div style={card({padding:14})}>
                   <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>Asset Allocation</div>
@@ -2928,7 +3005,7 @@ function App(){
                       <div className="bf-legend-dot" style={{background:"#ea4335"}}></div>Sells (capital out)
                     </div>
                     <div className="bf-legend-item">
-                      <div className="bf-legend-line" style={{background:"#8ab4f8"}}></div>Cumulative Net Invested
+                      <div className="bf-legend-line" style={{background:dark?"#8ab4f8":"#1a73e8"}}></div>Cumulative Net Invested
                     </div>
                   </div>
                 </div>
