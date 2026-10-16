@@ -33,9 +33,7 @@
            border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.25),0 8px 24px -12px rgba(0,0,0,.5)}
   .chart-wrap{position:relative;width:100%;min-width:0}
   .chart-row{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px;align-items:stretch}
-  .chart-row-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:stretch}
-  @media (max-width:900px){.chart-row{grid-template-columns:1fr}
-    .chart-row-3{grid-template-columns:1fr}}
+  @media (max-width:900px){.chart-row{grid-template-columns:1fr}}
 
   .toolbar-strip{scrollbar-width:none;-ms-overflow-style:none}
   .toolbar-strip::-webkit-scrollbar{display:none}
@@ -50,28 +48,6 @@
   .header-kpi .sub{font-size:10px;font-weight:500;opacity:.7}
   .header-sysinfo{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:10px;
     color:var(--sysinfo-color,#9aa0a6)}
-
-  .risk-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:6px}
-  .risk-card{border-radius:10px;padding:10px 12px;background:var(--card-bg,#252525);
-             border:1px solid var(--border,#3d3d3d);text-align:center;position:relative;
-             overflow:hidden}
-  .risk-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
-    background:linear-gradient(180deg,#34a853,#1a73e8);opacity:.6}
-  .risk-card .label{font-size:9px;letter-spacing:1px;text-transform:uppercase;font-weight:600;
-    color:var(--text3,#9aa0a6)}
-  .risk-card .value{font-size:16px;font-weight:700;font-family:'Space Mono',monospace;margin-top:2px;
-    font-variant-numeric:tabular-nums}
-  .risk-card .sub{font-size:10px;color:var(--text3,#9aa0a6);margin-top:1px;font-weight:400}
-
-  .bf-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:12px}
-  @media (max-width:640px){.bf-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
-  .bf-sum-card{background:var(--bg4,#333);border:1px solid var(--border,#3d3d3d);border-radius:8px;
-    padding:8px 10px}
-  .bf-sum-label{font-size:8px;color:var(--text3,#9aa0a6);letter-spacing:.8px;text-transform:uppercase;
-    font-weight:600;margin-bottom:3px}
-  .bf-sum-value{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;line-height:1.2;
-    font-variant-numeric:tabular-nums}
-  .bf-sum-sub{font-size:8px;color:var(--text4,#6c7278);font-weight:500;margin-top:2px}
 
   .table-container{overflow:auto;max-height:600px;border-radius:12px;border:1px solid var(--border,#3d3d3d)}
   .table-container table{border-collapse:separate;border-spacing:0;width:100%}
@@ -104,39 +80,15 @@
   .scenario-card{border-radius:10px;padding:12px 14px;border:1px solid var(--border,#3d3d3d);
                  background:var(--bg3,#2a2a2a)}
 
-  .hero-kpi{position:relative;border-radius:14px;padding:14px 16px;
-    background:var(--card-bg,#252525);border:1px solid var(--border,#3d3d3d);
-    overflow:hidden;transition:transform .2s ease,box-shadow .2s ease}
-  .hero-kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;
-    background:linear-gradient(180deg,#34a853,#1a73e8)}
-  .hero-kpi:hover{transform:translateY(-2px);box-shadow:0 8px 24px -8px rgba(0,0,0,.4)}
-  .hero-kpi .h-label{font-size:9px;letter-spacing:1.2px;text-transform:uppercase;font-weight:600;
-    color:var(--text3,#9aa0a6);display:flex;align-items:center;gap:6px;margin-bottom:6px}
-  .hero-kpi .h-value{font-family:'Space Mono',monospace;font-size:20px;font-weight:700;
-    line-height:1.15;letter-spacing:-0.5px;font-variant-numeric:tabular-nums}
-  .hero-kpi .h-sub{font-size:10px;color:var(--text3,#9aa0a6);margin-top:4px;font-weight:500}
-
   .view-tabs{display:flex;background:var(--bg4,#333);border-radius:14px;padding:2px;
     border:1px solid var(--border,#3d3d3d);flex-shrink:0}
   .view-tabs button{padding:4px 10px;border-radius:12px;border:none;font-size:10px;font-weight:500;
     transition:all .18s ease}
   .view-tabs-mobile{display:none}
 
-  .contrib-row{display:flex;align-items:center;gap:8px;padding:6px 0;
-    border-bottom:1px solid var(--border,#3d3d3d);font-variant-numeric:tabular-nums}
-  .contrib-row:last-child{border-bottom:none}
-  .contrib-ticker{font-family:'Space Mono',monospace;font-weight:700;font-size:11px;
-    min-width:52px;color:var(--text,#e8eaed)}
-  .contrib-bar-wrap{flex:1;height:8px;border-radius:4px;background:var(--bg4,#333);
-    overflow:hidden;position:relative}
-  .contrib-bar{height:100%;border-radius:4px;transition:width .35s ease}
-  .contrib-val{font-family:'Space Mono',monospace;font-size:10px;font-weight:600;
-    min-width:70px;text-align:right}
-
   @media (max-width:900px){
     .header-kpis{gap:12px}
     .header-kpi .value{font-size:15px}
-    .risk-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
     .whatif-layout{grid-template-columns:1fr;min-height:auto}
   }
 
@@ -156,10 +108,6 @@
     .header-kpi .sub{font-size:8px}
     .header-sysinfo{font-size:8px;gap:6px}
     .header-sysinfo .sep{display:none}
-
-    .risk-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
-    .risk-card{padding:8px 10px}
-    .risk-card .value{font-size:14px}
 
     .table-container{max-height:480px;font-size:10px;border-radius:10px}
     .table-container th,.table-container td{padding:6px 8px !important;font-size:10px !important}
@@ -197,12 +145,6 @@
       padding-bottom:calc(20px + env(safe-area-inset-bottom,0px)) !important;
       border-top:1px solid var(--border,#3d3d3d);
       box-shadow:0 -12px 36px rgba(0,0,0,.25) !important}
-
-    .hero-kpi{padding:12px 14px}
-    .hero-kpi .h-value{font-size:17px}
-
-    .contrib-ticker{min-width:44px;font-size:10px}
-    .contrib-val{min-width:56px;font-size:9px}
   }
 
   @media (max-width:400px){
@@ -850,86 +792,6 @@ function ChartDoughnut({labels,data,colors,T,height=230,mobile=false}){
   return <div className="chart-wrap" style={{height}}><canvas ref={ref} /></div>;
 }
 
-function ChartMonthlyReturn({labels,returns,values,T,yFmt,height=260,mobile=false,dark=false}){
-  const ref=useRef(null);
-  const inst=useRef(null);
-  const sig=useMemo(()=>{try{return JSON.stringify({labels,returns,values,dark});}
-    catch{return String(Date.now());}},[labels,returns,values,dark]);
-  useEffect(()=>{
-    if(!ref.current||typeof Chart==="undefined")return;
-    if(inst.current){inst.current.destroy();inst.current=null;}
-    const tickSize=mobile?11:10;
-    const maxTicks=mobile?6:10;
-    const barColors=returns.map(r=>r>=0
-      ? (dark?"rgba(52,168,83,.75)":"rgba(30,142,62,.7)")
-      : (dark?"rgba(234,67,53,.75)":"rgba(217,48,37,.7)"));
-    const borderColors=returns.map(r=>r>=0
-      ? (dark?"#34a853":"#1e8e3e") : (dark?"#ea4335":"#d93025"));
-    inst.current=new Chart(ref.current,{
-      data:{
-        labels,
-        datasets:[
-          {type:"bar",label:"Monthly Return %",data:returns,
-            backgroundColor:barColors,borderColor:borderColors,borderWidth:1,
-            borderRadius:4,borderSkipped:false,yAxisID:"y",order:2},
-          {type:"line",label:"Portfolio Value",data:values,
-            borderColor:T.teal,backgroundColor:"transparent",borderWidth:2,
-            pointRadius:mobile?1.5:2,pointHoverRadius:4,tension:0.35,fill:false,
-            yAxisID:"y2",order:1},
-        ],
-      },
-      options:{
-        responsive:true,maintainAspectRatio:false,
-        animation:{duration:320},
-        interaction:{mode:"index",intersect:false},
-        plugins:{
-          legend:{display:true,labels:{color:T.text2,font:{family:"Roboto",size:mobile?10:11,weight:"500"},
-            boxWidth:10,padding:mobile?8:12,usePointStyle:true}},
-          tooltip:{
-            backgroundColor:T.bg2,borderColor:T.border,borderWidth:1,
-            titleColor:T.text,bodyColor:T.text2,padding:10,cornerRadius:8,
-            callbacks:{
-              label:ctx=>{
-                const v=ctx.parsed.y;
-                if(ctx.dataset.label==="Monthly Return %")
-                  return `  Return: ${v>=0?"+":""}${v.toFixed(2)}%`;
-                return `  Value: ${yFmt?yFmt(v):v}`;
-              },
-            },
-          },
-        },
-        scales:{
-          x:{grid:{color:"transparent"},
-            ticks:{color:T.chartTick,font:{size:tickSize,weight:"500"},maxRotation:0,
-              autoSkip:true,maxTicksLimit:maxTicks},
-            border:{color:T.border}},
-          y:{position:"left",grid:{color:T.chartGrid},
-            ticks:{color:T.chartTick,font:{size:tickSize,weight:"500"},
-              callback:v=>`${v>=0?"+":""}${v.toFixed(1)}%`},
-            border:{color:T.border}},
-          y2:{position:"right",grid:{drawOnChartArea:false},
-            ticks:{color:T.teal,font:{size:tickSize,weight:"500"},callback:yFmt||(v=>v)},
-            border:{color:T.border}},
-        },
-      },
-    });
-    return()=>{if(inst.current){inst.current.destroy();inst.current=null;}};
-  },[sig,T,yFmt,mobile,dark]);
-
-  const empty=!labels?.length;
-  return (
-    <div className="chart-wrap" style={{height}}>
-      <canvas ref={ref}/>
-      {empty&&(
-        <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",
-          justifyContent:"center",color:T.text3,fontSize:11,fontWeight:500,pointerEvents:"none"}}>
-          No data for selected period
-        </div>
-      )}
-    </div>
-  );
-}
-
 /* ═══════════════════════════════════════════════════════════════════
    IMPORT / EXPORT
    ═══════════════════════════════════════════════════════════════════ */
@@ -1159,85 +1021,108 @@ function exportTransactionsCSV(portfolio){
   a.href=URL.createObjectURL(blob); a.click(); URL.revokeObjectURL(a.href);
 }
 
-function computeRiskMetrics(hist){
-  if(!hist||hist.length<3)return{volatility:null,maxDrawdown:null,bestMonth:null,worstMonth:null};
-  const sorted=[...hist].sort((a,b)=>new Date(a.date)-new Date(b.date));
-  const vals=sorted.map(d=>d.totalValueAUD);
-  const rets=[];
-  for(let i=1;i<vals.length;i++)if(vals[i-1]>0){
-    let r=(vals[i]-vals[i-1])/vals[i-1];
-    if(r>1)r=1; if(r<-1)r=-1;
-    rets.push(r);
+/* ═══════════════════════════════════════════════════════════════════
+   CHART SUGGESTION ENGINE
+   ═══════════════════════════════════════════════════════════════════ */
+function computeDeploymentSuggestions({holdings,totVal,whatIf,incomeRiskMetrics}){
+  if(!holdings.length||totVal<=0)return[];
+  const tips=[];
+
+  /* 1. Under-allocated vs target */
+  const tp=whatIf&&whatIf.targetPct&&typeof whatIf.targetPct==="object"?whatIf.targetPct:{};
+  const hasTargets=Object.keys(tp).length>0;
+  if(hasTargets){
+    holdings.forEach(h=>{
+      const curPct=(h.currentValue/totVal)*100;
+      const targetPct=tp[h.ticker];
+      if(targetPct!==undefined&&targetPct-curPct>5){
+        tips.push({
+          type:"rebalance",
+          ticker:h.ticker,
+          severity:targetPct-curPct>15?"high":"med",
+          head:`Under-allocated in ${h.ticker}`,
+          detail:`Currently ${curPct.toFixed(1)}% · target ${targetPct.toFixed(0)}% · add ~${((targetPct-curPct)/100*totVal).toFixed(0)} AUD to reach target`,
+          score:targetPct-curPct,
+        });
+      }
+    });
   }
-  if(rets.length<2)return{volatility:null,maxDrawdown:null,bestMonth:null,worstMonth:null};
-  const mean=rets.reduce((s,r)=>s+r,0)/rets.length;
-  const variance=rets.reduce((s,r)=>s+(r-mean)**2,0)/rets.length;
-  const vol=Math.sqrt(variance)*Math.sqrt(12);
-  let peak=vals[0], maxDD=0;
-  for(const v of vals){if(v>peak)peak=v; const dd=peak>0?(peak-v)/peak:0; if(dd>maxDD)maxDD=dd;}
-  const mr=[];
-  for(let i=1;i<vals.length;i++){
-    let r=vals[i-1]>0?(vals[i]-vals[i-1])/vals[i-1]:0;
-    if(r>1)r=1; if(r<-1)r=-1;
-    mr.push({date:sorted[i].date,ret:r});
+
+  /* 2. Opportunity cost */
+  const losers=holdings.filter(h=>h.totalInvested>0&&h.totalGain/h.totalInvested<0.02);
+  const winners=holdings.filter(h=>h.totalInvested>0&&h.totalGain/h.totalInvested>0.15);
+  if(winners.length&&losers.length){
+    const best=winners.reduce((a,b)=>(b.totalGain/b.totalInvested)>(a.totalGain/a.totalInvested)?b:a);
+    const worst=losers.reduce((a,b)=>(b.totalGain/b.totalInvested)<(a.totalGain/a.totalInvested)?b:a);
+    tips.push({
+      type:"opportunity",
+      severity:"med",
+      head:`Capital working harder in ${best.ticker} than ${worst.ticker}`,
+      detail:`${best.ticker} is up ${fmtPct(best.totalGain/best.totalInvested*100)} vs ${worst.ticker} at ${fmtPct(worst.totalGain/worst.totalInvested*100)} — consider shifting new money to the stronger position`,
+      score:40,
+    });
   }
-  const best=mr.reduce((a,b)=>a.ret>b.ret?a:b,{ret:-Infinity});
-  const worst=mr.reduce((a,b)=>a.ret<b.ret?a:b,{ret:Infinity});
-  return {volatility:vol*100,maxDrawdown:maxDD*100,
-    bestMonth:best.ret!==-Infinity?{date:best.date,ret:best.ret*100}:null,
-    worstMonth:worst.ret!==Infinity?{date:worst.date,ret:worst.ret*100}:null};
+
+  /* 3. Concentration */
+  const top=[...holdings].sort((a,b)=>b.currentValue-a.currentValue)[0];
+  if(top&&top.currentValue/totVal>0.35){
+    tips.push({
+      type:"concentration",
+      ticker:top.ticker,
+      severity:top.currentValue/totVal>0.5?"high":"med",
+      head:`${top.ticker} is ${(top.currentValue/totVal*100).toFixed(0)}% of your portfolio`,
+      detail:`Above the typical 25–30% comfort zone. New contributions could be spread across other positions`,
+      score:(top.currentValue/totVal)*60,
+    });
+  }
+
+  /* 4. Income concentration */
+  if(incomeRiskMetrics&&incomeRiskMetrics.concentration!==null&&incomeRiskMetrics.concentration>0.6){
+    tips.push({
+      type:"income-risk",
+      severity:"med",
+      head:`${(incomeRiskMetrics.concentration*100).toFixed(0)}% of income from top 3 holdings`,
+      detail:`Diversifying income sources reduces the impact of any single dividend cut`,
+      score:incomeRiskMetrics.concentration*50,
+    });
+  }
+
+  /* 5. Dividend payers underweighted */
+  const divPaying=holdings.filter(h=>DIVIDEND_PAYING_TYPES.has(h.assetType));
+  const divPayingVal=divPaying.reduce((s,h)=>s+h.currentValue,0);
+  const divShare=totVal>0?(divPayingVal/totVal)*100:0;
+  if(divShare<50&&holdings.length>=3){
+    tips.push({
+      type:"income-gap",
+      severity:"low",
+      head:`Only ${divShare.toFixed(0)}% of portfolio pays dividends`,
+      detail:`Growing the income-generating portion could improve the passive-income trajectory`,
+      score:50-divShare,
+    });
+  }
+
+  const sevRank={high:3,med:2,low:1};
+  tips.sort((a,b)=>(sevRank[b.severity]-sevRank[a.severity])||(b.score-a.score));
+  return tips.slice(0,4);
 }
 
-function computeIncomeRiskMetrics(portfolio,rates){
-  if(!Array.isArray(portfolio))return{totalIncome:0,stability:null,payoutRisk:null,cutProb:null,
-    concentration:null,dividendGrowth:null};
-  const divHoldings=portfolio.filter(h=>DIVIDEND_PAYING_TYPES.has(h.assetType)&&
-    !INCOME_RISK_EXCLUDED_TICKERS.has(h.ticker));
-  if(!divHoldings.length)return{totalIncome:0,stability:null,payoutRisk:null,cutProb:null,
-    concentration:null,dividendGrowth:null};
-  const quarterly={},holdingTotal={},yearly={};
-  for(const h of divHoldings){
-    const tx=h.transactions.filter(t=>t.type==="dividend"&&t.date);
-    for(const t of tx){
-      const d=new Date(t.date), q=Math.floor(d.getMonth()/3)+1;
-      const qk=`${d.getFullYear()}-Q${q}`, y=String(d.getFullYear());
-      const amt=toAUD(t.totalAmount||0,h.currency,rates);
-      quarterly[qk]=(quarterly[qk]||0)+amt;
-      yearly[y]=(yearly[y]||0)+amt;
-      holdingTotal[h.ticker]=(holdingTotal[h.ticker]||0)+amt;
-    }
-  }
-  const qks=Object.keys(quarterly).sort();
-  if(qks.length<3)return{totalIncome:0,stability:null,payoutRisk:null,cutProb:null,
-    concentration:null,dividendGrowth:null};
-  const vals=qks.map(k=>quarterly[k]);
-  const mean=vals.reduce((a,b)=>a+b,0)/vals.length;
-  const std=Math.sqrt(vals.reduce((s,v)=>s+(v-mean)**2,0)/vals.length);
-  const cv=mean>0?std/mean:1;
-  const stability=Math.max(0,Math.min(1,1-Math.min(cv,1)));
-  let peak=-Infinity,maxDD=0;
-  for(const v of vals){if(v>peak)peak=v; if(peak>0){const dd=(peak-v)/peak; if(dd>maxDD)maxDD=dd;}}
-  const payoutRisk=Math.min(1,maxDD);
-  let cutProb;
-  if(stability>0.7&&payoutRisk<0.3)cutProb="Low";
-  else if(stability>0.5&&payoutRisk<0.5)cutProb="Low–Medium";
-  else if(payoutRisk<0.6)cutProb="Medium";
-  else if(payoutRisk<0.75)cutProb="Medium–High";
-  else cutProb="High";
-  const sortedInc=Object.values(holdingTotal).sort((a,b)=>b-a);
-  const top3=sortedInc.slice(0,3).reduce((s,v)=>s+v,0);
-  const total=sortedInc.reduce((s,v)=>s+v,0);
-  const concentration=total>0?top3/total:0;
-  const years=Object.keys(yearly).sort();
-  let dividendGrowth=null;
-  if(years.length>=2){
-    const fy=years[0], ly=years[years.length-1];
-    const fv=yearly[fy], lv=yearly[ly];
-    const n=parseInt(ly)-parseInt(fy);
-    if(n>0&&fv>0&&lv>0)dividendGrowth=(Math.pow(lv/fv,1/n)-1)*100;
-  }
-  return {totalIncome:total,stability,payoutRisk,cutProb,concentration,dividendGrowth,
-    quarters:qks,incomeValues:vals};
+function computeDividendSafety({holdings,rates}){
+  const rows=[];
+  const R=rates||{AUD_IDR:10550,AUD_USD:0.645};
+  holdings.forEach(h=>{
+    const divTx=h.transactions.filter(t=>t.type==="dividend"&&t.date);
+    if(divTx.length<2)return;
+    const sorted=[...divTx].sort((a,b)=>new Date(a.date)-new Date(b.date));
+    const half=Math.floor(sorted.length/2);
+    const early=sorted.slice(0,half);
+    const recent=sorted.slice(half);
+    const avgEarly=early.reduce((s,t)=>s+toAUD(t.totalAmount||0,h.currency,R),0)/Math.max(early.length,1);
+    const avgRecent=recent.reduce((s,t)=>s+toAUD(t.totalAmount||0,h.currency,R),0)/Math.max(recent.length,1);
+    if(avgEarly<=0)return;
+    const change=((avgRecent-avgEarly)/avgEarly)*100;
+    rows.push({ticker:h.ticker,change,avgRecent,avgEarly,total:h.totalDividends});
+  });
+  return rows.filter(r=>Math.abs(r.change)>10).sort((a,b)=>a.change-b.change);
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -1514,7 +1399,6 @@ function App(){
     const filtered=history.filter(d=>new Date(d.date)>=cutoff);
     const sorted=[...filtered].sort((a,b)=>new Date(a.date)-new Date(b.date));
 
-    /* Monthly resampling: last data point per month */
     const monthlyMap={};
     sorted.forEach(d=>{
       const m=d.date.slice(0,7);
@@ -1575,7 +1459,6 @@ function App(){
     });
     const dcEntries=Object.entries(divContrib).sort((a,b)=>b[1]-a[1]);
     const dcTotal=dcEntries.reduce((s,e)=>s+e[1],0);
-    const dcItems=dcEntries.map(([t,v])=>({ticker:t,amount:v,pct:dcTotal>0?(v/dcTotal)*100:0}));
 
     const holdingCapital=holdings.map(h=>({
       ticker:h.ticker,
@@ -1599,13 +1482,14 @@ function App(){
     const t12=dcTotal;
 
     return {
-      mLabels,mValues,mReturns,
+      labels:mLabels,mLabels,mValues,mReturns,
       winRate,avgReturn,bestMonth,worstMonth,
       positiveMonths,totalMonths,
       tLabels,tVals,palette,
       perfLabels,perfData,perfColors,perfItems,
       qLabels,qVals,qoqGrowth,yoyGrowth,
-      dcItems,dcTotal,holdingCapital,
+      dcItems:dcEntries.map(([t,v])=>({ticker:t,amount:v,pct:dcTotal>0?(v/dcTotal)*100:0})),
+      dcTotal,holdingCapital,
       t12,
     };
   },[history,holdings,portfolio,rates,chartPeriod,dark,periodCutoff]);
@@ -2727,75 +2611,21 @@ function App(){
 
           {view==="chart"&&(
             <div style={{display:"flex",flexDirection:"column",gap:14}}>
-              {/* Hero KPIs */}
-              <div style={{display:"grid",
-                gridTemplateColumns:isMob?"1fr 1fr":isTablet?"repeat(2,1fr)":"repeat(4,1fr)",gap:10}}>
-                {(()=>{
-                  const totROI=totInv>0?((totVal+totDivs-totInv)/totInv)*100:0;
-                  return [
-                    {l:"Total Invested",v:FC(totInv),c:T.text2,ic:"💰",
-                     sub:`${holdings.length} positions`},
-                    {l:"Current Value",v:FC(totVal),c:T.text,ic:"📈",
-                     sub:`${FC(totDayGain)} today`},
-                    {l:"Total Return",v:`${FG(totGain)}`,c:pColor(totGain),ic:"🏆",
-                     sub:`${fmtPct(totROI)} ROI`},
-                    {l:"Total Income",v:FC(totDivs),c:T.teal,ic:"🌱",
-                     sub:`${fmtPct(divYieldOnly)} yield on cost`},
-                  ];
-                })().map(k=>(
-                  <div key={k.l} className="hero-kpi">
-                    <div className="h-label"><span style={{fontSize:14}}>{k.ic}</span>{k.l}</div>
-                    <div className="h-value" style={{color:k.c}}>{k.v}</div>
-                    <div className="h-sub">{k.sub}</div>
-                  </div>
-                ))}
+              <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                <span style={{fontSize:10,color:T.text3,fontWeight:500}}>Period:</span>
+                <div style={{display:"flex",gap:3,background:T.bg3,padding:3,borderRadius:14,
+                  border:"1px solid "+T.border}}>
+                  {["1M","3M","6M","YTD","1Y","5Y"].map(p=>(
+                    <button key={p} onClick={()=>setChartPeriod(p)}
+                      style={{padding:"4px 12px",borderRadius:12,border:"none",
+                        background:chartPeriod===p?"linear-gradient(135deg,#34a853,#1a73e8)":"transparent",
+                        color:chartPeriod===p?"#fff":T.text3,fontSize:10,
+                        fontWeight:chartPeriod===p?600:500,cursor:"pointer"}}>{p}</button>
+                  ))}
+                </div>
+                <span style={{fontSize:9,color:T.text3,marginLeft:2,fontWeight:400}}>{chartData.mLabels?.length||0} pts</span>
               </div>
 
-              {/* Top: Monthly Return + Allocation */}
-              <div className="chart-row">
-                <div style={card({padding:14})}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8,flexWrap:"wrap",gap:6}}>
-                    <div>
-                      <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>📊 Monthly Return &amp; Portfolio Value</div>
-                      <div style={{fontSize:10,color:T.text3,fontWeight:400}}>Green months = up · Red months = down · {chartPeriod}</div>
-                    </div>
-                  </div>
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6,marginBottom:10}}>
-                    {[
-                      {l:"Win Rate",v:`${chartData.winRate.toFixed(0)}%`,
-                        s:`${chartData.positiveMonths}/${chartData.totalMonths} months`,
-                        c:chartData.winRate>=60?T.green:chartData.winRate>=40?T.amber:T.red},
-                      {l:"Avg Monthly",v:fmtPct(chartData.avgReturn),
-                        s:"per month",c:pColor(chartData.avgReturn)},
-                      {l:"Best Month",v:fmtPct(chartData.bestMonth),
-                        s:"peak gain",c:T.green},
-                      {l:"Worst Month",v:fmtPct(chartData.worstMonth),
-                        s:"max loss",c:T.red},
-                    ].map(m=>(
-                      <div key={m.l} style={{background:T.bg4,border:"1px solid "+T.border,
-                        borderRadius:8,padding:"6px 8px",textAlign:"center"}}>
-                        <div style={{fontSize:8,color:T.text3,textTransform:"uppercase",
-                          fontWeight:600,letterSpacing:.5,marginBottom:2}}>{m.l}</div>
-                        <div style={{fontFamily:"'Space Mono',monospace",fontSize:12,fontWeight:700,
-                          color:m.c,lineHeight:1.1}}>{m.v}</div>
-                        <div style={{fontSize:8,color:T.text4,marginTop:2}}>{m.s}</div>
-                      </div>
-                    ))}
-                  </div>
-                  <ChartMonthlyReturn labels={chartData.mLabels}
-                    returns={chartData.mReturns}
-                    values={chartData.mValues}
-                    T={T} yFmt={yFmtMain} height={isMob?240:260} mobile={isMob} dark={dark}/>
-                </div>
-                <div style={card({padding:14})}>
-                  <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>Allocation by Type</div>
-                  <div style={{fontSize:10,color:T.text3,marginBottom:8,fontWeight:400}}>{displayCur}</div>
-                  <ChartDoughnut labels={chartData.tLabels} data={chartData.tVals}
-                    colors={chartData.palette} T={T} height={isMob?220:280} mobile={isMob}/>
-                </div>
-              </div>
-
-              {/* Holdings Performance */}
               <div style={card({padding:14})}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",
                   marginBottom:8,flexWrap:"wrap",gap:6}}>
@@ -2806,25 +2636,80 @@ function App(){
                     </div>
                   </div>
                 </div>
-                <ChartBar labels={chartData.perfLabels}
-                  datasets={[{
-                    label:"Return %",
-                    data:chartData.perfData,
-                    backgroundColor:chartData.perfColors,
-                    borderColor:chartData.perfColors,
-                    borderWidth:1,
-                    borderRadius:5,
-                    borderSkipped:false,
-                  }]}
-                  T={T}
-                  yFmt={v=>`${v>=0?"+":""}${v.toFixed(0)}%`}
-                  height={Math.max(180,Math.min(420,chartData.perfLabels.length*32+40))}
-                  horizontal
-                  mobile={isMob}/>
+                {chartData.perfLabels.length===0?
+                  <div style={{padding:20,textAlign:"center",color:T.text3,fontSize:11}}>No holdings yet</div>:
+                  <ChartBar labels={chartData.perfLabels}
+                    datasets={[{
+                      label:"Return %",
+                      data:chartData.perfData,
+                      backgroundColor:chartData.perfColors,
+                      borderColor:chartData.perfColors,
+                      borderWidth:1,
+                      borderRadius:5,
+                      borderSkipped:false,
+                    }]}
+                    T={T}
+                    yFmt={v=>`${v>=0?"+":""}${v.toFixed(0)}%`}
+                    height={Math.max(180,Math.min(420,chartData.perfLabels.length*32+40))}
+                    horizontal
+                    mobile={isMob}/>}
               </div>
 
-              {/* Income section */}
+              <div style={card({padding:14})}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",
+                  marginBottom:10,flexWrap:"wrap",gap:6}}>
+                  <div>
+                    <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>💡 Capital Deployment Playbook</div>
+                    <div style={{fontSize:10,color:T.text3,fontWeight:400}}>
+                      Where your next dollar could work hardest — based on your targets, allocation, and income profile
+                    </div>
+                  </div>
+                </div>
+                {(()=>{
+                  const tips=computeDeploymentSuggestions({
+                    holdings,totVal,whatIf,incomeRiskMetrics
+                  });
+                  if(!tips.length)return(
+                    <div style={{padding:20,textAlign:"center",color:T.text3,fontSize:11}}>
+                      Portfolio is well-balanced — no deployment actions flagged.
+                    </div>);
+                  const sevColor={high:T.red,med:T.amber,low:T.teal};
+                  const sevLabel={high:"Priority",med:"Consider",low:"Note"};
+                  return (
+                    <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                      {tips.map((tip,i)=>(
+                        <div key={i} style={{display:"flex",gap:10,padding:"10px 12px",
+                          background:T.bg4,border:"1px solid "+T.border,borderRadius:10,
+                          borderLeft:"3px solid "+sevColor[tip.severity]}}>
+                          <div style={{flexShrink:0,padding:"2px 8px",height:"fit-content",
+                            borderRadius:10,background:sevColor[tip.severity]+"22",
+                            color:sevColor[tip.severity],fontSize:8,fontWeight:700,
+                            letterSpacing:.5,textTransform:"uppercase"}}>
+                            {sevLabel[tip.severity]}
+                          </div>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:3}}>
+                              {tip.head}
+                            </div>
+                            <div style={{fontSize:10,color:T.text3,lineHeight:1.5,fontWeight:400}}>
+                              {tip.detail}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+
               <div className="chart-row">
+                <div style={card({padding:14})}>
+                  <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>🥧 Allocation by Type</div>
+                  <div style={{fontSize:10,color:T.text3,marginBottom:8,fontWeight:400}}>{displayCur}</div>
+                  <ChartDoughnut labels={chartData.tLabels} data={chartData.tVals}
+                    colors={chartData.palette} T={T} height={isMob?220:260} mobile={isMob}/>
+                </div>
+
                 <div style={card({padding:14})}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8,flexWrap:"wrap",gap:6}}>
                     <div>
@@ -2856,145 +2741,110 @@ function App(){
                       backgroundColor:dark?"rgba(52,168,83,.65)":"rgba(30,142,62,.55)",
                       borderColor:dark?"#81c995":"#1e8e3e",borderWidth:1,borderRadius:5,
                     }]}
-                    T={T} yFmt={yFmtMain} height={isMob?220:240} mobile={isMob}/>
+                    T={T} yFmt={yFmtMain} height={isMob?200:220} mobile={isMob}/>
+                </div>
+              </div>
+
+              <div className="chart-row">
+                <div style={card({padding:14})}>
+                  <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>📐 Drift Watch</div>
+                  <div style={{fontSize:10,color:T.text3,marginBottom:10,fontWeight:400}}>
+                    Current weight vs your What-If target — where your portfolio is diverging
+                  </div>
+                  {(()=>{
+                    const tp=whatIf&&whatIf.targetPct&&typeof whatIf.targetPct==="object"?whatIf.targetPct:{};
+                    const rows=holdings.map(h=>{
+                      const cur=(h.currentValue/totVal)*100;
+                      const tgt=tp[h.ticker]!==undefined?tp[h.ticker]:cur;
+                      return{ticker:h.ticker,current:cur,target:tgt,drift:cur-tgt};
+                    }).filter(r=>Math.abs(r.drift)>0.5)
+                      .sort((a,b)=>Math.abs(b.drift)-Math.abs(a.drift));
+                    if(!rows.length)return(
+                      <div style={{padding:20,textAlign:"center",color:T.text3,fontSize:11}}>
+                        {Object.keys(tp).length===0?
+                          "Set allocation targets in the What-If tab to enable drift tracking.":
+                          "All holdings are within 0.5% of their targets."}
+                      </div>);
+                    return (
+                      <div style={{overflowX:"auto"}}>
+                        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+                          <thead>
+                            <tr>
+                              {["Holding","Current","Target","Drift"].map(c=>(
+                                <th key={c} style={{padding:"6px 8px",textAlign:"left",fontSize:8,
+                                  letterSpacing:1,color:T.text3,textTransform:"uppercase",
+                                  borderBottom:"1px solid "+T.border,fontWeight:600,whiteSpace:"nowrap"}}>{c}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {rows.slice(0,8).map(r=>{
+                              const driftColor=Math.abs(r.drift)>10?(r.drift>0?T.red:T.green):
+                                Math.abs(r.drift)>5?T.amber:T.teal;
+                              const driftLabel=r.drift>0?"Over":"Under";
+                              return (
+                                <tr key={r.ticker}>
+                                  <td style={{padding:"6px 8px",fontFamily:"'Space Mono',monospace",
+                                    fontWeight:700,color:T.text,fontSize:11,
+                                    borderBottom:"1px solid "+T.border}}>{r.ticker}</td>
+                                  <td style={{padding:"6px 8px",fontFamily:"'Space Mono',monospace",
+                                    color:T.text2,fontSize:10,borderBottom:"1px solid "+T.border,
+                                    whiteSpace:"nowrap"}}>{r.current.toFixed(1)}%</td>
+                                  <td style={{padding:"6px 8px",fontFamily:"'Space Mono',monospace",
+                                    color:T.text2,fontSize:10,borderBottom:"1px solid "+T.border,
+                                    whiteSpace:"nowrap"}}>{r.target.toFixed(1)}%</td>
+                                  <td style={{padding:"6px 8px",borderBottom:"1px solid "+T.border,whiteSpace:"nowrap"}}>
+                                    <span style={{padding:"2px 8px",borderRadius:12,
+                                      background:driftColor+"22",color:driftColor,
+                                      fontFamily:"'Space Mono',monospace",fontSize:9,fontWeight:700}}>
+                                      {driftLabel} {Math.abs(r.drift).toFixed(1)}pp
+                                    </span>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 <div style={card({padding:14})}>
-                  <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>🏆 Income Contributors</div>
+                  <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>🛡️ Dividend Safety Check</div>
                   <div style={{fontSize:10,color:T.text3,marginBottom:10,fontWeight:400}}>
-                    Who paid your income in the last 12 months
+                    Holdings whose recent dividend payouts differ materially from their historical average
                   </div>
-                  {chartData.dcItems.length===0?
-                    <div style={{padding:20,textAlign:"center",color:T.text3,fontSize:11}}>
-                      No dividends recorded in the last 12 months</div>:
-                    <div>
-                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",
-                        marginBottom:8,paddingBottom:8,borderBottom:"1px solid "+T.border}}>
-                        <span style={{fontSize:9,color:T.text3,fontWeight:600,
-                          textTransform:"uppercase",letterSpacing:1}}>Total</span>
-                        <span style={{fontFamily:"'Space Mono',monospace",fontSize:14,
-                          fontWeight:700,color:T.teal}}>{FC(chartData.dcTotal)}</span>
+                  {(()=>{
+                    const rows=computeDividendSafety({holdings,rates});
+                    if(!rows.length)return(
+                      <div style={{padding:20,textAlign:"center",color:T.text3,fontSize:11}}>
+                        No significant dividend changes detected in your holdings.
+                      </div>);
+                    return (
+                      <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                        {rows.slice(0,6).map(r=>{
+                          const isCut=r.change<0;
+                          const color=isCut?(r.change<-30?T.red:T.amber):T.green;
+                          return (
+                            <div key={r.ticker} style={{display:"flex",alignItems:"center",
+                              gap:8,padding:"8px 10px",background:T.bg4,
+                              border:"1px solid "+T.border,borderRadius:8}}>
+                              <span style={{fontFamily:"'Space Mono',monospace",fontWeight:700,
+                                fontSize:11,color:T.text,minWidth:52}}>{r.ticker}</span>
+                              <span style={{flex:1,fontSize:10,color:T.text3,fontWeight:400}}>
+                                {isCut?"Recent payouts below historical avg":"Recent payouts above historical avg"}
+                              </span>
+                              <span style={{fontFamily:"'Space Mono',monospace",fontSize:11,
+                                fontWeight:700,color:color,whiteSpace:"nowrap"}}>
+                                {r.change>=0?"+":""}{r.change.toFixed(0)}%
+                              </span>
+                            </div>
+                          );
+                        })}
                       </div>
-                      {chartData.dcItems.map(item=>(
-                        <div key={item.ticker} className="contrib-row">
-                          <span className="contrib-ticker">{item.ticker}</span>
-                          <div className="contrib-bar-wrap">
-                            <div className="contrib-bar" style={{
-                              width:Math.max(2,item.pct)+"%",
-                              background:"linear-gradient(90deg,"+(dark?"#34a853":"#1e8e3e")+","+(dark?"#8ab4f8":"#1a73e8")+")",
-                            }}/>
-                          </div>
-                          <span className="contrib-val" style={{color:T.teal}}>
-                            {FC(item.amount,true)}
-                            <span style={{fontSize:8,opacity:.6,marginLeft:4}}>{item.pct.toFixed(0)}%</span>
-                          </span>
-                        </div>
-                      ))}
-                    </div>}
-                </div>
-              </div>
-
-              {/* Capital Deployed per Holding */}
-              <div style={card({padding:14})}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",
-                  marginBottom:10,flexWrap:"wrap",gap:6}}>
-                  <div>
-                    <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>💼 Capital Deployed per Holding</div>
-                    <div style={{fontSize:10,color:T.text3,fontWeight:400}}>
-                      Lifetime invested vs current value — where your money actually lives
-                    </div>
-                  </div>
-                </div>
-                <div style={{overflowX:"auto"}}>
-                  <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
-                    <thead>
-                      <tr>
-                        {["Holding","Invested","Current","Return","Share of Portfolio"].map(c=>(
-                          <th key={c} style={{padding:"6px 8px",textAlign:"left",fontSize:8,
-                            letterSpacing:1,color:T.text3,textTransform:"uppercase",
-                            borderBottom:"1px solid "+T.border,fontWeight:600,whiteSpace:"nowrap"}}>{c}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {chartData.holdingCapital.map(hc=>{
-                        const share=totVal>0?(hc.currentValue/totVal)*100:0;
-                        return (
-                          <tr key={hc.ticker}>
-                            <td style={{padding:"7px 8px",fontFamily:"'Space Mono',monospace",
-                              fontWeight:700,color:T.text,fontSize:11,
-                              borderBottom:"1px solid "+T.border}}>{hc.ticker}</td>
-                            <td style={{padding:"7px 8px",fontFamily:"'Space Mono',monospace",
-                              color:T.text2,fontSize:10,borderBottom:"1px solid "+T.border,
-                              whiteSpace:"nowrap"}}>{FC(hc.invested)}</td>
-                            <td style={{padding:"7px 8px",fontFamily:"'Space Mono',monospace",
-                              color:T.text,fontSize:10,fontWeight:600,borderBottom:"1px solid "+T.border,
-                              whiteSpace:"nowrap"}}>{FC(hc.currentValue)}</td>
-                            <td style={{padding:"7px 8px",borderBottom:"1px solid "+T.border,whiteSpace:"nowrap"}}>
-                              <span style={{padding:"2px 8px",borderRadius:12,
-                                background:getPerformanceColor(hc.returnPct,dark).bg,
-                                color:getPerformanceColor(hc.returnPct,dark).text,
-                                fontFamily:"'Space Mono',monospace",fontSize:9,fontWeight:700}}>
-                                {fmtPct(hc.returnPct)}</span>
-                            </td>
-                            <td style={{padding:"7px 8px",borderBottom:"1px solid "+T.border,
-                              minWidth:120}}>
-                              <div style={{display:"flex",alignItems:"center",gap:6}}>
-                                <div style={{flex:1,height:6,borderRadius:3,background:T.bg4,
-                                  overflow:"hidden",maxWidth:80}}>
-                                  <div style={{height:"100%",width:Math.max(2,share)+"%",
-                                    background:"linear-gradient(90deg,"+(dark?"#34a853":"#1e8e3e")+","+(dark?"#1a73e8":"#1a73e8")+")",
-                                    borderRadius:3}}/>
-                                </div>
-                                <span style={{fontFamily:"'Space Mono',monospace",fontSize:9,
-                                  color:T.text3,fontWeight:600}}>{share.toFixed(1)}%</span>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Risk Signals */}
-              <div style={card({padding:14})}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
-                  marginBottom:10,flexWrap:"wrap",gap:6}}>
-                  <div>
-                    <div style={{fontSize:12,fontWeight:600,color:T.text}}>⚠️ Risk Signals</div>
-                    <div style={{fontSize:10,color:T.text3,fontWeight:400}}>
-                      Portfolio &amp; income risk — {history.length} snapshots
-                    </div>
-                  </div>
-                  <div style={{display:"flex",gap:8,flexWrap:"wrap",fontSize:9,color:T.text3}}>
-                    <span><span style={{color:T.green}}>●</span> Healthy</span>
-                    <span><span style={{color:T.amber}}>●</span> Monitor</span>
-                    <span><span style={{color:T.red}}>●</span> Elevated</span>
-                  </div>
-                </div>
-                <div className="risk-grid">
-                  {[
-                    {label:"Volatility (ann.)",value:riskMetrics.volatility!==null?`${riskMetrics.volatility.toFixed(1)}%`:"—",
-                      color:riskMetrics.volatility!==null?(riskMetrics.volatility>15?T.red:riskMetrics.volatility>8?T.amber:T.green):T.text3,
-                      sub:riskMetrics.volatility!==null?(riskMetrics.volatility>15?"High":riskMetrics.volatility>8?"Moderate":"Low"):"N/A"},
-                    {label:"Max Drawdown",value:riskMetrics.maxDrawdown!==null?`${riskMetrics.maxDrawdown.toFixed(1)}%`:"—",
-                      color:riskMetrics.maxDrawdown!==null?(riskMetrics.maxDrawdown>20?T.red:riskMetrics.maxDrawdown>10?T.amber:T.green):T.text3,
-                      sub:riskMetrics.maxDrawdown!==null?"from peak":"N/A"},
-                    {label:"Income Stability",value:incomeRiskMetrics.stability!==null?`${(incomeRiskMetrics.stability*100).toFixed(0)}%`:"—",
-                      color:incomeRiskMetrics.stability!==null?(incomeRiskMetrics.stability>=0.7?T.green:incomeRiskMetrics.stability>=0.4?T.amber:T.red):T.text3,
-                      sub:incomeRiskMetrics.stability!==null?(incomeRiskMetrics.stability>=0.7?"Very Stable":incomeRiskMetrics.stability>=0.4?"Moderate":"Fluctuates"):"N/A"},
-                    {label:"Income Concentration",value:incomeRiskMetrics.concentration!==null?`${(incomeRiskMetrics.concentration*100).toFixed(0)}%`:"—",
-                      color:incomeRiskMetrics.concentration!==null?(incomeRiskMetrics.concentration<0.4?T.green:incomeRiskMetrics.concentration<0.6?T.amber:T.red):T.text3,
-                      sub:incomeRiskMetrics.concentration!==null?(incomeRiskMetrics.concentration<0.4?"Well Diversified":incomeRiskMetrics.concentration<0.6?"Moderate":"High"):"N/A"},
-                  ].map((item,idx)=>(
-                    <div key={idx} className="risk-card">
-                      <div className="label">{item.label}</div>
-                      <div className="value" style={{color:item.color}}>{item.value}</div>
-                      <div className="sub">{item.sub}</div>
-                    </div>
-                  ))}
+                    );
+                  })()}
                 </div>
               </div>
             </div>
