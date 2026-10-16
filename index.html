@@ -660,73 +660,6 @@ function useWindowSize(){
 /* ═══════════════════════════════════════════════════════════════════
    CHART COMPONENTS
    ═══════════════════════════════════════════════════════════════════ */
-function ChartLine({labels,datasets,T,yFmt,y2Fmt,height=220,spanGaps=false,mobile=false}){
-  const ref=useRef(null);
-  const inst=useRef(null);
-  const sig=useMemo(()=>{
-    try{return JSON.stringify({l:labels,d:datasets.map(d=>({y:d.yAxisID||"y",data:d.data}))});}
-    catch{return String(Date.now());}
-  },[labels,datasets]);
-
-  useEffect(()=>{
-    if(!ref.current||typeof Chart==="undefined")return;
-    if(inst.current){inst.current.destroy();inst.current=null;}
-    const hasY2=y2Fmt&&datasets.some(d=>d.yAxisID==="y2");
-    const tickSize=mobile?11:10;
-    const maxTicks=mobile?5:8;
-    const scales={
-      x:{grid:{color:T.chartGrid},
-         ticks:{color:T.chartTick,font:{size:tickSize,weight:"500"},maxRotation:0,
-           autoSkip:true,maxTicksLimit:maxTicks},
-         border:{color:T.border}},
-      y:{grid:{color:T.chartGrid},
-         ticks:{color:T.chartTick,font:{size:tickSize,weight:"500"},callback:yFmt||(v=>`${v}`)},
-         border:{color:T.border},position:"left",beginAtZero:false},
-    };
-    if(hasY2){
-      scales.y2={grid:{drawOnChartArea:false},
-        ticks:{color:T.teal,font:{size:tickSize,weight:"500"},callback:y2Fmt},
-        border:{color:T.border},position:"right",beginAtZero:true};
-    }
-    inst.current=new Chart(ref.current,{
-      type:"line",
-      data:{labels,datasets},
-      options:{
-        spanGaps,responsive:true,maintainAspectRatio:false,
-        animation:{duration:280},
-        interaction:{mode:"index",intersect:false},
-        plugins:{
-          legend:{display:true,
-            labels:{color:T.text2,font:{family:"Roboto",size:mobile?10:11,weight:"500"},
-                    boxWidth:10,padding:mobile?8:12,usePointStyle:true}},
-          tooltip:{backgroundColor:T.bg2,borderColor:T.border,borderWidth:1,
-            titleColor:T.text,bodyColor:T.text2,padding:10,cornerRadius:8,
-            callbacks:{label:(ctx)=>{
-              const fmt=ctx.dataset.yAxisID==="y2"&&y2Fmt?y2Fmt:yFmt||(v=>`${v}`);
-              return` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)}`;
-            }}},
-        },
-        scales,
-        elements:{line:{tension:0.4},point:{radius:2,hoverRadius:5}},
-      },
-    });
-    return()=>{if(inst.current){inst.current.destroy();inst.current=null;}};
-  },[sig,T,yFmt,y2Fmt,spanGaps,mobile]);
-
-  const empty=!labels?.length||!datasets?.some(d=>d.data&&d.data.some(v=>v!=null));
-  return (
-    <div className="chart-wrap" style={{height}}>
-      <canvas ref={ref} />
-      {empty&&(
-        <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",
-          justifyContent:"center",color:T.text3,fontSize:11,fontWeight:500,pointerEvents:"none"}}>
-          No data for selected period
-        </div>
-      )}
-    </div>
-  );
-}
-
 function ChartBar({labels,datasets,T,yFmt,height=200,stacked=false,mobile=false,horizontal=false}){
   const ref=useRef(null);
   const inst=useRef(null);
@@ -1022,13 +955,96 @@ function exportTransactionsCSV(portfolio){
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   RISK METRICS
+   ═══════════════════════════════════════════════════════════════════ */
+function computeRiskMetrics(hist){
+  if(!hist||hist.length<3)return{volatility:null,maxDrawdown:null,bestMonth:null,worstMonth:null};
+  const sorted=[...hist].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const vals=sorted.map(d=>d.totalValueAUD);
+  const rets=[];
+  for(let i=1;i<vals.length;i++)if(vals[i-1]>0){
+    let r=(vals[i]-vals[i-1])/vals[i-1];
+    if(r>1)r=1; if(r<-1)r=-1;
+    rets.push(r);
+  }
+  if(rets.length<2)return{volatility:null,maxDrawdown:null,bestMonth:null,worstMonth:null};
+  const mean=rets.reduce((s,r)=>s+r,0)/rets.length;
+  const variance=rets.reduce((s,r)=>s+(r-mean)**2,0)/rets.length;
+  const vol=Math.sqrt(variance)*Math.sqrt(12);
+  let peak=vals[0], maxDD=0;
+  for(const v of vals){if(v>peak)peak=v; const dd=peak>0?(peak-v)/peak:0; if(dd>maxDD)maxDD=dd;}
+  const mr=[];
+  for(let i=1;i<vals.length;i++){
+    let r=vals[i-1]>0?(vals[i]-vals[i-1])/vals[i-1]:0;
+    if(r>1)r=1; if(r<-1)r=-1;
+    mr.push({date:sorted[i].date,ret:r});
+  }
+  const best=mr.reduce((a,b)=>a.ret>b.ret?a:b,{ret:-Infinity});
+  const worst=mr.reduce((a,b)=>a.ret<b.ret?a:b,{ret:Infinity});
+  return {volatility:vol*100,maxDrawdown:maxDD*100,
+    bestMonth:best.ret!==-Infinity?{date:best.date,ret:best.ret*100}:null,
+    worstMonth:worst.ret!==Infinity?{date:worst.date,ret:worst.ret*100}:null};
+}
+
+function computeIncomeRiskMetrics(portfolio,rates){
+  if(!Array.isArray(portfolio))return{totalIncome:0,stability:null,payoutRisk:null,cutProb:null,
+    concentration:null,dividendGrowth:null};
+  const divHoldings=portfolio.filter(h=>DIVIDEND_PAYING_TYPES.has(h.assetType)&&
+    !INCOME_RISK_EXCLUDED_TICKERS.has(h.ticker));
+  if(!divHoldings.length)return{totalIncome:0,stability:null,payoutRisk:null,cutProb:null,
+    concentration:null,dividendGrowth:null};
+  const quarterly={},holdingTotal={},yearly={};
+  for(const h of divHoldings){
+    const tx=h.transactions.filter(t=>t.type==="dividend"&&t.date);
+    for(const t of tx){
+      const d=new Date(t.date), q=Math.floor(d.getMonth()/3)+1;
+      const qk=`${d.getFullYear()}-Q${q}`, y=String(d.getFullYear());
+      const amt=toAUD(t.totalAmount||0,h.currency,rates);
+      quarterly[qk]=(quarterly[qk]||0)+amt;
+      yearly[y]=(yearly[y]||0)+amt;
+      holdingTotal[h.ticker]=(holdingTotal[h.ticker]||0)+amt;
+    }
+  }
+  const qks=Object.keys(quarterly).sort();
+  if(qks.length<3)return{totalIncome:0,stability:null,payoutRisk:null,cutProb:null,
+    concentration:null,dividendGrowth:null};
+  const vals=qks.map(k=>quarterly[k]);
+  const mean=vals.reduce((a,b)=>a+b,0)/vals.length;
+  const std=Math.sqrt(vals.reduce((s,v)=>s+(v-mean)**2,0)/vals.length);
+  const cv=mean>0?std/mean:1;
+  const stability=Math.max(0,Math.min(1,1-Math.min(cv,1)));
+  let peak=-Infinity,maxDD=0;
+  for(const v of vals){if(v>peak)peak=v; if(peak>0){const dd=(peak-v)/peak; if(dd>maxDD)maxDD=dd;}}
+  const payoutRisk=Math.min(1,maxDD);
+  let cutProb;
+  if(stability>0.7&&payoutRisk<0.3)cutProb="Low";
+  else if(stability>0.5&&payoutRisk<0.5)cutProb="Low–Medium";
+  else if(payoutRisk<0.6)cutProb="Medium";
+  else if(payoutRisk<0.75)cutProb="Medium–High";
+  else cutProb="High";
+  const sortedInc=Object.values(holdingTotal).sort((a,b)=>b-a);
+  const top3=sortedInc.slice(0,3).reduce((s,v)=>s+v,0);
+  const total=sortedInc.reduce((s,v)=>s+v,0);
+  const concentration=total>0?top3/total:0;
+  const years=Object.keys(yearly).sort();
+  let dividendGrowth=null;
+  if(years.length>=2){
+    const fy=years[0], ly=years[years.length-1];
+    const fv=yearly[fy], lv=yearly[ly];
+    const n=parseInt(ly)-parseInt(fy);
+    if(n>0&&fv>0&&lv>0)dividendGrowth=(Math.pow(lv/fv,1/n)-1)*100;
+  }
+  return {totalIncome:total,stability,payoutRisk,cutProb,concentration,dividendGrowth,
+    quarters:qks,incomeValues:vals};
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    CHART SUGGESTION ENGINE
    ═══════════════════════════════════════════════════════════════════ */
 function computeDeploymentSuggestions({holdings,totVal,whatIf,incomeRiskMetrics}){
   if(!holdings.length||totVal<=0)return[];
   const tips=[];
 
-  /* 1. Under-allocated vs target */
   const tp=whatIf&&whatIf.targetPct&&typeof whatIf.targetPct==="object"?whatIf.targetPct:{};
   const hasTargets=Object.keys(tp).length>0;
   if(hasTargets){
@@ -1048,7 +1064,6 @@ function computeDeploymentSuggestions({holdings,totVal,whatIf,incomeRiskMetrics}
     });
   }
 
-  /* 2. Opportunity cost */
   const losers=holdings.filter(h=>h.totalInvested>0&&h.totalGain/h.totalInvested<0.02);
   const winners=holdings.filter(h=>h.totalInvested>0&&h.totalGain/h.totalInvested>0.15);
   if(winners.length&&losers.length){
@@ -1063,7 +1078,6 @@ function computeDeploymentSuggestions({holdings,totVal,whatIf,incomeRiskMetrics}
     });
   }
 
-  /* 3. Concentration */
   const top=[...holdings].sort((a,b)=>b.currentValue-a.currentValue)[0];
   if(top&&top.currentValue/totVal>0.35){
     tips.push({
@@ -1076,7 +1090,6 @@ function computeDeploymentSuggestions({holdings,totVal,whatIf,incomeRiskMetrics}
     });
   }
 
-  /* 4. Income concentration */
   if(incomeRiskMetrics&&incomeRiskMetrics.concentration!==null&&incomeRiskMetrics.concentration>0.6){
     tips.push({
       type:"income-risk",
@@ -1087,7 +1100,6 @@ function computeDeploymentSuggestions({holdings,totVal,whatIf,incomeRiskMetrics}
     });
   }
 
-  /* 5. Dividend payers underweighted */
   const divPaying=holdings.filter(h=>DIVIDEND_PAYING_TYPES.has(h.assetType));
   const divPayingVal=divPaying.reduce((s,h)=>s+h.currentValue,0);
   const divShare=totVal>0?(divPayingVal/totVal)*100:0;
@@ -1380,7 +1392,6 @@ function App(){
   const passiveColor=monthlyPassivePercent!==null?
     (monthlyPassivePercent>=100?T.green:monthlyPassivePercent>=50?T.amber:T.red):T.text3;
 
-  const riskMetrics=useMemo(()=>computeRiskMetrics(history),[history]);
   const incomeRiskMetrics=useMemo(()=>computeIncomeRiskMetrics(portfolio,rates),[portfolio,rates]);
 
   const periodCutoff=useCallback(period=>{
@@ -1396,30 +1407,6 @@ function App(){
 
   const chartData=useMemo(()=>{
     const cutoff=periodCutoff(chartPeriod);
-    const filtered=history.filter(d=>new Date(d.date)>=cutoff);
-    const sorted=[...filtered].sort((a,b)=>new Date(a.date)-new Date(b.date));
-
-    const monthlyMap={};
-    sorted.forEach(d=>{
-      const m=d.date.slice(0,7);
-      monthlyMap[m]=d;
-    });
-    const monthKeys=Object.keys(monthlyMap).sort();
-    const mLabels=monthKeys.map(m=>fmtMon(m));
-    const mValues=monthKeys.map(m=>monthlyMap[m].totalValueAUD);
-    const mReturns=monthKeys.map((m,i)=>{
-      if(i===0)return 0;
-      const prev=monthlyMap[monthKeys[i-1]].totalValueAUD;
-      const cur=monthlyMap[m].totalValueAUD;
-      return prev>0?((cur-prev)/prev)*100:0;
-    });
-
-    const positiveMonths=mReturns.filter(r=>r>0).length;
-    const totalMonths=mReturns.length;
-    const winRate=totalMonths>0?(positiveMonths/totalMonths)*100:0;
-    const avgReturn=totalMonths>0?mReturns.reduce((s,r)=>s+r,0)/totalMonths:0;
-    const bestMonth=mReturns.length?mReturns.reduce((a,b)=>a>b?a:b):0;
-    const worstMonth=mReturns.length?mReturns.reduce((a,b)=>a<b?a:b):0;
 
     const typeMap={};
     holdings.forEach(h=>{const k=h.assetType||"Other";typeMap[k]=(typeMap[k]||0)+h.currentValue;});
@@ -1448,24 +1435,11 @@ function App(){
 
     const oneYearAgo=new Date(); oneYearAgo.setFullYear(oneYearAgo.getFullYear()-1);
     const cutoff12=oneYearAgo.toISOString().slice(0,10);
-    const divContrib={};
-    portfolio.forEach(h=>{
-      let amt=0;
-      h.transactions.forEach(tx=>{
-        if(tx.type==="dividend"&&tx.date&&tx.date>=cutoff12)
-          amt+=toAUD(tx.totalAmount||0,h.currency,rates);
-      });
-      if(amt>0)divContrib[h.ticker]=amt;
-    });
-    const dcEntries=Object.entries(divContrib).sort((a,b)=>b[1]-a[1]);
-    const dcTotal=dcEntries.reduce((s,e)=>s+e[1],0);
-
-    const holdingCapital=holdings.map(h=>({
-      ticker:h.ticker,
-      invested:h.totalInvested,
-      currentValue:h.currentValue,
-      returnPct:h.totalInvested>0?(h.currentValue/h.totalInvested-1)*100:0,
-    })).sort((a,b)=>b.invested-a.invested);
+    let t12=0;
+    portfolio.forEach(h=>h.transactions.forEach(tx=>{
+      if(tx.type==="dividend"&&tx.date&&tx.date>=cutoff12)
+        t12+=toAUD(tx.totalAmount||0,h.currency,rates);
+    }));
 
     let qoqGrowth=null;
     if(qVals.length>=2){
@@ -1479,20 +1453,14 @@ function App(){
       const yoyKey=`${parseInt(parts[0])-1}-${parts[1]}`;
       if(qMap[yoyKey]>0) yoyGrowth=((qMap[lastKey]-qMap[yoyKey])/qMap[yoyKey])*100;
     }
-    const t12=dcTotal;
 
     return {
-      labels:mLabels,mLabels,mValues,mReturns,
-      winRate,avgReturn,bestMonth,worstMonth,
-      positiveMonths,totalMonths,
       tLabels,tVals,palette,
       perfLabels,perfData,perfColors,perfItems,
       qLabels,qVals,qoqGrowth,yoyGrowth,
-      dcItems:dcEntries.map(([t,v])=>({ticker:t,amount:v,pct:dcTotal>0?(v/dcTotal)*100:0})),
-      dcTotal,holdingCapital,
       t12,
     };
-  },[history,holdings,portfolio,rates,chartPeriod,dark,periodCutoff]);
+  },[holdings,portfolio,rates,chartPeriod,dark,periodCutoff]);
 
   const yFmtMain=useCallback(v=>{
     const abs=Math.abs(v);
@@ -1527,7 +1495,6 @@ function App(){
   },[holdings,tmSize]);
 
   const rects=tmMode==="performance"?perfRects:tmMode==="day"?dayRects:divRects;
-  const totalPortfolioDivs=useMemo(()=>holdings.reduce((s,h)=>s+h.totalDividends,0),[holdings]);
   const selH=holdings.find(h=>h.ticker===selected);
 
   const runSimulation=useCallback(()=>{
@@ -2623,7 +2590,6 @@ function App(){
                         fontWeight:chartPeriod===p?600:500,cursor:"pointer"}}>{p}</button>
                   ))}
                 </div>
-                <span style={{fontSize:9,color:T.text3,marginLeft:2,fontWeight:400}}>{chartData.mLabels?.length||0} pts</span>
               </div>
 
               <div style={card({padding:14})}>
