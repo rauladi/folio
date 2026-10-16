@@ -35,6 +35,9 @@
   .chart-row{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px;align-items:stretch}
   @media (max-width:900px){.chart-row{grid-template-columns:1fr}}
 
+  .toolbar-strip{scrollbar-width:none;-ms-overflow-style:none}
+  .toolbar-strip::-webkit-scrollbar{display:none}
+
   .hdr-desktop{display:flex}
   .hdr-mobile{display:none}
   .header-kpis{display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
@@ -119,7 +122,7 @@
   .hero-kpi .h-sub{font-size:10px;color:var(--text3,#9aa0a6);margin-top:4px;font-weight:500}
 
   .view-tabs{display:flex;background:var(--bg4,#333);border-radius:14px;padding:2px;
-    border:1px solid var(--border,#3d3d3d)}
+    border:1px solid var(--border,#3d3d3d);flex-shrink:0}
   .view-tabs button{padding:4px 10px;border-radius:12px;border:none;font-size:10px;font-weight:500;
     transition:all .18s ease}
   .view-tabs-mobile{display:none}
@@ -733,7 +736,7 @@ function ChartLine({labels,datasets,T,yFmt,y2Fmt,height=220,spanGaps=false,mobil
     };
     if(hasY2){
       scales.y2={grid:{drawOnChartArea:false},
-        ticks:{color:dark?T.teal:"#1a73e8",font:{size:tickSize,weight:"500"},callback:y2Fmt},
+        ticks:{color:T.teal,font:{size:tickSize,weight:"500"},callback:y2Fmt},
         border:{color:T.border},position:"right",beginAtZero:true};
     }
     inst.current=new Chart(ref.current,{
@@ -929,7 +932,7 @@ function ChartBuyFlow({labels,buys,sells,cumulative,T,yFmt,height=240,mobile=fal
             backgroundColor:"rgba(234,67,53,.75)",borderColor:"#ea4335",borderWidth:1,
             borderRadius:4,borderSkipped:false,yAxisID:"y",order:2},
           {type:"line",label:"Cumulative Net Invested",data:cumulative,
-            borderColor:T.teal,backgroundColor:dark?"rgba(138,180,248,.08)":"rgba(26,115,232,.05)",
+            borderColor:T.teal,backgroundColor:"transparent",
             borderWidth:2,borderDash:[5,4],pointRadius:mobile?2:3,
             pointBackgroundColor:T.teal,pointBorderColor:T.bg2,pointBorderWidth:1.5,
             pointHoverRadius:5,tension:0.3,fill:false,yAxisID:"y2",order:1},
@@ -1405,7 +1408,6 @@ function App(){
   useEffect(()=>{localStorage.setItem("f6_avgSuper",JSON.stringify(avgSuperBalanceAud));},[avgSuperBalanceAud]);
   useEffect(()=>{localStorage.setItem("f6_whatif",JSON.stringify(whatIf));},[whatIf]);
 
-  /* ── Theme CSS variables + body styles ── */
   useEffect(()=>{
     document.body.style.background=T.bg;
     document.body.style.color=T.text;
@@ -1701,7 +1703,6 @@ function App(){
       (buyFlowMap[thisMonthKey].buys-buyFlowMap[thisMonthKey].sells):0;
     const bfThisMonthCount=buyFlowMap[thisMonthKey]?buyFlowMap[thisMonthKey].buyCount:0;
 
-    /* Invested capital over time vs portfolio value */
     const investedSeries=[];
     {
       const txs=[];
@@ -2546,45 +2547,51 @@ function App(){
         </header>
 
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
-          padding:"6px 14px",borderBottom:"1px solid "+T.border,background:T.bg2,flexWrap:"wrap",gap:4,
-          minHeight:42}}>
-          <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",minHeight:22}}>
+          padding:"6px 14px",borderBottom:"1px solid "+T.border,background:T.bg2,
+          gap:6,minHeight:46}}>
+          <div className="toolbar-strip" style={{display:"flex",alignItems:"center",gap:6,
+            minHeight:28,overflowX:"auto",flex:"1 1 auto",minWidth:0}}>
             {view==="treemap"&&(
               <>
                 {tmMode==="performance"&&<>
-                  <span style={{fontSize:8,color:T.text3,letterSpacing:1,textTransform:"uppercase",fontWeight:500}}>G/L:</span>
-                  <div style={{display:"flex",alignItems:"center",gap:3}}>
+                  <span style={{fontSize:8,color:T.text3,letterSpacing:1,textTransform:"uppercase",
+                    fontWeight:500,whiteSpace:"nowrap"}}>G/L:</span>
+                  <div style={{display:"flex",alignItems:"center",gap:3,flexShrink:0}}>
                     <span style={{fontSize:8,color:T.text3}}>−</span>
-                    <div style={{width:80,height:5,borderRadius:3,
+                    <div style={{width:80,height:5,borderRadius:3,flexShrink:0,
                       background:dark?"linear-gradient(to right, #ea4335, #3d3d3d, #34a853)":"linear-gradient(to right, #ea4335, #e8eaed, #34a853)"}}/>
                     <span style={{fontSize:8,color:T.text3}}>+</span>
                   </div>
-                  <span style={{fontSize:8,color:T.text4}}>· Box size = value</span>
+                  <span style={{fontSize:8,color:T.text4,whiteSpace:"nowrap"}}>· Box = value</span>
                 </>}
                 {tmMode==="day"&&<>
-                  <span style={{fontSize:8,color:T.text3,letterSpacing:1,textTransform:"uppercase",fontWeight:500}}>Day:</span>
-                  <div style={{display:"flex",alignItems:"center",gap:3}}>
+                  <span style={{fontSize:8,color:T.text3,letterSpacing:1,textTransform:"uppercase",
+                    fontWeight:500,whiteSpace:"nowrap"}}>Day:</span>
+                  <div style={{display:"flex",alignItems:"center",gap:3,flexShrink:0}}>
                     <span style={{fontSize:8,color:T.text3}}>−</span>
-                    <div style={{width:80,height:5,borderRadius:3,
+                    <div style={{width:80,height:5,borderRadius:3,flexShrink:0,
                       background:dark?"linear-gradient(to right, #ea4335, #3d3d3d, #34a853)":"linear-gradient(to right, #ea4335, #e8eaed, #34a853)"}}/>
                     <span style={{fontSize:8,color:T.text3}}>+</span>
                   </div>
-                  <span style={{fontSize:8,color:T.text4}}>· Box size = value</span>
+                  <span style={{fontSize:8,color:T.text4,whiteSpace:"nowrap"}}>· Box = value</span>
                 </>}
                 {tmMode==="dividend"&&<>
-                  <span style={{fontSize:8,color:T.text3,letterSpacing:1,textTransform:"uppercase",fontWeight:500}}>Div yld:</span>
-                  {[[-1,"0%"],[0.5,">0%"],[2,"+2%"],[4,"+4%"],[6,"+6%+"]].map(([y,l])=>{
-                    const c=divColor(y,dark);
-                    return(<div key={l} style={{display:"flex",alignItems:"center",gap:3}}>
-                      <div style={{width:9,height:9,borderRadius:2,background:c.bg,border:"1px solid "+c.border}}/>
-                      <span style={{fontSize:8,color:T.text3}}>{l}</span></div>);
-                  })}
-                  <span style={{fontSize:8,color:T.text4}}>· Box size = dividends</span>
+                  <span style={{fontSize:8,color:T.text3,letterSpacing:1,textTransform:"uppercase",
+                    fontWeight:500,whiteSpace:"nowrap"}}>Div yld:</span>
+                  <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+                    {[[-1,"0%"],[0.5,">0%"],[2,"+2%"],[4,"+4%"],[6,"+6%+"]].map(([y,l])=>{
+                      const c=divColor(y,dark);
+                      return(<div key={l} style={{display:"flex",alignItems:"center",gap:3,flexShrink:0}}>
+                        <div style={{width:9,height:9,borderRadius:2,background:c.bg,border:"1px solid "+c.border}}/>
+                        <span style={{fontSize:8,color:T.text3,whiteSpace:"nowrap"}}>{l}</span></div>);
+                    })}
+                  </div>
+                  <span style={{fontSize:8,color:T.text4,whiteSpace:"nowrap"}}>· Box = divs</span>
                 </>}
               </>
             )}
           </div>
-          <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+          <div style={{display:"flex",gap:4,flexShrink:0}}>
             {view==="treemap"&&(
               <div style={{display:"flex",gap:3,alignItems:"center"}}>
                 <div style={{display:"flex",background:T.bg4,borderRadius:14,padding:2,border:"1px solid "+T.border}}>
@@ -2593,7 +2600,7 @@ function App(){
                       style={{padding:"3px 8px",borderRadius:12,border:"none",
                         background:tmMode===v?T.bg2:"transparent",
                         color:tmMode===v?T.text:T.text3,fontSize:9,
-                        fontWeight:tmMode===v?600:400}}>{l}</button>
+                        fontWeight:tmMode===v?600:400,whiteSpace:"nowrap"}}>{l}</button>
                   ))}
                 </div>
                 {(tmMode==="day"||tmMode==="dividend")&&(
