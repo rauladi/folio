@@ -72,10 +72,6 @@
   .bf-sum-value{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;line-height:1.2;
     font-variant-numeric:tabular-nums}
   .bf-sum-sub{font-size:8px;color:var(--text4,#6c7278);font-weight:500;margin-top:2px}
-  .bf-legend{display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;font-size:9px;color:var(--text3,#9aa0a6)}
-  .bf-legend-item{display:flex;align-items:center;gap:4px}
-  .bf-legend-dot{width:9px;height:9px;border-radius:2px}
-  .bf-legend-line{width:14px;height:2px;border-radius:1px}
 
   .table-container{overflow:auto;max-height:600px;border-radius:12px;border:1px solid var(--border,#3d3d3d)}
   .table-container table{border-collapse:separate;border-spacing:0;width:100%}
@@ -126,7 +122,6 @@
     transition:all .18s ease}
   .view-tabs-mobile{display:none}
 
-  /* Contribution table styling */
   .contrib-row{display:flex;align-items:center;gap:8px;padding:6px 0;
     border-bottom:1px solid var(--border,#3d3d3d);font-variant-numeric:tabular-nums}
   .contrib-row:last-child{border-bottom:none}
@@ -855,12 +850,11 @@ function ChartDoughnut({labels,data,colors,T,height=230,mobile=false}){
   return <div className="chart-wrap" style={{height}}><canvas ref={ref} /></div>;
 }
 
-/* Mixed bar+line: monthly return % bars + value line */
-function ChartMonthlyReturn({labels,returns,values,T,yFmt,height=260,mobile=false}){
+function ChartMonthlyReturn({labels,returns,values,T,yFmt,height=260,mobile=false,dark=false}){
   const ref=useRef(null);
   const inst=useRef(null);
-  const sig=useMemo(()=>{try{return JSON.stringify({labels,returns,values});}
-    catch{return String(Date.now());}},[labels,returns,values]);
+  const sig=useMemo(()=>{try{return JSON.stringify({labels,returns,values,dark});}
+    catch{return String(Date.now());}},[labels,returns,values,dark]);
   useEffect(()=>{
     if(!ref.current||typeof Chart==="undefined")return;
     if(inst.current){inst.current.destroy();inst.current=null;}
@@ -1520,11 +1514,11 @@ function App(){
     const filtered=history.filter(d=>new Date(d.date)>=cutoff);
     const sorted=[...filtered].sort((a,b)=>new Date(a.date)-new Date(b.date));
 
-    /* Monthly resampling: pick last data point per month */
+    /* Monthly resampling: last data point per month */
     const monthlyMap={};
     sorted.forEach(d=>{
       const m=d.date.slice(0,7);
-      monthlyMap[m]=d; // last one wins since sorted asc
+      monthlyMap[m]=d;
     });
     const monthKeys=Object.keys(monthlyMap).sort();
     const mLabels=monthKeys.map(m=>fmtMon(m));
@@ -1536,7 +1530,6 @@ function App(){
       return prev>0?((cur-prev)/prev)*100:0;
     });
 
-    /* Stats from monthly returns */
     const positiveMonths=mReturns.filter(r=>r>0).length;
     const totalMonths=mReturns.length;
     const winRate=totalMonths>0?(positiveMonths/totalMonths)*100:0;
@@ -1544,23 +1537,17 @@ function App(){
     const bestMonth=mReturns.length?mReturns.reduce((a,b)=>a>b?a:b):0;
     const worstMonth=mReturns.length?mReturns.reduce((a,b)=>a<b?a:b):0;
 
-    /* Type allocation */
     const typeMap={};
     holdings.forEach(h=>{const k=h.assetType||"Other";typeMap[k]=(typeMap[k]||0)+h.currentValue;});
     const tLabels=Object.keys(typeMap), tVals=Object.values(typeMap);
     const palette=tLabels.map((_,i)=>["#34a853","#1a73e8","#f9a825","#ea4335","#8ab4f8","#fdd663","#f28b82","#81c995"][i%8]);
 
-    /* Holding performance sorted (excludes near-zero for clarity) */
     const perfItems=holdings.map(h=>({ticker:h.ticker,gainPct:h.gainPct,currentValue:h.currentValue,
       gain:h.totalGain})).sort((a,b)=>b.gainPct-a.gainPct);
     const perfLabels=perfItems.map(p=>p.ticker);
     const perfData=perfItems.map(p=>p.gainPct);
-    const perfColors=perfItems.map(p=>{
-      const c=getPerformanceColor(p.gainPct,dark);
-      return c.bg;
-    });
+    const perfColors=perfItems.map(p=>getPerformanceColor(p.gainPct,dark).bg);
 
-    /* Quarterly income */
     const qMap={};
     portfolio.forEach(h=>h.transactions.forEach(tx=>{
       if(tx.type==="dividend"&&tx.date){
@@ -1574,13 +1561,7 @@ function App(){
     const qKeys=Object.keys(qMap).sort();
     const qLabels=qKeys.map(k=>{const p=k.split("-");return`${p[1]} '${p[0].slice(2)}`;});
     const qVals=qKeys.map(k=>qMap[k]);
-    /* Trailing 4Q average line */
-    const qAvg=qVals.map((_,i)=>{
-      if(i<3)return null;
-      return (qVals[i]+qVals[i-1]+qVals[i-2]+qVals[i-3])/4;
-    });
 
-    /* Per-holding dividend contribution (last 12 months) */
     const oneYearAgo=new Date(); oneYearAgo.setFullYear(oneYearAgo.getFullYear()-1);
     const cutoff12=oneYearAgo.toISOString().slice(0,10);
     const divContrib={};
@@ -1596,7 +1577,6 @@ function App(){
     const dcTotal=dcEntries.reduce((s,e)=>s+e[1],0);
     const dcItems=dcEntries.map(([t,v])=>({ticker:t,amount:v,pct:dcTotal>0?(v/dcTotal)*100:0}));
 
-    /* Capital deployment per holding (bought vs current value) — grouped by holding, not month */
     const holdingCapital=holdings.map(h=>({
       ticker:h.ticker,
       invested:h.totalInvested,
@@ -1604,13 +1584,11 @@ function App(){
       returnPct:h.totalInvested>0?(h.currentValue/h.totalInvested-1)*100:0,
     })).sort((a,b)=>b.invested-a.invested);
 
-    /* QoQ dividend growth */
     let qoqGrowth=null;
     if(qVals.length>=2){
       const last=qVals[qVals.length-1], prev=qVals[qVals.length-2];
       if(prev>0)qoqGrowth=((last-prev)/prev)*100;
     }
-    /* YoY: same quarter last year */
     let yoyGrowth=null;
     if(qKeys.length>=5){
       const lastKey=qKeys[qKeys.length-1];
@@ -1618,7 +1596,6 @@ function App(){
       const yoyKey=`${parseInt(parts[0])-1}-${parts[1]}`;
       if(qMap[yoyKey]>0) yoyGrowth=((qMap[lastKey]-qMap[yoyKey])/qMap[yoyKey])*100;
     }
-    /* Trailing 12M total */
     const t12=dcTotal;
 
     return {
@@ -1627,7 +1604,7 @@ function App(){
       positiveMonths,totalMonths,
       tLabels,tVals,palette,
       perfLabels,perfData,perfColors,perfItems,
-      qLabels,qVals,qAvg,qoqGrowth,yoyGrowth,
+      qLabels,qVals,qoqGrowth,yoyGrowth,
       dcItems,dcTotal,holdingCapital,
       t12,
     };
@@ -2750,7 +2727,7 @@ function App(){
 
           {view==="chart"&&(
             <div style={{display:"flex",flexDirection:"column",gap:14}}>
-              {/* ── Hero KPIs ── */}
+              {/* Hero KPIs */}
               <div style={{display:"grid",
                 gridTemplateColumns:isMob?"1fr 1fr":isTablet?"repeat(2,1fr)":"repeat(4,1fr)",gap:10}}>
                 {(()=>{
@@ -2774,16 +2751,15 @@ function App(){
                 ))}
               </div>
 
-              {/* ── Top: Monthly Return + Allocation ── */}
+              {/* Top: Monthly Return + Allocation */}
               <div className="chart-row">
                 <div style={card({padding:14})}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8,flexWrap:"wrap",gap:6}}>
                     <div>
-                      <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>📊 Monthly Return & Portfolio Value</div>
+                      <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>📊 Monthly Return &amp; Portfolio Value</div>
                       <div style={{fontSize:10,color:T.text3,fontWeight:400}}>Green months = up · Red months = down · {chartPeriod}</div>
                     </div>
                   </div>
-                  {/* Return summary strip */}
                   <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6,marginBottom:10}}>
                     {[
                       {l:"Win Rate",v:`${chartData.winRate.toFixed(0)}%`,
@@ -2809,7 +2785,7 @@ function App(){
                   <ChartMonthlyReturn labels={chartData.mLabels}
                     returns={chartData.mReturns}
                     values={chartData.mValues}
-                    T={T} yFmt={yFmtMain} height={isMob?240:260} mobile={isMob}/>
+                    T={T} yFmt={yFmtMain} height={isMob?240:260} mobile={isMob} dark={dark}/>
                 </div>
                 <div style={card({padding:14})}>
                   <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>Allocation by Type</div>
@@ -2819,7 +2795,7 @@ function App(){
                 </div>
               </div>
 
-              {/* ── Holdings Performance (horizontal) ── */}
+              {/* Holdings Performance */}
               <div style={card({padding:14})}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",
                   marginBottom:8,flexWrap:"wrap",gap:6}}>
@@ -2847,13 +2823,13 @@ function App(){
                   mobile={isMob}/>
               </div>
 
-              {/* ── Income section ── */}
+              {/* Income section */}
               <div className="chart-row">
                 <div style={card({padding:14})}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8,flexWrap:"wrap",gap:6}}>
                     <div>
                       <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>💰 Quarterly Income Trend</div>
-                      <div style={{fontSize:10,color:T.text3,fontWeight:400}}>Dividends &amp; coupons · trailing 4Q average line</div>
+                      <div style={{fontSize:10,color:T.text3,fontWeight:400}}>Dividends &amp; coupons by quarter</div>
                     </div>
                   </div>
                   <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:10}}>
@@ -2918,7 +2894,7 @@ function App(){
                 </div>
               </div>
 
-              {/* ── Capital Deployed per Holding ── */}
+              {/* Capital Deployed per Holding */}
               <div style={card({padding:14})}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",
                   marginBottom:10,flexWrap:"wrap",gap:6}}>
@@ -2982,7 +2958,7 @@ function App(){
                 </div>
               </div>
 
-              {/* ── Risk signals strip ── */}
+              {/* Risk Signals */}
               <div style={card({padding:14})}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
                   marginBottom:10,flexWrap:"wrap",gap:6}}>
