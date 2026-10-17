@@ -163,6 +163,11 @@
     box-shadow:0 2px 6px rgba(0,0,0,.3)}
   input[type=range].whatif-slider::-moz-range-thumb{width:16px;height:16px;border-radius:50%;
     background:#fff;border:2px solid #1a73e8;cursor:pointer}
+
+  .heatmap-cell{height:28px;border-radius:3px;border:1px solid var(--border,#3d3d3d);
+    background:var(--bg4,#333);display:flex;align-items:center;justify-content:center;
+    font-size:7px;font-weight:700;color:var(--text3,#9aa0a6)}
+  @media (max-width:640px){.heatmap-cell{height:22px}}
 </style>
 </head>
 <body>
@@ -725,6 +730,67 @@ function ChartDoughnut({labels,data,colors,T,height=230,mobile=false}){
   return <div className="chart-wrap" style={{height}}><canvas ref={ref} /></div>;
 }
 
+function RiskRewardScatter({data,T,isMob}){
+  const ref=useRef(null);
+  const inst=useRef(null);
+  const sig=useMemo(()=>JSON.stringify({d:data.map(h=>({t:h.ticker,v:h.volatility,r:h.gainPct,s:h.currentValue}))}),[data]);
+  useEffect(()=>{
+    if(!ref.current||typeof Chart==="undefined")return;
+    if(inst.current){inst.current.destroy();inst.current=null;}
+    const maxSize=Math.max(...data.map(h=>h.currentValue),1);
+    const points=data.map(h=>({
+      x:h.volatility,y:h.gainPct,
+      r:6+Math.sqrt(h.currentValue/maxSize)*22,
+      ticker:h.ticker,
+      color:h.gainPct>=0?(h.volatility>20?T.amber:T.green):T.red,
+    }));
+    inst.current=new Chart(ref.current,{
+      type:"bubble",
+      data:{datasets:[{
+        label:"Holdings",
+        data:points,
+        backgroundColor:points.map(p=>p.color+"99"),
+        borderColor:points.map(p=>p.color),
+        borderWidth:2,
+      }]},
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        animation:{duration:400},
+        plugins:{
+          legend:{display:false},
+          tooltip:{
+            backgroundColor:T.bg2,borderColor:T.border,borderWidth:1,
+            titleColor:T.text,bodyColor:T.text2,padding:10,cornerRadius:8,
+            callbacks:{
+              title:items=>items[0].raw.ticker,
+              label:ctx=>[
+                `Return: ${ctx.parsed.y>=0?"+":""}${ctx.parsed.y.toFixed(1)}%`,
+                `Volatility: ${ctx.parsed.x.toFixed(1)}%`,
+              ],
+            },
+          },
+        },
+        scales:{
+          x:{title:{display:true,text:"Income Volatility (CV %)",color:T.text3,
+              font:{size:isMob?9:10,weight:"600"}},
+            grid:{color:T.chartGrid},
+            ticks:{color:T.chartTick,font:{size:isMob?9:10,weight:"500"},
+              callback:v=>`${v.toFixed(0)}%`},
+            border:{color:T.border}},
+          y:{title:{display:true,text:"Total Return %",color:T.text3,
+              font:{size:isMob?9:10,weight:"600"}},
+            grid:{color:T.chartGrid},
+            ticks:{color:T.chartTick,font:{size:isMob?9:10,weight:"500"},
+              callback:v=>`${v>=0?"+":""}${v.toFixed(0)}%`},
+            border:{color:T.border}},
+        },
+      },
+    });
+    return()=>{if(inst.current){inst.current.destroy();inst.current=null;}};
+  },[sig,T,isMob]);
+  return <div className="chart-wrap" style={{height:isMob?260:340}}><canvas ref={ref}/></div>;
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    IMPORT / EXPORT
    ═══════════════════════════════════════════════════════════════════ */
@@ -955,37 +1021,8 @@ function exportTransactionsCSV(portfolio){
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   RISK METRICS
+   RISK METRICS & HELPERS
    ═══════════════════════════════════════════════════════════════════ */
-function computeRiskMetrics(hist){
-  if(!hist||hist.length<3)return{volatility:null,maxDrawdown:null,bestMonth:null,worstMonth:null};
-  const sorted=[...hist].sort((a,b)=>new Date(a.date)-new Date(b.date));
-  const vals=sorted.map(d=>d.totalValueAUD);
-  const rets=[];
-  for(let i=1;i<vals.length;i++)if(vals[i-1]>0){
-    let r=(vals[i]-vals[i-1])/vals[i-1];
-    if(r>1)r=1; if(r<-1)r=-1;
-    rets.push(r);
-  }
-  if(rets.length<2)return{volatility:null,maxDrawdown:null,bestMonth:null,worstMonth:null};
-  const mean=rets.reduce((s,r)=>s+r,0)/rets.length;
-  const variance=rets.reduce((s,r)=>s+(r-mean)**2,0)/rets.length;
-  const vol=Math.sqrt(variance)*Math.sqrt(12);
-  let peak=vals[0], maxDD=0;
-  for(const v of vals){if(v>peak)peak=v; const dd=peak>0?(peak-v)/peak:0; if(dd>maxDD)maxDD=dd;}
-  const mr=[];
-  for(let i=1;i<vals.length;i++){
-    let r=vals[i-1]>0?(vals[i]-vals[i-1])/vals[i-1]:0;
-    if(r>1)r=1; if(r<-1)r=-1;
-    mr.push({date:sorted[i].date,ret:r});
-  }
-  const best=mr.reduce((a,b)=>a.ret>b.ret?a:b,{ret:-Infinity});
-  const worst=mr.reduce((a,b)=>a.ret<b.ret?a:b,{ret:Infinity});
-  return {volatility:vol*100,maxDrawdown:maxDD*100,
-    bestMonth:best.ret!==-Infinity?{date:best.date,ret:best.ret*100}:null,
-    worstMonth:worst.ret!==Infinity?{date:worst.date,ret:worst.ret*100}:null};
-}
-
 function computeIncomeRiskMetrics(portfolio,rates){
   if(!Array.isArray(portfolio))return{totalIncome:0,stability:null,payoutRisk:null,cutProb:null,
     concentration:null,dividendGrowth:null};
@@ -1038,103 +1075,26 @@ function computeIncomeRiskMetrics(portfolio,rates){
     quarters:qks,incomeValues:vals};
 }
 
-/* ═══════════════════════════════════════════════════════════════════
-   CHART SUGGESTION ENGINE
-   ═══════════════════════════════════════════════════════════════════ */
-function computeDeploymentSuggestions({holdings,totVal,whatIf,incomeRiskMetrics}){
-  if(!holdings.length||totVal<=0)return[];
-  const tips=[];
-
-  const tp=whatIf&&whatIf.targetPct&&typeof whatIf.targetPct==="object"?whatIf.targetPct:{};
-  const hasTargets=Object.keys(tp).length>0;
-  if(hasTargets){
-    holdings.forEach(h=>{
-      const curPct=(h.currentValue/totVal)*100;
-      const targetPct=tp[h.ticker];
-      if(targetPct!==undefined&&targetPct-curPct>5){
-        tips.push({
-          type:"rebalance",
-          ticker:h.ticker,
-          severity:targetPct-curPct>15?"high":"med",
-          head:`Under-allocated in ${h.ticker}`,
-          detail:`Currently ${curPct.toFixed(1)}% · target ${targetPct.toFixed(0)}% · add ~${((targetPct-curPct)/100*totVal).toFixed(0)} AUD to reach target`,
-          score:targetPct-curPct,
-        });
-      }
-    });
-  }
-
-  const losers=holdings.filter(h=>h.totalInvested>0&&h.totalGain/h.totalInvested<0.02);
-  const winners=holdings.filter(h=>h.totalInvested>0&&h.totalGain/h.totalInvested>0.15);
-  if(winners.length&&losers.length){
-    const best=winners.reduce((a,b)=>(b.totalGain/b.totalInvested)>(a.totalGain/a.totalInvested)?b:a);
-    const worst=losers.reduce((a,b)=>(b.totalGain/b.totalInvested)<(a.totalGain/a.totalInvested)?b:a);
-    tips.push({
-      type:"opportunity",
-      severity:"med",
-      head:`Capital working harder in ${best.ticker} than ${worst.ticker}`,
-      detail:`${best.ticker} is up ${fmtPct(best.totalGain/best.totalInvested*100)} vs ${worst.ticker} at ${fmtPct(worst.totalGain/worst.totalInvested*100)} — consider shifting new money to the stronger position`,
-      score:40,
-    });
-  }
-
-  const top=[...holdings].sort((a,b)=>b.currentValue-a.currentValue)[0];
-  if(top&&top.currentValue/totVal>0.35){
-    tips.push({
-      type:"concentration",
-      ticker:top.ticker,
-      severity:top.currentValue/totVal>0.5?"high":"med",
-      head:`${top.ticker} is ${(top.currentValue/totVal*100).toFixed(0)}% of your portfolio`,
-      detail:`Above the typical 25–30% comfort zone. New contributions could be spread across other positions`,
-      score:(top.currentValue/totVal)*60,
-    });
-  }
-
-  if(incomeRiskMetrics&&incomeRiskMetrics.concentration!==null&&incomeRiskMetrics.concentration>0.6){
-    tips.push({
-      type:"income-risk",
-      severity:"med",
-      head:`${(incomeRiskMetrics.concentration*100).toFixed(0)}% of income from top 3 holdings`,
-      detail:`Diversifying income sources reduces the impact of any single dividend cut`,
-      score:incomeRiskMetrics.concentration*50,
-    });
-  }
-
-  const divPaying=holdings.filter(h=>DIVIDEND_PAYING_TYPES.has(h.assetType));
-  const divPayingVal=divPaying.reduce((s,h)=>s+h.currentValue,0);
-  const divShare=totVal>0?(divPayingVal/totVal)*100:0;
-  if(divShare<50&&holdings.length>=3){
-    tips.push({
-      type:"income-gap",
-      severity:"low",
-      head:`Only ${divShare.toFixed(0)}% of portfolio pays dividends`,
-      detail:`Growing the income-generating portion could improve the passive-income trajectory`,
-      score:50-divShare,
-    });
-  }
-
-  const sevRank={high:3,med:2,low:1};
-  tips.sort((a,b)=>(sevRank[b.severity]-sevRank[a.severity])||(b.score-a.score));
-  return tips.slice(0,4);
+function computeHoldingVolatility(h,rates){
+  const divTx=h.transactions.filter(t=>t.type==="dividend"&&t.date);
+  if(divTx.length<3)return null;
+  const sorted=[...divTx].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const amounts=sorted.map(t=>toAUD(t.totalAmount||0,h.currency,rates));
+  const mean=amounts.reduce((s,v)=>s+v,0)/amounts.length;
+  if(mean<=0)return null;
+  const variance=amounts.reduce((s,v)=>s+(v-mean)**2,0)/amounts.length;
+  return (Math.sqrt(variance)/mean)*100;
 }
 
-function computeDividendSafety({holdings,rates}){
-  const rows=[];
-  const R=rates||{AUD_IDR:10550,AUD_USD:0.645};
-  holdings.forEach(h=>{
-    const divTx=h.transactions.filter(t=>t.type==="dividend"&&t.date);
-    if(divTx.length<2)return;
-    const sorted=[...divTx].sort((a,b)=>new Date(a.date)-new Date(b.date));
-    const half=Math.floor(sorted.length/2);
-    const early=sorted.slice(0,half);
-    const recent=sorted.slice(half);
-    const avgEarly=early.reduce((s,t)=>s+toAUD(t.totalAmount||0,h.currency,R),0)/Math.max(early.length,1);
-    const avgRecent=recent.reduce((s,t)=>s+toAUD(t.totalAmount||0,h.currency,R),0)/Math.max(recent.length,1);
-    if(avgEarly<=0)return;
-    const change=((avgRecent-avgEarly)/avgEarly)*100;
-    rows.push({ticker:h.ticker,change,avgRecent,avgEarly,total:h.totalDividends});
-  });
-  return rows.filter(r=>Math.abs(r.change)>10).sort((a,b)=>a.change-b.change);
+function computeMonthlyHeatmap(portfolio,rates){
+  const map={};
+  portfolio.forEach(h=>h.transactions.forEach(tx=>{
+    if(tx.type==="dividend"&&tx.date){
+      const key=tx.date.slice(0,7);
+      map[key]=(map[key]||0)+toAUD(tx.totalAmount||0,h.currency,rates);
+    }
+  }));
+  return map;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -1391,20 +1351,7 @@ function App(){
   const passiveColor=monthlyPassivePercent!==null?
     (monthlyPassivePercent>=100?T.green:monthlyPassivePercent>=50?T.amber:T.red):T.text3;
 
-  const incomeRiskMetrics=useMemo(()=>computeIncomeRiskMetrics(portfolio,rates),[portfolio,rates]);
-
   const chartData=useMemo(()=>{
-    const typeMap={};
-    holdings.forEach(h=>{const k=h.assetType||"Other";typeMap[k]=(typeMap[k]||0)+h.currentValue;});
-    const tLabels=Object.keys(typeMap), tVals=Object.values(typeMap);
-    const palette=tLabels.map((_,i)=>["#34a853","#1a73e8","#f9a825","#ea4335","#8ab4f8","#fdd663","#f28b82","#81c995"][i%8]);
-
-    const perfItems=holdings.map(h=>({ticker:h.ticker,gainPct:h.gainPct,currentValue:h.currentValue,
-      gain:h.totalGain})).sort((a,b)=>b.gainPct-a.gainPct);
-    const perfLabels=perfItems.map(p=>p.ticker);
-    const perfData=perfItems.map(p=>p.gainPct);
-    const perfColors=perfItems.map(p=>getPerformanceColor(p.gainPct,dark).bg);
-
     const qMap={};
     portfolio.forEach(h=>h.transactions.forEach(tx=>{
       if(tx.type==="dividend"&&tx.date){
@@ -1439,13 +1386,8 @@ function App(){
       if(qMap[yoyKey]>0) yoyGrowth=((qMap[lastKey]-qMap[yoyKey])/qMap[yoyKey])*100;
     }
 
-    return {
-      tLabels,tVals,palette,
-      perfLabels,perfData,perfColors,perfItems,
-      qLabels,qVals,qoqGrowth,yoyGrowth,
-      t12,
-    };
-  },[holdings,portfolio,rates,dark]);
+    return {qLabels,qVals,qoqGrowth,yoyGrowth,t12};
+  },[holdings,portfolio,rates]);
 
   const yFmtMain=useCallback(v=>{
     const abs=Math.abs(v);
@@ -2561,231 +2503,255 @@ function App(){
             </div>
           )}
 
-          {view==="chart"&&(
-            <div style={{display:"flex",flexDirection:"column",gap:14}}>
-              <div style={card({padding:14})}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",
-                  marginBottom:8,flexWrap:"wrap",gap:6}}>
-                  <div>
-                    <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>🎯 Lifetime Holdings Performance</div>
-                    <div style={{fontSize:10,color:T.text3,fontWeight:400}}>
-                      Total return % since purchase per holding (capital + dividends) — sorted best to worst
-                    </div>
-                  </div>
-                </div>
-                {chartData.perfLabels.length===0?
-                  <div style={{padding:20,textAlign:"center",color:T.text3,fontSize:11}}>No holdings yet</div>:
-                  <ChartBar labels={chartData.perfLabels}
-                    datasets={[{
-                      label:"Return %",
-                      data:chartData.perfData,
-                      backgroundColor:chartData.perfColors,
-                      borderColor:chartData.perfColors,
-                      borderWidth:1,
-                      borderRadius:5,
-                      borderSkipped:false,
-                    }]}
-                    T={T}
-                    yFmt={v=>`${v>=0?"+":""}${v.toFixed(0)}%`}
-                    height={Math.max(180,Math.min(420,chartData.perfLabels.length*32+40))}
-                    horizontal
-                    mobile={isMob}/>}
-              </div>
+          {view==="chart"&&(()=>{
+            const goalTarget=monthlyTargetAud||0;
+            const currentMonthly=monthlyPassiveNumerator;
+            const goalPct=goalTarget>0?Math.min(100,(currentMonthly/goalTarget)*100):0;
+            const goalReached=goalTarget>0&&currentMonthly>=goalTarget;
+            const remaining=Math.max(0,goalTarget-currentMonthly);
 
-              <div style={card({padding:14})}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",
-                  marginBottom:10,flexWrap:"wrap",gap:6}}>
-                  <div>
-                    <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>💡 Capital Deployment Playbook</div>
-                    <div style={{fontSize:10,color:T.text3,fontWeight:400}}>
-                      Where your next dollar could work hardest — based on your targets, allocation, and income profile
-                    </div>
-                  </div>
-                </div>
-                {(()=>{
-                  const tips=computeDeploymentSuggestions({
-                    holdings,totVal,whatIf,incomeRiskMetrics
-                  });
-                  if(!tips.length)return(
-                    <div style={{padding:20,textAlign:"center",color:T.text3,fontSize:11}}>
-                      Portfolio is well-balanced — no deployment actions flagged.
-                    </div>);
-                  const sevColor={high:T.red,med:T.amber,low:T.teal};
-                  const sevLabel={high:"Priority",med:"Consider",low:"Note"};
-                  return (
-                    <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                      {tips.map((tip,i)=>(
-                        <div key={i} style={{display:"flex",gap:10,padding:"10px 12px",
-                          background:T.bg4,border:"1px solid "+T.border,borderRadius:10,
-                          borderLeft:"3px solid "+sevColor[tip.severity]}}>
-                          <div style={{flexShrink:0,padding:"2px 8px",height:"fit-content",
-                            borderRadius:10,background:sevColor[tip.severity]+"22",
-                            color:sevColor[tip.severity],fontSize:8,fontWeight:700,
-                            letterSpacing:.5,textTransform:"uppercase"}}>
-                            {sevLabel[tip.severity]}
-                          </div>
-                          <div style={{flex:1,minWidth:0}}>
-                            <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:3}}>
-                              {tip.head}
-                            </div>
-                            <div style={{fontSize:10,color:T.text3,lineHeight:1.5,fontWeight:400}}>
-                              {tip.detail}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })()}
-              </div>
+            const qVals=chartData.qVals;
+            const qLabels=chartData.qLabels;
+            const trailing=qVals.map((_,i)=>{
+              if(i<3)return null;
+              return (qVals[i]+qVals[i-1]+qVals[i-2]+qVals[i-3])/4;
+            });
+            let incomeCAGR=null;
+            if(qVals.length>=5&&qVals[0]>0&&qVals[qVals.length-1]>0){
+              const periods=(qVals.length-1)/4;
+              incomeCAGR=(Math.pow(qVals[qVals.length-1]/qVals[0],1/periods)-1)*100;
+            }
 
-              <div className="chart-row">
-                <div style={card({padding:14})}>
-                  <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>🥧 Allocation by Type</div>
-                  <div style={{fontSize:10,color:T.text3,marginBottom:8,fontWeight:400}}>{displayCur}</div>
-                  <ChartDoughnut labels={chartData.tLabels} data={chartData.tVals}
-                    colors={chartData.palette} T={T} height={isMob?220:260} mobile={isMob}/>
-                </div>
+            const riskReward=holdings.map(h=>{
+              const vol=computeHoldingVolatility(h,rates);
+              return{...h,volatility:vol};
+            }).filter(h=>h.volatility!==null);
 
-                <div style={card({padding:14})}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8,flexWrap:"wrap",gap:6}}>
+            const heatMap=computeMonthlyHeatmap(portfolio,rates);
+            const heatKeys=Object.keys(heatMap).sort();
+            const years=[...new Set(heatKeys.map(k=>k.slice(0,4)))].sort();
+            const months=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+            const maxHeat=heatKeys.length?Math.max(...Object.values(heatMap)):1;
+
+            return (
+              <div style={{display:"flex",flexDirection:"column",gap:14}}>
+                {/* 1. GOAL PROGRESS */}
+                <div style={card({padding:18})}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",
+                    marginBottom:14,flexWrap:"wrap",gap:8}}>
                     <div>
-                      <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>💰 Quarterly Income — All Time</div>
-                      <div style={{fontSize:10,color:T.text3,fontWeight:400}}>Every dividend &amp; coupon grouped by quarter</div>
+                      <div style={{fontSize:14,fontWeight:700,color:T.text}}>🎯 Passive Income Goal Progress</div>
+                      <div style={{fontSize:10,color:T.text3,fontWeight:400,marginTop:2}}>
+                        {goalTarget>0?
+                          `You're generating ${fmtCur(currentMonthly,displayCur,rates)}/mo of your ${fmtCur(goalTarget,displayCur,rates)}/mo target`:
+                          `Set a monthly target in ⚙️ settings to track goal progress`}
+                      </div>
+                    </div>
+                    {goalTarget>0&&<div style={{textAlign:"right"}}>
+                      <div style={{fontFamily:"'Space Mono',monospace",fontSize:isMob?22:32,
+                        fontWeight:700,lineHeight:1,color:goalReached?T.green:T.teal}}>
+                        {goalPct.toFixed(0)}%
+                      </div>
+                      <div style={{fontSize:8,color:T.text3,fontWeight:600,letterSpacing:1,
+                        textTransform:"uppercase",marginTop:2}}>Reached</div>
+                    </div>}
+                  </div>
+                  {goalTarget>0&&(
+                    <>
+                      <div style={{position:"relative",height:32,borderRadius:16,background:T.bg4,
+                        border:"1px solid "+T.border,overflow:"hidden",marginBottom:10}}>
+                        <div style={{position:"absolute",left:0,top:0,bottom:0,
+                          width:goalPct+"%",
+                          background:goalReached?
+                            "linear-gradient(90deg,"+T.greenBtn+","+T.greenBtn+")":
+                            "linear-gradient(90deg,#34a853,#1a73e8)",
+                          transition:"width .5s ease",borderRadius:16}}/>
+                        {[25,50,75,100].map(m=>(
+                          <div key={m} style={{position:"absolute",left:m+"%",top:0,bottom:0,
+                            width:1,background:T.bg2+"88"}}/>
+                        ))}
+                        <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",
+                          justifyContent:"center",fontFamily:"'Space Mono',monospace",fontSize:12,
+                          fontWeight:700,color:goalPct>50?"#fff":T.text,letterSpacing:.5}}>
+                          {goalPct>=100?"🎉 Goal reached!":`${fmtCur(currentMonthly,displayCur,rates,true)} / ${fmtCur(goalTarget,displayCur,rates,true)}`}
+                        </div>
+                      </div>
+                      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+                        {[
+                          {l:"Current Monthly",v:fmtCur(currentMonthly,displayCur,rates),c:T.text},
+                          {l:"Remaining to Goal",v:remaining>0?fmtCur(remaining,displayCur,rates):"—",
+                            c:remaining>0?T.amber:T.green},
+                          {l:"Time to Goal",v:remaining<=0?"Reached":
+                            monthlyDivsAUD>0?`${Math.ceil(remaining/Math.max(monthlyDivsAUD*0.1,1))}mo`:"—",
+                            c:T.text3},
+                        ].map(x=>(
+                          <div key={x.l} style={{background:T.bg4,border:"1px solid "+T.border,
+                            borderRadius:8,padding:"8px 10px",textAlign:"center"}}>
+                            <div style={{fontSize:8,color:T.text3,textTransform:"uppercase",
+                              fontWeight:600,letterSpacing:.5,marginBottom:3}}>{x.l}</div>
+                            <div style={{fontFamily:"'Space Mono',monospace",fontSize:12,
+                              fontWeight:700,color:x.c,lineHeight:1.1}}>{x.v}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* 2. INCOME GROWTH TRAJECTORY */}
+                <div style={card({padding:18})}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",
+                    marginBottom:12,flexWrap:"wrap",gap:8}}>
+                    <div>
+                      <div style={{fontSize:14,fontWeight:700,color:T.text}}>📊 Income Growth Trajectory</div>
+                      <div style={{fontSize:10,color:T.text3,fontWeight:400,marginTop:2}}>
+                        Quarterly income with trailing 4Q average — is your income compounding?
+                      </div>
+                    </div>
+                    {incomeCAGR!==null&&<div style={{textAlign:"right"}}>
+                      <div style={{fontFamily:"'Space Mono',monospace",fontSize:isMob?18:22,
+                        fontWeight:700,lineHeight:1,
+                        color:incomeCAGR>=0?T.green:T.red}}>
+                        {incomeCAGR>=0?"+":""}{incomeCAGR.toFixed(1)}%
+                      </div>
+                      <div style={{fontSize:8,color:T.text3,fontWeight:600,letterSpacing:1,
+                        textTransform:"uppercase",marginTop:2}}>CAGR</div>
+                    </div>}
+                  </div>
+                  {qVals.length===0?
+                    <div style={{padding:30,textAlign:"center",color:T.text3,fontSize:11}}>
+                      No dividends recorded yet.</div>:
+                    <ChartBar labels={qLabels}
+                      datasets={[
+                        {label:"Quarterly",data:qVals,
+                          backgroundColor:dark?"rgba(52,168,83,.6)":"rgba(30,142,62,.5)",
+                          borderColor:dark?"#81c995":"#1e8e3e",borderWidth:1,borderRadius:5,
+                          yAxisID:"y",order:2},
+                        {type:"line",label:"Trailing 4Q Avg",data:trailing,
+                          borderColor:dark?"#8ab4f8":"#1a73e8",
+                          backgroundColor:"transparent",borderWidth:2,
+                          borderDash:[6,4],pointRadius:isMob?2:3,
+                          pointBackgroundColor:dark?"#8ab4f8":"#1a73e8",
+                          pointBorderColor:T.bg2,pointBorderWidth:1.5,
+                          tension:0.3,fill:false,yAxisID:"y",order:1},
+                      ]}
+                      T={T} yFmt={yFmtMain} height={isMob?240:280} mobile={isMob}/>
+                  }
+                </div>
+
+                {/* 3. RISK vs REWARD */}
+                <div style={card({padding:18})}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",
+                    marginBottom:12,flexWrap:"wrap",gap:8}}>
+                    <div>
+                      <div style={{fontSize:14,fontWeight:700,color:T.text}}>⚖️ Risk vs Reward</div>
+                      <div style={{fontSize:10,color:T.text3,fontWeight:400,marginTop:2}}>
+                        Is each holding earning its keep? Upper-left = great · Lower-right = trouble
+                      </div>
+                    </div>
+                    <div style={{display:"flex",gap:10,flexWrap:"wrap",fontSize:9,color:T.text3}}>
+                      <span><span style={{color:T.green}}>●</span> Ideal</span>
+                      <span><span style={{color:T.red}}>●</span> Risky</span>
+                      <span style={{fontSize:8,opacity:.7}}>Bubble size = value</span>
                     </div>
                   </div>
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:10}}>
-                    {[
-                      {l:"Trailing 12M",v:FC(chartData.t12,true),s:"total income",c:T.teal},
-                      {l:"QoQ Growth",v:chartData.qoqGrowth!==null?fmtPct(chartData.qoqGrowth):"—",
-                        s:"latest quarter",c:chartData.qoqGrowth!==null?pColor(chartData.qoqGrowth):T.text3},
-                      {l:"YoY Growth",v:chartData.yoyGrowth!==null?fmtPct(chartData.yoyGrowth):"—",
-                        s:"same quarter last yr",c:chartData.yoyGrowth!==null?pColor(chartData.yoyGrowth):T.text3},
-                    ].map(m=>(
-                      <div key={m.l} style={{background:T.bg4,border:"1px solid "+T.border,
-                        borderRadius:8,padding:"6px 8px",textAlign:"center"}}>
-                        <div style={{fontSize:8,color:T.text3,textTransform:"uppercase",
-                          fontWeight:600,letterSpacing:.5,marginBottom:2}}>{m.l}</div>
-                        <div style={{fontFamily:"'Space Mono',monospace",fontSize:12,fontWeight:700,
-                          color:m.c,lineHeight:1.1}}>{m.v}</div>
-                        <div style={{fontSize:8,color:T.text4,marginTop:2}}>{m.s}</div>
-                      </div>
-                    ))}
-                  </div>
-                  <ChartBar labels={chartData.qLabels}
-                    datasets={[{
-                      label:"Quarterly Income",data:chartData.qVals,
-                      backgroundColor:dark?"rgba(52,168,83,.65)":"rgba(30,142,62,.55)",
-                      borderColor:dark?"#81c995":"#1e8e3e",borderWidth:1,borderRadius:5,
-                    }]}
-                    T={T} yFmt={yFmtMain} height={isMob?200:220} mobile={isMob}/>
-                </div>
-              </div>
-
-              <div className="chart-row">
-                <div style={card({padding:14})}>
-                  <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>📐 Drift Watch</div>
-                  <div style={{fontSize:10,color:T.text3,marginBottom:10,fontWeight:400}}>
-                    Current weight vs your What-If target — where your portfolio is diverging
-                  </div>
-                  {(()=>{
-                    const tp=whatIf&&whatIf.targetPct&&typeof whatIf.targetPct==="object"?whatIf.targetPct:{};
-                    const rows=holdings.map(h=>{
-                      const cur=(h.currentValue/totVal)*100;
-                      const tgt=tp[h.ticker]!==undefined?tp[h.ticker]:cur;
-                      return{ticker:h.ticker,current:cur,target:tgt,drift:cur-tgt};
-                    }).filter(r=>Math.abs(r.drift)>0.5)
-                      .sort((a,b)=>Math.abs(b.drift)-Math.abs(a.drift));
-                    if(!rows.length)return(
-                      <div style={{padding:20,textAlign:"center",color:T.text3,fontSize:11}}>
-                        {Object.keys(tp).length===0?
-                          "Set allocation targets in the What-If tab to enable drift tracking.":
-                          "All holdings are within 0.5% of their targets."}
-                      </div>);
-                    return (
-                      <div style={{overflowX:"auto"}}>
-                        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
-                          <thead>
-                            <tr>
-                              {["Holding","Current","Target","Drift"].map(c=>(
-                                <th key={c} style={{padding:"6px 8px",textAlign:"left",fontSize:8,
-                                  letterSpacing:1,color:T.text3,textTransform:"uppercase",
-                                  borderBottom:"1px solid "+T.border,fontWeight:600,whiteSpace:"nowrap"}}>{c}</th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {rows.slice(0,8).map(r=>{
-                              const driftColor=Math.abs(r.drift)>10?(r.drift>0?T.red:T.green):
-                                Math.abs(r.drift)>5?T.amber:T.teal;
-                              const driftLabel=r.drift>0?"Over":"Under";
-                              return (
-                                <tr key={r.ticker}>
-                                  <td style={{padding:"6px 8px",fontFamily:"'Space Mono',monospace",
-                                    fontWeight:700,color:T.text,fontSize:11,
-                                    borderBottom:"1px solid "+T.border}}>{r.ticker}</td>
-                                  <td style={{padding:"6px 8px",fontFamily:"'Space Mono',monospace",
-                                    color:T.text2,fontSize:10,borderBottom:"1px solid "+T.border,
-                                    whiteSpace:"nowrap"}}>{r.current.toFixed(1)}%</td>
-                                  <td style={{padding:"6px 8px",fontFamily:"'Space Mono',monospace",
-                                    color:T.text2,fontSize:10,borderBottom:"1px solid "+T.border,
-                                    whiteSpace:"nowrap"}}>{r.target.toFixed(1)}%</td>
-                                  <td style={{padding:"6px 8px",borderBottom:"1px solid "+T.border,whiteSpace:"nowrap"}}>
-                                    <span style={{padding:"2px 8px",borderRadius:12,
-                                      background:driftColor+"22",color:driftColor,
-                                      fontFamily:"'Space Mono',monospace",fontSize:9,fontWeight:700}}>
-                                      {driftLabel} {Math.abs(r.drift).toFixed(1)}pp
-                                    </span>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    );
-                  })()}
+                  {riskReward.length<2?
+                    <div style={{padding:30,textAlign:"center",color:T.text3,fontSize:11}}>
+                      Need at least 2 holdings with 3+ dividend payments to compute risk metrics.
+                    </div>:
+                    <RiskRewardScatter data={riskReward} T={T} isMob={isMob} />
+                  }
                 </div>
 
-                <div style={card({padding:14})}>
-                  <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>🛡️ Dividend Safety Check</div>
-                  <div style={{fontSize:10,color:T.text3,marginBottom:10,fontWeight:400}}>
-                    Holdings whose recent dividend payouts differ materially from their historical average
-                  </div>
-                  {(()=>{
-                    const rows=computeDividendSafety({holdings,rates});
-                    if(!rows.length)return(
-                      <div style={{padding:20,textAlign:"center",color:T.text3,fontSize:11}}>
-                        No significant dividend changes detected in your holdings.
-                      </div>);
-                    return (
-                      <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                        {rows.slice(0,6).map(r=>{
-                          const isCut=r.change<0;
-                          const color=isCut?(r.change<-30?T.red:T.amber):T.green;
-                          return (
-                            <div key={r.ticker} style={{display:"flex",alignItems:"center",
-                              gap:8,padding:"8px 10px",background:T.bg4,
-                              border:"1px solid "+T.border,borderRadius:8}}>
-                              <span style={{fontFamily:"'Space Mono',monospace",fontWeight:700,
-                                fontSize:11,color:T.text,minWidth:52}}>{r.ticker}</span>
-                              <span style={{flex:1,fontSize:10,color:T.text3,fontWeight:400}}>
-                                {isCut?"Recent payouts below historical avg":"Recent payouts above historical avg"}
-                              </span>
-                              <span style={{fontFamily:"'Space Mono',monospace",fontSize:11,
-                                fontWeight:700,color:color,whiteSpace:"nowrap"}}>
-                                {r.change>=0?"+":""}{r.change.toFixed(0)}%
-                              </span>
-                            </div>
-                          );
-                        })}
+                {/* 4. CONTRIBUTION HEATMAP */}
+                <div style={card({padding:18})}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",
+                    marginBottom:14,flexWrap:"wrap",gap:8}}>
+                    <div>
+                      <div style={{fontSize:14,fontWeight:700,color:T.text}}>🔥 Income Contribution Heatmap</div>
+                      <div style={{fontSize:10,color:T.text3,fontWeight:400,marginTop:2}}>
+                        Which months actually pay you? Reveals seasonality in your income.
                       </div>
-                    );
-                  })()}
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:6,fontSize:9,color:T.text3}}>
+                      <span>Low</span>
+                      <div style={{display:"flex",gap:2}}>
+                        {[0.15,0.35,0.55,0.75,1].map(o=>(
+                          <div key={o} style={{width:12,height:12,borderRadius:2,
+                            background:dark?`rgba(52,168,83,${o})`:`rgba(30,142,62,${o})`}}/>
+                        ))}
+                      </div>
+                      <span>High</span>
+                    </div>
+                  </div>
+                  {years.length===0?
+                    <div style={{padding:30,textAlign:"center",color:T.text3,fontSize:11}}>
+                      No dividend history to display.</div>:
+                    <div style={{overflowX:"auto",minWidth:0}}>
+                      <table style={{width:"100%",borderCollapse:"separate",borderSpacing:3,
+                        fontSize:isMob?8:9}}>
+                        <thead>
+                          <tr>
+                            <th style={{padding:2}}></th>
+                            {months.map(m=>(
+                              <th key={m} style={{padding:"4px 2px",color:T.text3,
+                                fontWeight:600,letterSpacing:.5,textAlign:"center",
+                                fontSize:8,textTransform:"uppercase"}}>{m}</th>
+                            ))}
+                            <th style={{padding:"4px 6px",color:T.text3,fontWeight:600,
+                              letterSpacing:.5,textAlign:"right",fontSize:8,
+                              textTransform:"uppercase"}}>Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {years.map(y=>{
+                            const yearTotal=heatKeys.filter(k=>k.startsWith(y))
+                              .reduce((s,k)=>s+heatMap[k],0);
+                            return (
+                              <tr key={y}>
+                                <td style={{padding:"4px 6px",fontFamily:"'Space Mono',monospace",
+                                  fontWeight:700,color:T.text,fontSize:9,textAlign:"left"}}>{y}</td>
+                                {months.map((_,mi)=>{
+                                  const key=`${y}-${String(mi+1).padStart(2,"0")}`;
+                                  const v=heatMap[key]||0;
+                                  const intensity=v>0?0.15+0.85*(v/maxHeat):0;
+                                  return (
+                                    <td key={mi} title={v>0?`${fmtCur(v,displayCur,rates)}`:""}
+                                      style={{padding:0}}>
+                                      <div style={{height:isMob?22:28,borderRadius:3,
+                                        background:v>0?
+                                          (dark?`rgba(52,168,83,${intensity})`:`rgba(30,142,62,${intensity})`):
+                                          T.bg4,
+                                        border:"1px solid "+T.border,
+                                        display:"flex",alignItems:"center",justifyContent:"center",
+                                        fontSize:7,fontWeight:700,
+                                        color:v/maxHeat>0.5?"#fff":T.text3}}>
+                                        {v>0&&!isMob?fmtCur(v,displayCur,rates,true).replace(/^[A-Z$]+/,""):""}
+                                      </div>
+                                    </td>
+                                  );
+                                })}
+                                <td style={{padding:"4px 6px",fontFamily:"'Space Mono',monospace",
+                                  fontWeight:700,color:T.teal,fontSize:9,textAlign:"right",
+                                  whiteSpace:"nowrap"}}>
+                                  {fmtCur(yearTotal,displayCur,rates,true)}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                      <div style={{marginTop:10,fontSize:9,color:T.text3,fontWeight:400,
+                        textAlign:"center",lineHeight:1.5}}>
+                        Darker = larger payout. Hover/tap a cell for the exact amount.
+                      </div>
+                    </div>
+                  }
                 </div>
+
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {view==="whatif"&&renderWhatIf()}
         </main>
