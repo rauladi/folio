@@ -1156,7 +1156,6 @@ function App(){
   const [tmMode,setTmMode]=useState("performance");
   const [tmShowVal,setTmShowVal]=useState(true);
   const [tmSize,setTmSize]=useState({w:600,h:420});
-  const [chartPeriod,setChartPeriod]=useState("1Y");
   const [valuesHidden,setValuesHidden]=useState(false);
   const [editTx,setEditTx]=useState(null);
   const [fetchSt,setFetchSt]=useState({loading:false,lastUpdate:null,errors:{},successes:0,total:0,
@@ -1394,20 +1393,7 @@ function App(){
 
   const incomeRiskMetrics=useMemo(()=>computeIncomeRiskMetrics(portfolio,rates),[portfolio,rates]);
 
-  const periodCutoff=useCallback(period=>{
-    const now=new Date();
-    if(period==="1M"){const d=new Date(now);d.setMonth(d.getMonth()-1);return d;}
-    if(period==="3M"){const d=new Date(now);d.setMonth(d.getMonth()-3);return d;}
-    if(period==="6M"){const d=new Date(now);d.setMonth(d.getMonth()-6);return d;}
-    if(period==="YTD"){return new Date(now.getFullYear(),0,1);}
-    if(period==="1Y"){const d=new Date(now);d.setFullYear(d.getFullYear()-1);return d;}
-    if(period==="5Y"){const d=new Date(now);d.setFullYear(d.getFullYear()-5);return d;}
-    return new Date(0);
-  },[]);
-
   const chartData=useMemo(()=>{
-    const cutoff=periodCutoff(chartPeriod);
-
     const typeMap={};
     holdings.forEach(h=>{const k=h.assetType||"Other";typeMap[k]=(typeMap[k]||0)+h.currentValue;});
     const tLabels=Object.keys(typeMap), tVals=Object.values(typeMap);
@@ -1423,7 +1409,6 @@ function App(){
     portfolio.forEach(h=>h.transactions.forEach(tx=>{
       if(tx.type==="dividend"&&tx.date){
         const d=new Date(tx.date);
-        if(d<cutoff)return;
         const q=Math.floor(d.getMonth()/3)+1;
         const k=`${d.getFullYear()}-Q${q}`;
         qMap[k]=(qMap[k]||0)+toAUD(tx.totalAmount||0,h.currency,rates);
@@ -1460,7 +1445,7 @@ function App(){
       qLabels,qVals,qoqGrowth,yoyGrowth,
       t12,
     };
-  },[holdings,portfolio,rates,chartPeriod,dark,periodCutoff]);
+  },[holdings,portfolio,rates,dark]);
 
   const yFmtMain=useCallback(v=>{
     const abs=Math.abs(v);
@@ -2578,27 +2563,13 @@ function App(){
 
           {view==="chart"&&(
             <div style={{display:"flex",flexDirection:"column",gap:14}}>
-              <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-                <span style={{fontSize:10,color:T.text3,fontWeight:500}}>Period:</span>
-                <div style={{display:"flex",gap:3,background:T.bg3,padding:3,borderRadius:14,
-                  border:"1px solid "+T.border}}>
-                  {["1M","3M","6M","YTD","1Y","5Y"].map(p=>(
-                    <button key={p} onClick={()=>setChartPeriod(p)}
-                      style={{padding:"4px 12px",borderRadius:12,border:"none",
-                        background:chartPeriod===p?"linear-gradient(135deg,#34a853,#1a73e8)":"transparent",
-                        color:chartPeriod===p?"#fff":T.text3,fontSize:10,
-                        fontWeight:chartPeriod===p?600:500,cursor:"pointer"}}>{p}</button>
-                  ))}
-                </div>
-              </div>
-
               <div style={card({padding:14})}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",
                   marginBottom:8,flexWrap:"wrap",gap:6}}>
                   <div>
-                    <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>🎯 Holdings Performance</div>
+                    <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>🎯 Lifetime Holdings Performance</div>
                     <div style={{fontSize:10,color:T.text3,fontWeight:400}}>
-                      Total return % per holding (capital + dividends) — sorted best to worst
+                      Total return % since purchase per holding (capital + dividends) — sorted best to worst
                     </div>
                   </div>
                 </div>
@@ -2679,8 +2650,8 @@ function App(){
                 <div style={card({padding:14})}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8,flexWrap:"wrap",gap:6}}>
                     <div>
-                      <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>💰 Quarterly Income Trend</div>
-                      <div style={{fontSize:10,color:T.text3,fontWeight:400}}>Dividends &amp; coupons by quarter</div>
+                      <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>💰 Quarterly Income — All Time</div>
+                      <div style={{fontSize:10,color:T.text3,fontWeight:400}}>Every dividend &amp; coupon grouped by quarter</div>
                     </div>
                   </div>
                   <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:10}}>
