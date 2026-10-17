@@ -2504,12 +2504,6 @@ function App(){
           )}
 
           {view==="chart"&&(()=>{
-            const goalTarget=monthlyTargetAud||0;
-            const currentMonthly=monthlyPassiveNumerator;
-            const goalPct=goalTarget>0?Math.min(100,(currentMonthly/goalTarget)*100):0;
-            const goalReached=goalTarget>0&&currentMonthly>=goalTarget;
-            const remaining=Math.max(0,goalTarget-currentMonthly);
-
             const qVals=chartData.qVals;
             const qLabels=chartData.qLabels;
             const trailing=qVals.map((_,i)=>{
@@ -2535,70 +2529,8 @@ function App(){
 
             return (
               <div style={{display:"flex",flexDirection:"column",gap:14}}>
-                {/* 1. GOAL PROGRESS */}
-                <div style={card({padding:18})}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",
-                    marginBottom:14,flexWrap:"wrap",gap:8}}>
-                    <div>
-                      <div style={{fontSize:14,fontWeight:700,color:T.text}}>🎯 Passive Income Goal Progress</div>
-                      <div style={{fontSize:10,color:T.text3,fontWeight:400,marginTop:2}}>
-                        {goalTarget>0?
-                          `You're generating ${fmtCur(currentMonthly,displayCur,rates)}/mo of your ${fmtCur(goalTarget,displayCur,rates)}/mo target`:
-                          `Set a monthly target in ⚙️ settings to track goal progress`}
-                      </div>
-                    </div>
-                    {goalTarget>0&&<div style={{textAlign:"right"}}>
-                      <div style={{fontFamily:"'Space Mono',monospace",fontSize:isMob?22:32,
-                        fontWeight:700,lineHeight:1,color:goalReached?T.green:T.teal}}>
-                        {goalPct.toFixed(0)}%
-                      </div>
-                      <div style={{fontSize:8,color:T.text3,fontWeight:600,letterSpacing:1,
-                        textTransform:"uppercase",marginTop:2}}>Reached</div>
-                    </div>}
-                  </div>
-                  {goalTarget>0&&(
-                    <>
-                      <div style={{position:"relative",height:32,borderRadius:16,background:T.bg4,
-                        border:"1px solid "+T.border,overflow:"hidden",marginBottom:10}}>
-                        <div style={{position:"absolute",left:0,top:0,bottom:0,
-                          width:goalPct+"%",
-                          background:goalReached?
-                            "linear-gradient(90deg,"+T.greenBtn+","+T.greenBtn+")":
-                            "linear-gradient(90deg,#34a853,#1a73e8)",
-                          transition:"width .5s ease",borderRadius:16}}/>
-                        {[25,50,75,100].map(m=>(
-                          <div key={m} style={{position:"absolute",left:m+"%",top:0,bottom:0,
-                            width:1,background:T.bg2+"88"}}/>
-                        ))}
-                        <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",
-                          justifyContent:"center",fontFamily:"'Space Mono',monospace",fontSize:12,
-                          fontWeight:700,color:goalPct>50?"#fff":T.text,letterSpacing:.5}}>
-                          {goalPct>=100?"🎉 Goal reached!":`${fmtCur(currentMonthly,displayCur,rates,true)} / ${fmtCur(goalTarget,displayCur,rates,true)}`}
-                        </div>
-                      </div>
-                      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
-                        {[
-                          {l:"Current Monthly",v:fmtCur(currentMonthly,displayCur,rates),c:T.text},
-                          {l:"Remaining to Goal",v:remaining>0?fmtCur(remaining,displayCur,rates):"—",
-                            c:remaining>0?T.amber:T.green},
-                          {l:"Time to Goal",v:remaining<=0?"Reached":
-                            monthlyDivsAUD>0?`${Math.ceil(remaining/Math.max(monthlyDivsAUD*0.1,1))}mo`:"—",
-                            c:T.text3},
-                        ].map(x=>(
-                          <div key={x.l} style={{background:T.bg4,border:"1px solid "+T.border,
-                            borderRadius:8,padding:"8px 10px",textAlign:"center"}}>
-                            <div style={{fontSize:8,color:T.text3,textTransform:"uppercase",
-                              fontWeight:600,letterSpacing:.5,marginBottom:3}}>{x.l}</div>
-                            <div style={{fontFamily:"'Space Mono',monospace",fontSize:12,
-                              fontWeight:700,color:x.c,lineHeight:1.1}}>{x.v}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
 
-                {/* 2. INCOME GROWTH TRAJECTORY */}
+                {/* 1. INCOME GROWTH TRAJECTORY */}
                 <div style={card({padding:18})}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",
                     marginBottom:12,flexWrap:"wrap",gap:8}}>
@@ -2639,7 +2571,7 @@ function App(){
                   }
                 </div>
 
-                {/* 3. RISK vs REWARD */}
+                {/* 2. RISK vs REWARD */}
                 <div style={card({padding:18})}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",
                     marginBottom:12,flexWrap:"wrap",gap:8}}>
@@ -2663,7 +2595,7 @@ function App(){
                   }
                 </div>
 
-                {/* 4. CONTRIBUTION HEATMAP */}
+                {/* 3. CONTRIBUTION HEATMAP */}
                 <div style={card({padding:18})}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",
                     marginBottom:14,flexWrap:"wrap",gap:8}}>
