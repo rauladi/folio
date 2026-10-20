@@ -372,12 +372,12 @@ const RATES_URL="https://open.er-api.com/v6/latest/AUD";
 const CF_PROXY=(()=>{try{return localStorage.getItem("f6_cfproxy")||"";}catch{return"";}})();
 const PROXIES=[
   ...(CF_PROXY?[u=>`${CF_PROXY}?url=${encodeURIComponent(u)}`]:[]),
-  u=>"https://r.jina.ai/"+u,
+  u=>"https://api.cors.lol/?url="+encodeURIComponent(u),
+  u=>"https://api.allorigins.win/get?url="+encodeURIComponent(u),
   u=>"https://api.codetabs.com/v1/proxy?quest="+encodeURIComponent(u),
-  u=>"https://api.allorigins.win/raw?url="+encodeURIComponent(u),
+  u=>"https://r.jina.ai/"+u,
   u=>"https://corsproxy.io/?url="+encodeURIComponent(u),
-  u=>"https://corsproxy.org/?url="+encodeURIComponent(u),
-  u=>"https://cors.eu.org/"+u,
+  u=>"https://api.corsproxy.io/?url="+encodeURIComponent(u),
 ];
 let _workingProxyIndex=-1;
 
@@ -396,7 +396,9 @@ async function tryProxy(proxyUrl,timeoutMs){
   t=unwrapJina(t);
   try{
     let parsed=JSON.parse(t);
-    if(parsed?.contents&&typeof parsed.contents==="string")parsed=JSON.parse(parsed.contents);
+    if(parsed?.contents&&typeof parsed.contents==="string"){
+      try{return JSON.parse(parsed.contents);}catch{return parsed.contents;}
+    }
     return parsed;
   }catch{return t;}
 }
@@ -1120,6 +1122,7 @@ function App(){
   const [editTx,setEditTx]=useState(null);
   const [fetchSt,setFetchSt]=useState({loading:false,lastUpdate:null,errors:{},successes:0,total:0,
     fetched:0,rateOk:null});
+  const [toast,setToast]=useState(null);
   const [fbUser,setFbUser]=useState(null);
   const [syncSt,setSyncSt]=useState("idle");
   const [syncMsg,setSyncMsg]=useState("");
@@ -1150,6 +1153,12 @@ function App(){
   const winW=useWindowSize();
   const isMob=winW<640;
   const isTablet=winW>=640&&winW<900;
+
+  useEffect(()=>{
+    if(!toast)return;
+    const t=setTimeout(()=>setToast(null),4000);
+    return()=>clearTimeout(t);
+  },[toast]);
 
   useLayoutEffect(()=>{
     const el=tmContainerRef.current; if(!el)return;
@@ -1674,6 +1683,11 @@ function App(){
       .sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(-90));
     setFetchSt({loading:false,lastUpdate:now,errors,successes,total:fetchablePrices.length,
       fetched:fetchablePrices.length,rateOk});
+    setToast({
+      ok: successes>0,
+      msg: successes>0?`✅ Updated ${successes}/${fetchablePrices.length} prices${rateOk?" · FX live":""}`:
+        `⚠️ Fetch failed — try manual override (✏️)`,
+    });
   },[portfolio,prices,prevPrices,rates]);
 
   const renderWhatIf=()=>{
@@ -2123,9 +2137,11 @@ function App(){
                 const truly=Object.keys(fetchSt.errors).filter(t=>!(prices[t]>0));
                 const stale=Object.keys(fetchSt.errors).filter(t=>prices[t]>0);
                 return(<>
-                  {truly.length>0&&<span style={{color:T.red,fontSize:8}}>⚠️ {truly.join(", ")}
-                    <span onClick={openManualPrice} style={{textDecoration:"underline",cursor:"pointer"}}>✏️</span></span>}
-                  {stale.length>0&&<span style={{color:T.amber,fontSize:8}}>↻ {stale.join(", ")}</span>}
+                  {truly.length>0&&<span style={{color:T.red,fontSize:8,fontWeight:600}}>
+                    ⚠️ {truly.length} failed ({truly.slice(0,2).join(", ")}{truly.length>2?` +${truly.length-2}`:""})
+                    <span onClick={openManualPrice} style={{textDecoration:"underline",cursor:"pointer",marginLeft:4}}>✏️ Set manually</span>
+                  </span>}
+                  {stale.length>0&&<span style={{color:T.amber,fontSize:8}}>↻ {stale.length} using cached</span>}
                 </>);
               })()}
               <span className="sep">·</span>
@@ -2698,6 +2714,15 @@ function App(){
             </button>
           ))}
         </nav>
+
+        {toast&&(
+          <div style={{position:"fixed",bottom:isMob?80:24,left:"50%",transform:"translateX(-50%)",
+            background:toast.ok?T.greenBtn:T.redBtn,color:"#fff",padding:"10px 20px",borderRadius:20,
+            fontSize:12,fontWeight:600,zIndex:300,boxShadow:"0 8px 24px rgba(0,0,0,.4)",
+            animation:"fadeIn .25s ease-out",pointerEvents:"none",maxWidth:"90vw",textAlign:"center"}}>
+            {toast.msg}
+          </div>
+        )}
 
         {modal&&(
           <div onClick={closeModal} className="modal-sheet"
