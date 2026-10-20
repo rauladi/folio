@@ -372,12 +372,13 @@ const RATES_URL="https://open.er-api.com/v6/latest/AUD";
 const CF_PROXY=(()=>{try{return localStorage.getItem("f6_cfproxy")||"";}catch{return"";}})();
 const PROXIES=[
   ...(CF_PROXY?[u=>`${CF_PROXY}?url=${encodeURIComponent(u)}`]:[]),
-  u=>"https://api.cors.lol/?url="+encodeURIComponent(u),
-  u=>"https://api.allorigins.win/get?url="+encodeURIComponent(u),
   u=>"https://api.codetabs.com/v1/proxy?quest="+encodeURIComponent(u),
-  u=>"https://r.jina.ai/"+u,
+  u=>"https://api.allorigins.win/raw?url="+encodeURIComponent(u),
+  u=>"https://api.allorigins.win/get?url="+encodeURIComponent(u),
   u=>"https://corsproxy.io/?url="+encodeURIComponent(u),
-  u=>"https://api.corsproxy.io/?url="+encodeURIComponent(u),
+  u=>"https://cors.eu.org/"+u,
+  u=>"https://r.jina.ai/"+u,
+  u=>"https://api.cors.lol/?url="+encodeURIComponent(u),
 ];
 let _workingProxyIndex=-1;
 
@@ -2137,11 +2138,15 @@ function App(){
                 const truly=Object.keys(fetchSt.errors).filter(t=>!(prices[t]>0));
                 const stale=Object.keys(fetchSt.errors).filter(t=>prices[t]>0);
                 return(<>
-                  {truly.length>0&&<span style={{color:T.red,fontSize:8,fontWeight:600}}>
-                    ⚠️ {truly.length} failed ({truly.slice(0,2).join(", ")}{truly.length>2?` +${truly.length-2}`:""})
-                    <span onClick={openManualPrice} style={{textDecoration:"underline",cursor:"pointer",marginLeft:4}}>✏️ Set manually</span>
+                  {truly.length>0&&<span style={{color:T.red,fontSize:8,fontWeight:600,background:dark?"#2d0a0a":"#fee2e2",
+                    padding:"2px 6px",borderRadius:4,border:"1px solid "+T.red+"44"}}>
+                    ⚠️ {truly.length} failed: {truly.join(", ")}
+                    <span onClick={openManualPrice} style={{textDecoration:"underline",cursor:"pointer",marginLeft:6,color:"#fff"}}>✏️ Fix</span>
                   </span>}
-                  {stale.length>0&&<span style={{color:T.amber,fontSize:8}}>↻ {stale.length} using cached</span>}
+                  {stale.length>0&&<span style={{color:T.amber,fontSize:8,background:dark?"#332d1a":"#fef7e0",
+                    padding:"2px 6px",borderRadius:4,border:"1px solid "+T.amber+"44"}}>
+                    ↻ {stale.length} cached: {stale.join(", ")}
+                  </span>}
                 </>);
               })()}
               <span className="sep">·</span>
@@ -2337,7 +2342,7 @@ function App(){
                 </div>}
               </div>
               <div className="detail-panel" style={{width:isMob?"100%":240,flexShrink:0,
-                ...card({padding:14,minHeight:isMob?0:160})}}>
+                ...card({padding:14,minHeight:isMob?"80px":160})}}>
                 {selH?(
                   <>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
@@ -2405,7 +2410,7 @@ function App(){
                   </>
                 ):(
                   <div style={{display:"flex",flexDirection:"column",alignItems:"center",
-                    justifyContent:"center",minHeight:120,textAlign:"center"}}>
+                    justifyContent:"center",minHeight:isMob?60:120,textAlign:"center"}}>
                     <div style={{fontSize:24,marginBottom:6,opacity:.4}}>👆</div>
                     <div style={{fontFamily:"'Space Mono',monospace",fontSize:10,color:T.text3,
                       lineHeight:1.6,fontWeight:500}}>Tap any box<br/>to view details</div>
