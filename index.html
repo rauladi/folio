@@ -742,23 +742,55 @@ function ChartDoughnut({labels,data,colors,T,height=230,mobile=false}){
 function RiskRewardScatter({data,T,isMob}){
   const ref=useRef(null);
   const inst=useRef(null);
+  
+  // This plugin draws the text inside the bubbles
+  const textCenterPlugin = useMemo(() => ({
+    id: 'textCenter',
+    afterDatasetsDraw(chart) {
+      const { ctx } = chart;
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      
+      chart.data.datasets.forEach((dataset, i) => {
+        const meta = chart.getDatasetMeta(i);
+        meta.data.forEach((element, index) => {
+          const dataPoint = dataset.data[index];
+          if(dataPoint && dataPoint.ticker) {
+            ctx.fillStyle = '#ffffff';
+            // Scale font based on bubble radius
+            const fontSize = Math.max(8, Math.min(14, element.options.radius / 2.5));
+            ctx.font = `700 ${fontSize}px 'Space Mono', monospace`;
+            ctx.fillText(dataPoint.ticker, element.x, element.y);
+          }
+        });
+      });
+      ctx.restore();
+    }
+  }), []);
+
   const sig=useMemo(()=>JSON.stringify({d:data.map(h=>({t:h.ticker,v:h.volatility,r:h.gainPct,s:h.currentValue}))}),[data]);
+  
   useEffect(()=>{
     if(!ref.current||typeof Chart==="undefined")return;
     if(inst.current){inst.current.destroy();inst.current=null;}
     const maxSize=Math.max(...data.map(h=>h.currentValue),1);
+    
+    // Prepare data points
     const points=data.map(h=>({
-      x:h.volatility,y:h.gainPct,
-      r:6+Math.sqrt(h.currentValue/maxSize)*22,
+      x:h.volatility,
+      y:h.gainPct,
+      r:10 + Math.sqrt(h.currentValue/maxSize)*25, // Min radius of 10 so text fits
       ticker:h.ticker,
       color:h.gainPct>=0?(h.volatility>20?T.amber:T.green):T.red,
     }));
+    
     inst.current=new Chart(ref.current,{
       type:"bubble",
       data:{datasets:[{
         label:"Holdings",
         data:points,
-        backgroundColor:points.map(p=>p.color+"99"),
+        backgroundColor:points.map(p=>p.color+"aa"),
         borderColor:points.map(p=>p.color),
         borderWidth:2,
       }]},
@@ -780,24 +812,31 @@ function RiskRewardScatter({data,T,isMob}){
           },
         },
         scales:{
-          x:{title:{display:true,text:"Income Volatility (CV %)",color:T.text3,
+          x:{
+            min: 0, // Start X axis at 0
+            title:{display:true,text:"Income Volatility (CV %)",color:T.text3,
               font:{size:isMob?9:10,weight:"600"}},
             grid:{color:T.chartGrid},
             ticks:{color:T.chartTick,font:{size:isMob?9:10,weight:"500"},
               callback:v=>`${v.toFixed(0)}%`},
-            border:{color:T.border}},
-          y:{title:{display:true,text:"Total Return %",color:T.text3,
+            border:{color:T.border}
+          },
+          y:{
+            title:{display:true,text:"Total Return %",color:T.text3,
               font:{size:isMob?9:10,weight:"600"}},
             grid:{color:T.chartGrid},
             ticks:{color:T.chartTick,font:{size:isMob?9:10,weight:"500"},
               callback:v=>`${v>=0?"+":""}${v.toFixed(0)}%`},
-            border:{color:T.border}},
+            border:{color:T.border}
+          },
         },
       },
+      plugins: [textCenterPlugin] // <-- Activate the text plugin here
     });
     return()=>{if(inst.current){inst.current.destroy();inst.current=null;}};
-  },[sig,T,isMob]);
-  return <div className="chart-wrap" style={{height:isMob?260:340}}><canvas ref={ref}/></div>;
+  },[sig,T,isMob, textCenterPlugin]);
+  
+  return <div className="chart-wrap" style={{height:isMob?300:400}}><canvas ref={ref}/></div>;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -1086,13 +1125,14 @@ function computeIncomeRiskMetrics(portfolio,rates){
 
 function computeHoldingVolatility(h,rates){
   const divTx=h.transactions.filter(t=>t.type==="dividend"&&t.date);
-  if(divTx.length<3)return null;
+  if(divTx.length<3) return 5; 
   const sorted=[...divTx].sort((a,b)=>new Date(a.date)-new Date(b.date));
   const amounts=sorted.map(t=>toAUD(t.totalAmount||0,h.currency,rates));
   const mean=amounts.reduce((s,v)=>s+v,0)/amounts.length;
-  if(mean<=0)return null;
+  if(mean<=0)return 5;
   const variance=amounts.reduce((s,v)=>s+(v-mean)**2,0)/amounts.length;
-  return (Math.sqrt(variance)/mean)*100;
+  const cv = (Math.sqrt(variance)/mean)*100;
+  return Math.min(cv, 100); 
 }
 
 function computeMonthlyHeatmap(portfolio,rates){
@@ -2546,7 +2586,7 @@ function App(){
             const riskReward=holdings.map(h=>{
               const vol=computeHoldingVolatility(h,rates);
               return{...h,volatility:vol};
-            }).filter(h=>h.volatility!==null);
+            });
 
             const heatMap=computeMonthlyHeatmap(portfolio,rates);
             const heatKeys=Object.keys(heatMap).sort();
@@ -2614,9 +2654,9 @@ function App(){
                       <span style={{fontSize:8,opacity:.7}}>Bubble size = value</span>
                     </div>
                   </div>
-                  {riskReward.length<2?
+                  {riskReward.length<1?
                     <div style={{padding:30,textAlign:"center",color:T.text3,fontSize:11}}>
-                      Need at least 2 holdings with 3+ dividend payments to compute risk metrics.
+                      Need at least 1 holding to compute risk metrics.
                     </div>:
                     <RiskRewardScatter data={riskReward} T={T} isMob={isMob} />
                   }
