@@ -9,7 +9,7 @@
   html,body{height:100%;width:100%;overflow-x:hidden}
   body{min-height:100vh;font-family:'Roboto','Segoe UI',system-ui,sans-serif;font-size:14px;
        -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;overflow-x:hidden;
-       background:var(--bg,#121212);color:var(--text,#e8eaed);
+       background:var(--bg,#0a0f14);color:var(--text,#e2e8f0);
        transition:background .25s,color .25s;
        font-variant-numeric:tabular-nums}
   #root{width:100%;overflow-x:hidden}
@@ -21,7 +21,7 @@
   button:active{transform:scale(.97)}
   ::-webkit-scrollbar{width:6px;height:6px}
   ::-webkit-scrollbar-track{background:transparent}
-  ::-webkit-scrollbar-thumb{border-radius:4px;background:var(--border2,#555)}
+  ::-webkit-scrollbar-thumb{border-radius:4px;background:var(--border2,#1d2d38)}
   @keyframes spin{to{transform:rotate(360deg)}}
   .spin{display:inline-block;animation:spin .9s linear infinite}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
@@ -29,8 +29,8 @@
   @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
   .fade-in{animation:fadeIn .25s ease-out}
 
-  .surface{background:var(--card-bg,#252525);border:1px solid var(--border,#3d3d3d);
-           border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.25),0 8px 24px -12px rgba(0,0,0,.5)}
+  .surface{background:var(--card-bg,#101a21);border:1px solid var(--border,#1d2d38);
+           border-radius:14px;box-shadow:0 4px 12px rgba(0,0,0,.5)}
   .chart-wrap{position:relative;width:100%;min-width:0}
   .chart-row{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px;align-items:stretch}
   @media (max-width:900px){.chart-row{grid-template-columns:1fr}}
@@ -42,46 +42,46 @@
   .header-kpi{display:flex;flex-direction:column;min-width:64px;
     font-variant-numeric:tabular-nums}
   .header-kpi .label{font-size:9px;letter-spacing:1.1px;text-transform:uppercase;font-weight:600;
-    color:var(--kpi-label,#9aa0a6)}
+    color:var(--kpi-label,#8da3b5)}
   .header-kpi .value{font-size:17px;font-weight:700;font-family:'Space Mono',monospace;
     letter-spacing:-0.3px;line-height:1.2}
   .header-kpi .sub{font-size:10px;font-weight:500;opacity:.7}
   .header-sysinfo{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:10px;
-    color:var(--sysinfo-color,#9aa0a6)}
+    color:var(--sysinfo-color,#8da3b5)}
 
-  .table-container{overflow:auto;max-height:600px;border-radius:12px;border:1px solid var(--border,#3d3d3d)}
+  .table-container{overflow:auto;max-height:600px;border-radius:12px;border:1px solid var(--border,#1d2d38)}
   .table-container table{border-collapse:separate;border-spacing:0;width:100%}
-  .table-container thead th{position:sticky;top:0;z-index:10;background:var(--bg2,#1e1e1e);
-                            border-bottom:2px solid var(--border,#3d3d3d)}
-  .table-container tbody td:first-child{position:sticky;left:0;z-index:5;background:var(--bg3,#2a2a2a)}
-  .table-container thead th:first-child{z-index:15;left:0;background:var(--bg2,#1e1e1e)}
-  .table-container tbody tr:hover td{background:var(--hover-bg,#333)}
-  .table-container tbody tr:hover td:first-child{background:var(--hover-bg,#333)}
+  .table-container thead th{position:sticky;top:0;z-index:10;background:var(--bg2,#0f161c);
+                            border-bottom:2px solid var(--border,#1d2d38);color:#00c2d1}
+  .table-container tbody td:first-child{position:sticky;left:0;z-index:5;background:var(--bg3,#142129)}
+  .table-container thead th:first-child{z-index:15;left:0;background:var(--bg2,#0f161c)}
+  .table-container tbody tr:hover td{background:var(--hover-bg,#142129)}
+  .table-container tbody tr:hover td:first-child{background:var(--hover-bg,#142129)}
 
   .whatif-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;
                  align-items:stretch;width:100%;min-height:420px}
   .whatif-holdings{display:grid;grid-template-columns:1fr 1fr;gap:5px}
   .adj-row{display:flex;align-items:center;gap:5px;padding:5px 8px;border-radius:6px;
-           border:1px solid var(--border,#3d3d3d);background:var(--bg4,#333);flex-wrap:nowrap;
+           border:1px solid var(--border,#1d2d38);background:var(--bg4,#1a2630);flex-wrap:nowrap;
            min-height:38px;font-variant-numeric:tabular-nums}
-  .adj-row .ticker{font-weight:700;font-size:12px;min-width:48px;color:var(--text,#e8eaed);flex-shrink:0}
-  .adj-row .value{font-size:11px;min-width:60px;text-align:right;color:var(--text2,#bdc1c6);
+  .adj-row .ticker{font-weight:700;font-size:12px;min-width:48px;color:#00c2d1;flex-shrink:0}
+  .adj-row .value{font-size:11px;min-width:60px;text-align:right;color:var(--text2,#cbd5e1);
     font-weight:500;flex-shrink:0}
-  .adj-row input[type="number"]{width:56px;background:var(--bg,#121212);
-    border:1px solid var(--border,#3d3d3d);border-radius:4px;padding:3px 4px;font-size:12px;
-    color:var(--text,#e8eaed);text-align:center;font-weight:600;flex-shrink:0;
+  .adj-row input[type="number"]{width:56px;background:var(--bg,#0a0f14);
+    border:1px solid var(--border,#1d2d38);border-radius:4px;padding:3px 4px;font-size:12px;
+    color:var(--text,#e2e8f0);text-align:center;font-weight:600;flex-shrink:0;
     font-variant-numeric:tabular-nums}
-  .adj-row .adj-btn{background:var(--bg2,#1e1e1e);border:1px solid var(--border,#3d3d3d);
+  .adj-row .adj-btn{background:var(--bg2,#0f161c);border:1px solid var(--border,#1d2d38);
     border-radius:4px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;
-    color:var(--text,#e8eaed);cursor:pointer;font-size:16px;font-weight:700;flex-shrink:0}
-  .adj-row .adj-btn:hover{background:var(--bg5,#555)}
-  .adj-row .diff-label{font-size:10px;min-width:40px;text-align:right;color:var(--text3,#9aa0a6);
+    color:var(--text,#e2e8f0);cursor:pointer;font-size:16px;font-weight:700;flex-shrink:0}
+  .adj-row .adj-btn:hover{background:var(--bg5,#23323e)}
+  .adj-row .diff-label{font-size:10px;min-width:40px;text-align:right;color:var(--text3,#8da3b5);
     font-weight:600;flex-shrink:0}
-  .scenario-card{border-radius:10px;padding:12px 14px;border:1px solid var(--border,#3d3d3d);
-                 background:var(--bg3,#2a2a2a)}
+  .scenario-card{border-radius:10px;padding:12px 14px;border:1px solid var(--border,#1d2d38);
+                 background:var(--bg3,#142129)}
 
-  .view-tabs{display:flex;background:var(--bg4,#333);border-radius:14px;padding:2px;
-    border:1px solid var(--border,#3d3d3d);flex-shrink:0}
+  .view-tabs{display:flex;background:var(--bg4,#1a2630);border-radius:14px;padding:2px;
+    border:1px solid var(--border,#1d2d38);flex-shrink:0}
   .view-tabs button{padding:4px 10px;border-radius:12px;border:none;font-size:10px;font-weight:500;
     transition:all .18s ease}
   .view-tabs-mobile{display:none}
@@ -101,7 +101,7 @@
       scrollbar-width:none;-webkit-overflow-scrolling:touch}
     .header-kpis::-webkit-scrollbar{display:none}
     .header-kpi{flex:0 0 auto;min-width:110px;padding:7px 10px;
-      background:var(--bg3,#2a2a2a);border:1px solid var(--border,#3d3d3d);
+      background:var(--bg3,#142129);border:1px solid var(--border,#1d2d38);
       border-radius:10px}
     .header-kpi .label{font-size:7px;letter-spacing:.6px}
     .header-kpi .value{font-size:13px;letter-spacing:-0.2px}
@@ -129,22 +129,22 @@
 
     .view-tabs{display:none !important}
     .view-tabs-mobile{display:flex !important;position:fixed;bottom:0;left:0;right:0;
-      background:var(--card-bg,#252525);border-top:1px solid var(--border,#3d3d3d);
+      background:var(--card-bg,#101a21);border-top:1px solid var(--border,#1d2d38);
       padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px));gap:4px;z-index:60;
-      box-shadow:0 -8px 24px rgba(0,0,0,.18);backdrop-filter:blur(10px);
+      box-shadow:0 -8px 24px rgba(0,0,0,.5);backdrop-filter:blur(10px);
       -webkit-backdrop-filter:blur(10px)}
     .view-tabs-mobile button{flex:1;padding:8px 2px;border-radius:10px;font-size:10px;
       font-weight:600;display:flex;flex-direction:column;align-items:center;gap:3px;
       border:none;background:transparent;transition:all .18s ease}
     .view-tabs-mobile button .ic{font-size:16px;line-height:1}
-    .view-tabs-mobile button.active{background:linear-gradient(135deg,rgba(52,168,83,.2),rgba(26,115,232,.2))}
+    .view-tabs-mobile button.active{background:rgba(0,194,209,.15);color:#00c2d1 !important}
 
     .modal-sheet{align-items:flex-end !important;padding:0 !important}
     .modal-sheet > div{border-radius:20px 20px 0 0 !important;max-height:94vh !important;
       width:100% !important;max-width:100% !important;
       padding-bottom:calc(20px + env(safe-area-inset-bottom,0px)) !important;
-      border-top:1px solid var(--border,#3d3d3d);
-      box-shadow:0 -12px 36px rgba(0,0,0,.25) !important}
+      border-top:1px solid var(--border,#1d2d38);
+      box-shadow:0 -12px 36px rgba(0,0,0,.5) !important}
   }
 
   @media (max-width:400px){
@@ -152,21 +152,21 @@
     .header-kpi .value{font-size:12px}
   }
 
-  input:focus,select:focus{border-color:#1a73e8 !important;box-shadow:0 0 0 3px rgba(26,115,232,.18)}
+  input:focus,select:focus{border-color:#00c2d1 !important;box-shadow:0 0 0 3px rgba(0,194,209,.18)}
   canvas{max-width:100%}
   .modal-sheet{align-items:center}
 
   input[type=range].whatif-slider{-webkit-appearance:none;width:100%;height:4px;border-radius:2px;
-    background:linear-gradient(90deg,#34a853,#1a73e8);outline:none;margin-top:10px}
+    background:linear-gradient(90deg,#00c2d1,#008ab8);outline:none;margin-top:10px}
   input[type=range].whatif-slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;
-    border-radius:50%;background:#fff;border:2px solid #1a73e8;cursor:pointer;
+    border-radius:50%;background:#fff;border:2px solid #00c2d1;cursor:pointer;
     box-shadow:0 2px 6px rgba(0,0,0,.3)}
   input[type=range].whatif-slider::-moz-range-thumb{width:16px;height:16px;border-radius:50%;
-    background:#fff;border:2px solid #1a73e8;cursor:pointer}
+    background:#fff;border:2px solid #00c2d1;cursor:pointer}
 
-  .heatmap-cell{height:28px;border-radius:3px;border:1px solid var(--border,#3d3d3d);
-    background:var(--bg4,#333);display:flex;align-items:center;justify-content:center;
-    font-size:7px;font-weight:700;color:var(--text3,#9aa0a6)}
+  .heatmap-cell{height:28px;border-radius:3px;border:1px solid var(--border,#1d2d38);
+    background:var(--bg4,#1a2630);display:flex;align-items:center;justify-content:center;
+    font-size:7px;font-weight:700;color:var(--text3,#8da3b5)}
   @media (max-width:640px){.heatmap-cell{height:22px}}
 </style>
 </head>
@@ -240,16 +240,22 @@ const DIVIDEND_PAYING_TYPES=new Set(["Shares / Stocks","ETF","Mutual Fund","Inde
   "REIT / Property","Bond – Government","Bond – Corporate","Bond – Indonesia (SBN)","Bond – Sharia (Sukuk)"]);
 const INCOME_RISK_EXCLUDED_TICKERS=new Set(["SHIB","BTC","GOLD","NUL5339AU","NUL7270AU"]);
 
-const DARK={bg:"#121212",bg2:"#1e1e1e",bg3:"#2a2a2a",bg4:"#333",bg5:"#3d3d3d",border:"#3d3d3d",border2:"#555",
-  text:"#e8eaed",text2:"#bdc1c6",text3:"#9aa0a6",text4:"#6c7278",green:"#81c995",greenBtn:"#34a853",
-  red:"#f28b82",redBtn:"#ea4335",teal:"#8ab4f8",tealBtn:"#1a73e8",amber:"#fdd663",amberBg:"#332d1a",
-  shadow:"0 4px 16px rgba(0,0,0,.5)",chartGrid:"rgba(255,255,255,.08)",chartTick:"#9aa0a6",
-  cardBg:"#252525",hoverBg:"#333",kpiLabel:"#9aa0a6",sysinfoColor:"#9aa0a6",borderColor:"#3d3d3d"};
-const LIGHT={bg:"#f1f3f4",bg2:"#fff",bg3:"#f8f9fa",bg4:"#e8eaed",bg5:"#dadce0",border:"#dadce0",border2:"#bdc1c6",
-  text:"#202124",text2:"#3c4043",text3:"#5f6368",text4:"#80868b",green:"#1e8e3e",greenBtn:"#1a73e8",
-  red:"#d93025",redBtn:"#d93025",teal:"#1a73e8",tealBtn:"#1a73e8",amber:"#e37400",amberBg:"#fef7e0",
-  shadow:"0 2px 12px rgba(0,0,0,.12)",chartGrid:"rgba(0,0,0,.06)",chartTick:"#5f6368",
-  cardBg:"#fff",hoverBg:"#f1f3f4",kpiLabel:"#5f6368",sysinfoColor:"#5f6368",borderColor:"#dadce0"};
+const DARK={
+  bg:"#0a0f14", bg2:"#0f161c", bg3:"#142129", bg4:"#1a2630", bg5:"#23323e", border:"#1d2d38", border2:"#2a3f50",
+  text:"#e2e8f0", text2:"#cbd5e1", text3:"#8da3b5", text4:"#5c7387", 
+  green:"#34d399", greenBtn:"#059669", red:"#f87171", redBtn:"#dc2626", 
+  teal:"#00c2d1", tealBtn:"#00c2d1", amber:"#fbbf24", amberBg:"#332d1a",
+  shadow:"0 4px 16px rgba(0,0,0,.6)", chartGrid:"rgba(0,194,209,.08)", chartTick:"#8da3b5",
+  cardBg:"#101a21", hoverBg:"#1a2630", kpiLabel:"#8da3b5", sysinfoColor:"#8da3b5", borderColor:"#1d2d38"
+};
+const LIGHT={
+  bg:"#f1f3f4", bg2:"#fff", bg3:"#f8f9fa", bg4:"#e8eaed", bg5:"#dadce0", border:"#dadce0", border2:"#bdc1c6",
+  text:"#202124", text2:"#3c4043", text3:"#5f6368", text4:"#80868b", 
+  green:"#1e8e3e", greenBtn:"#1a73e8", red:"#d93025", redBtn:"#d93025", 
+  teal:"#1a73e8", tealBtn:"#1a73e8", amber:"#e37400", amberBg:"#fef7e0",
+  shadow:"0 2px 12px rgba(0,0,0,.12)", chartGrid:"rgba(0,0,0,.06)", chartTick:"#5f6368",
+  cardBg:"#fff", hoverBg:"#f1f3f4", kpiLabel:"#5f6368", sysinfoColor:"#5f6368", borderColor:"#dadce0"
+};
 
 function squarify(items,x,y,w,h){
   if(!items.length)return[];
@@ -278,8 +284,8 @@ function getPerformanceColor(pct,dark){
   const maxAbs=10;
   const clamped=Math.max(-maxAbs,Math.min(maxAbs,pct));
   const ratio=clamped/maxAbs;
-  if(Math.abs(pct)<0.05) return {bg:dark?"#3d3d3d":"#e8eaed",text:dark?"#bdc1c6":"#3c4043",
-    border:dark?"#555":"#bdc1c6"};
+  if(Math.abs(pct)<0.05) return {bg:dark?"#23323e":"#e8eaed",text:dark?"#cbd5e1":"#3c4043",
+    border:dark?"#2a3f50":"#bdc1c6"};
   const hue=((ratio+1)/2)*120, sat=75, light=dark?32:45;
   return {bg:`hsl(${hue},${sat}%,${light}%)`,text:"#fff",
     border:`hsl(${hue},${sat}%,${dark?22:35}%)`};
@@ -288,8 +294,8 @@ function getDividendColor(yieldPct,dark){
   const maxYield=8;
   const clamped=Math.max(0,Math.min(maxYield,yieldPct));
   const ratio=clamped/maxYield;
-  if(yieldPct<=0.01) return {bg:dark?"#3d3d3d":"#e8eaed",text:dark?"#bdc1c6":"#3c4043",
-    border:dark?"#555":"#bdc1c6"};
+  if(yieldPct<=0.01) return {bg:dark?"#23323e":"#e8eaed",text:dark?"#cbd5e1":"#3c4043",
+    border:dark?"#2a3f50":"#bdc1c6"};
   const hue=50-ratio*20, sat=85, light=dark?38:52;
   return {bg:`hsl(${hue},${sat}%,${light}%)`,text:"#fff",
     border:`hsl(${hue},${sat}%,${dark?25:40}%)`};
@@ -2082,22 +2088,22 @@ function App(){
                 width={isMob?130:190} height={isMob?34:44} style={{display:"block"}}>
                 <defs>
                   <linearGradient id="hbg2" x1="0%" y1="100%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#34a853"/><stop offset="55%" stopColor="#1a73e8"/>
-                    <stop offset="100%" stopColor="#8ab4f8"/>
+                    <stop offset="0%" stopColor="#00c2d1"/><stop offset="55%" stopColor="#008ab8"/>
+                    <stop offset="100%" stopColor="#00c2d1"/>
                   </linearGradient>
                   <linearGradient id="htg2" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor={T.text}/><stop offset="100%" stopColor="#a5f3c0"/>
+                    <stop offset="0%" stopColor={T.text}/><stop offset="100%" stopColor="#00c2d1"/>
                   </linearGradient>
                 </defs>
                 <rect x="1" y="4" width="36" height="36" rx="8" fill={T.bg3}
                   stroke="url(#hbg2)" strokeWidth="1"/>
-                <rect x="7" y="28" width="4" height="8" rx="1.5" fill="#34a853" opacity="0.7"/>
-                <rect x="14" y="22" width="4" height="14" rx="1.5" fill="#34a853" opacity="0.85"/>
-                <rect x="21" y="16" width="4" height="20" rx="1.5" fill="#1a73e8"/>
-                <rect x="28" y="10" width="4" height="26" rx="1.5" fill="#8ab4f8"/>
+                <rect x="7" y="28" width="4" height="8" rx="1.5" fill="#00c2d1" opacity="0.7"/>
+                <rect x="14" y="22" width="4" height="14" rx="1.5" fill="#00c2d1" opacity="0.85"/>
+                <rect x="21" y="16" width="4" height="20" rx="1.5" fill="#00c2d1"/>
+                <rect x="28" y="10" width="4" height="26" rx="1.5" fill="#00c2d1"/>
                 <polyline points="9,27 16,21 23,15 30,10" fill="none" stroke="url(#hbg2)"
                   strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.9"/>
-                <circle cx="30" cy="10" r="3" fill="#8ab4f8"/>
+                <circle cx="30" cy="10" r="3" fill="#00c2d1"/>
                 <text x="46" y="22" fontFamily="'Space Mono',monospace" fontWeight="700"
                   fontSize="14" letterSpacing="2" fill="url(#htg2)">SAUDAGAR</text>
                 <text x="46" y="34" fontFamily="'Space Mono',monospace" fontWeight="700"
@@ -2210,7 +2216,7 @@ function App(){
                     borderRadius:4,color:T.teal,cursor:"pointer"}}>☁️ {isMob?"":"Sync"}</button>
               )):null}
               <button onClick={openAdd}
-                style={{background:T.greenBtn,color:"#fff",border:"none",borderRadius:14,
+                style={{background:T.tealBtn,color:"#000",border:"none",borderRadius:14,
                   padding:"4px 12px",fontSize:11,fontWeight:600,cursor:"pointer"}}>+ Add</button>
             </div>
           </div>
@@ -2229,7 +2235,7 @@ function App(){
                   <div style={{display:"flex",alignItems:"center",gap:3,flexShrink:0}}>
                     <span style={{fontSize:8,color:T.text3}}>−</span>
                     <div style={{width:80,height:5,borderRadius:3,flexShrink:0,
-                      background:dark?"linear-gradient(to right, #ea4335, #3d3d3d, #34a853)":"linear-gradient(to right, #ea4335, #e8eaed, #34a853)"}}/>
+                      background:dark?"linear-gradient(to right, #ea4335, #1d2d38, #00c2d1)":"linear-gradient(to right, #ea4335, #e8eaed, #00c2d1)"}}/>
                     <span style={{fontSize:8,color:T.text3}}>+</span>
                   </div>
                   <span style={{fontSize:8,color:T.text4,whiteSpace:"nowrap"}}>· Box = value</span>
@@ -2240,7 +2246,7 @@ function App(){
                   <div style={{display:"flex",alignItems:"center",gap:3,flexShrink:0}}>
                     <span style={{fontSize:8,color:T.text3}}>−</span>
                     <div style={{width:80,height:5,borderRadius:3,flexShrink:0,
-                      background:dark?"linear-gradient(to right, #ea4335, #3d3d3d, #34a853)":"linear-gradient(to right, #ea4335, #e8eaed, #34a853)"}}/>
+                      background:dark?"linear-gradient(to right, #ea4335, #1d2d38, #00c2d1)":"linear-gradient(to right, #ea4335, #e8eaed, #00c2d1)"}}/>
                     <span style={{fontSize:8,color:T.text3}}>+</span>
                   </div>
                   <span style={{fontSize:8,color:T.text4,whiteSpace:"nowrap"}}>· Box = value</span>
@@ -2269,14 +2275,14 @@ function App(){
                     <button key={v} onClick={()=>setTmMode(v)}
                       style={{padding:"3px 8px",borderRadius:12,border:"none",
                         background:tmMode===v?T.bg2:"transparent",
-                        color:tmMode===v?T.text:T.text3,fontSize:9,
+                        color:tmMode===v?T.teal:T.text3,fontSize:9,
                         fontWeight:tmMode===v?600:400,whiteSpace:"nowrap"}}>{l}</button>
                   ))}
                 </div>
                 {(tmMode==="day"||tmMode==="dividend")&&(
                   <button onClick={()=>setTmShowVal(v=>!v)}
                     style={{padding:"2px 8px",borderRadius:12,border:"1px solid "+T.border,
-                      background:!tmShowVal?T.teal:T.bg4,color:!tmShowVal?"#fff":T.text3,
+                      background:!tmShowVal?T.teal:T.bg4,color:!tmShowVal?"#000":T.text3,
                       fontSize:9,fontWeight:600,whiteSpace:"nowrap"}}>{tmShowVal?"%":"%+val"}</button>
                 )}
               </div>
@@ -2285,7 +2291,7 @@ function App(){
               {VIEW_TABS.map(([v,l])=>(
                 <button key={v} onClick={()=>setView(v)}
                   style={{background:view===v?T.bg2:"transparent",
-                    color:view===v?T.text:T.text3,
+                    color:view===v?T.teal:T.text3,
                     fontWeight:view===v?600:500}}>{l}</button>
               ))}
             </div>
@@ -2347,7 +2353,7 @@ function App(){
                   <>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
                       <div style={{flex:1,minWidth:0,marginRight:6}}>
-                        <div style={{fontFamily:"'Space Mono',monospace",fontSize:16,fontWeight:700,color:T.text}}>{selH.ticker}</div>
+                        <div style={{fontFamily:"'Space Mono',monospace",fontSize:16,fontWeight:700,color:T.teal}}>{selH.ticker}</div>
                         <div style={{fontSize:10,color:T.text3,marginTop:1,overflow:"hidden",
                           textOverflow:"ellipsis",whiteSpace:"nowrap",fontWeight:400}}>{selH.name}</div>
                         <div style={{display:"flex",gap:4,marginTop:6,flexWrap:"wrap"}}>
@@ -2403,7 +2409,7 @@ function App(){
                       <button onClick={()=>openTrade(selH,"sell")}
                         style={bS(T.redBtn,"#fff",{padding:"5px 0",fontSize:11})}>Sell</button>
                       <button onClick={()=>openDiv(selH)}
-                        style={bS(T.tealBtn,"#fff",{padding:"5px 0",fontSize:11})}>💰 {selH.isBondPct?"Coupon":"Div"}</button>
+                        style={bS(T.tealBtn,"#000",{padding:"5px 0",fontSize:11})}>💰 {selH.isBondPct?"Coupon":"Div"}</button>
                       <button onClick={()=>openHistory(selH)}
                         style={bO(T.text2,{padding:"5px 0",fontSize:11})}>📋 Hist</button>
                     </div>
@@ -2442,7 +2448,7 @@ function App(){
                         onMouseEnter={e=>e.currentTarget.style.background=T.hoverBg}
                         onMouseLeave={e=>e.currentTarget.style.background=bg}>
                         <td style={{padding:"7px 9px",fontFamily:"'Space Mono',monospace",fontWeight:700,
-                          color:T.text,fontSize:10,borderBottom:"1px solid "+T.border,
+                          color:T.teal,fontSize:10,borderBottom:"1px solid "+T.border,
                           whiteSpace:"nowrap",position:"sticky",left:0,zIndex:5,background:bg}}>
                           {h.ticker}{h.isBondPct&&<span style={{fontSize:7,color:T.teal,marginLeft:3,fontWeight:500}}>BOND</span>}
                         </td>
@@ -2508,7 +2514,7 @@ function App(){
                               ["H",()=>openHistory(h),T.bg5]].map(([l,fn,bg])=>(
                                 <button key={l} onClick={fn}
                                   style={{width:22,height:22,borderRadius:11,border:"none",background:bg,
-                                    color:bg===T.bg5?T.text2:"#fff",fontSize:9,fontWeight:700,
+                                    color:bg===T.bg5?T.text2:"#000",fontSize:9,fontWeight:700,
                                     display:"flex",alignItems:"center",justifyContent:"center"}}>{l}</button>
                             ))}
                           </div>
@@ -2577,14 +2583,14 @@ function App(){
                     <ChartBar labels={qLabels}
                       datasets={[
                         {label:"Quarterly",data:qVals,
-                          backgroundColor:dark?"rgba(52,168,83,.6)":"rgba(30,142,62,.5)",
-                          borderColor:dark?"#81c995":"#1e8e3e",borderWidth:1,borderRadius:5,
+                          backgroundColor:"rgba(0,194,209,0.6)",
+                          borderColor:"#00c2d1",borderWidth:1,borderRadius:5,
                           yAxisID:"y",order:2},
                         {type:"line",label:"Trailing 4Q Avg",data:trailing,
-                          borderColor:dark?"#8ab4f8":"#1a73e8",
+                          borderColor:"#8ab4f8",
                           backgroundColor:"transparent",borderWidth:2,
                           borderDash:[6,4],pointRadius:isMob?2:3,
-                          pointBackgroundColor:dark?"#8ab4f8":"#1a73e8",
+                          pointBackgroundColor:"#8ab4f8",
                           pointBorderColor:T.bg2,pointBorderWidth:1.5,
                           tension:0.3,fill:false,yAxisID:"y",order:1},
                       ]}
@@ -2631,7 +2637,7 @@ function App(){
                       <div style={{display:"flex",gap:2}}>
                         {[0.15,0.35,0.55,0.75,1].map(o=>(
                           <div key={o} style={{width:12,height:12,borderRadius:2,
-                            background:dark?`rgba(52,168,83,${o})`:`rgba(30,142,62,${o})`}}/>
+                            background:`rgba(0,194,209,${o})`}}/>
                         ))}
                       </div>
                       <span>High</span>
@@ -2663,7 +2669,7 @@ function App(){
                             return (
                               <tr key={y}>
                                 <td style={{padding:"4px 6px",fontFamily:"'Space Mono',monospace",
-                                  fontWeight:700,color:T.text,fontSize:9,textAlign:"left"}}>{y}</td>
+                                  fontWeight:700,color:T.teal,fontSize:9,textAlign:"left"}}>{y}</td>
                                 {months.map((_,mi)=>{
                                   const key=`${y}-${String(mi+1).padStart(2,"0")}`;
                                   const v=heatMap[key]||0;
@@ -2673,12 +2679,12 @@ function App(){
                                       style={{padding:0}}>
                                       <div style={{height:isMob?22:28,borderRadius:3,
                                         background:v>0?
-                                          (dark?`rgba(52,168,83,${intensity})`:`rgba(30,142,62,${intensity})`):
+                                          `rgba(0,194,209,${intensity})`:
                                           T.bg4,
                                         border:"1px solid "+T.border,
                                         display:"flex",alignItems:"center",justifyContent:"center",
                                         fontSize:7,fontWeight:700,
-                                        color:v/maxHeat>0.5?"#fff":T.text3}}>
+                                        color:v/maxHeat>0.5?"#000":T.text3}}>
                                         {v>0&&!isMob?fmtCur(v,displayCur,rates,true).replace(/^[A-Z$]+/,""):""}
                                       </div>
                                     </td>
@@ -2713,7 +2719,7 @@ function App(){
           {VIEW_TABS.map(([v,ic,l])=>(
             <button key={v} onClick={()=>setView(v)}
               className={view===v?"active":""}
-              style={{color:view===v?(dark?"#8ab4f8":"#1a73e8"):T.text3}}>
+              style={{color:view===v?T.teal:T.text3}}>
               <span className="ic">{ic}</span>
               <span>{l}</span>
             </button>
@@ -2722,7 +2728,7 @@ function App(){
 
         {toast&&(
           <div style={{position:"fixed",bottom:isMob?80:24,left:"50%",transform:"translateX(-50%)",
-            background:toast.ok?T.greenBtn:T.redBtn,color:"#fff",padding:"10px 20px",borderRadius:20,
+            background:toast.ok?T.tealBtn:T.redBtn,color:"#000",padding:"10px 20px",borderRadius:20,
             fontSize:12,fontWeight:600,zIndex:300,boxShadow:"0 8px 24px rgba(0,0,0,.4)",
             animation:"fadeIn .25s ease-out",pointerEvents:"none",maxWidth:"90vw",textAlign:"center"}}>
             {toast.msg}
@@ -2806,7 +2812,7 @@ function App(){
                   </div>
                   <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
                     <button style={bO(T.text2,{fontSize:11})} onClick={closeModal}>Cancel</button>
-                    <button style={bS(T.greenBtn,"#fff",{fontSize:11})} onClick={submitAdd}>Add Position</button>
+                    <button style={bS(T.tealBtn,"#000",{fontSize:11})} onClick={submitAdd}>Add Position</button>
                   </div>
                 </>
               )}
@@ -2885,7 +2891,7 @@ function App(){
                   })()}
                   <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
                     <button style={bO(T.text2,{fontSize:11})} onClick={closeModal}>Cancel</button>
-                    <button style={bS(T.tealBtn,"#fff",{fontSize:11})} onClick={submitDiv}
+                    <button style={bS(T.tealBtn,"#000",{fontSize:11})} onClick={submitDiv}
                       disabled={!form.amountPerShare||!form.entitledQty}>
                       Record {modal.holding.isBondPct?"Coupon":"Dividend"}</button>
                   </div>
@@ -3017,7 +3023,7 @@ function App(){
                   ))}
                   <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:4}}>
                     <button style={bO(T.text2,{fontSize:10})} onClick={closeModal}>Cancel</button>
-                    <button style={bS(T.greenBtn,"#fff",{fontSize:10})} onClick={submitManualPrice}>💾 Save</button>
+                    <button style={bS(T.tealBtn,"#000",{fontSize:10})} onClick={submitManualPrice}>💾 Save</button>
                   </div>
                 </>
               )}
@@ -3066,7 +3072,7 @@ function App(){
                 </div>
                 <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:16}}>
                   <button style={bO(T.text2,{fontSize:10})} onClick={()=>setEditTx(null)}>Cancel</button>
-                  <button style={bS(T.greenBtn,"#fff",{fontSize:10})} onClick={save}>Save</button>
+                  <button style={bS(T.tealBtn,"#000",{fontSize:10})} onClick={save}>Save</button>
                 </div>
               </div>
             </div>
@@ -3104,7 +3110,7 @@ function App(){
                 <div style={{fontSize:9,color:T.text3,marginTop:4,fontWeight:500}}>Used to compare your super</div></div>
               <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
                 <button style={bO(T.text2,{fontSize:10})} onClick={()=>setShowPassiveModal(false)}>Cancel</button>
-                <button style={bS(T.greenBtn,"#fff",{fontSize:10})} onClick={()=>setShowPassiveModal(false)}>Save</button>
+                <button style={bS(T.tealBtn,"#000",{fontSize:10})} onClick={()=>setShowPassiveModal(false)}>Save</button>
               </div>
             </div>
           </div>
