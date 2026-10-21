@@ -670,6 +670,12 @@ function useWindowSize(){
     return()=>window.removeEventListener("resize",h);},[]);
   return w;
 }
+function useWindowHeight(){
+  const [h,setH]=useState(typeof window!=="undefined"?window.innerHeight:800);
+  useEffect(()=>{const fn=()=>setH(window.innerHeight); window.addEventListener("resize",fn);
+    return()=>window.removeEventListener("resize",fn);},[]);
+  return h;
+}
 
 /* ═══════════════════════════════════════════════════════════════════
    CHART COMPONENTS
@@ -784,17 +790,16 @@ function RiskRewardScatter({data,T,isMob}){
     if(inst.current){inst.current.destroy();inst.current=null;}
     const maxSize=Math.max(...data.map(h=>h.currentValue),1);
 
-    /* ── Fix scale: compute explicit padded bounds so bubbles never clip ── */
     const xs=data.map(h=>h.volatility);
     const ys=data.map(h=>h.gainPct);
     const sortedX=[...xs].sort((a,b)=>a-b);
     const medX=sortedX.length?sortedX[Math.floor(sortedX.length/2)]:0;
-    const xThresh=Math.max(10,medX);       // quadrant split: median volatility (min 10%)
-    const yThresh=0;                        // quadrant split: break-even return
+    const xThresh=Math.max(10,medX);
+    const yThresh=0;
 
     const xMaxData=Math.max(...xs,xThresh*1.5,10);
     const xMax=xMaxData*1.15;
-    const xMin=-Math.max(xMax*0.04,1.5);    // small margin so 0% bubbles aren't half-clipped
+    const xMin=-Math.max(xMax*0.04,1.5);
 
     const yMaxData=Math.max(...ys,5);
     const yMinData=Math.min(...ys,-5);
@@ -811,7 +816,6 @@ function RiskRewardScatter({data,T,isMob}){
       color:h.gainPct>=0?(h.volatility>xThresh?T.amber:T.green):T.red,
     }));
 
-    /* ── Quadrant plugin: colour-fills the 4 zones + draws dividers & labels ── */
     const quadrantPlugin={
       id:'quadrants',
       beforeDatasetsDraw(chart){
@@ -821,23 +825,20 @@ function RiskRewardScatter({data,T,isMob}){
         const xp=Math.min(right,Math.max(left, chart.scales.x.getPixelForValue(xThresh)));
         const yp=Math.min(bottom,Math.max(top, chart.scales.y.getPixelForValue(yThresh)));
         ctx.save();
-        // quadrant fills
-        ctx.fillStyle='rgba(52,211,153,0.09)';   // top-left  ideal
+        ctx.fillStyle='rgba(52,211,153,0.09)';
         ctx.fillRect(left, top, Math.max(0,xp-left), Math.max(0,yp-top));
-        ctx.fillStyle='rgba(251,191,36,0.08)';   // top-right risky gain
+        ctx.fillStyle='rgba(251,191,36,0.08)';
         ctx.fillRect(xp, top, Math.max(0,right-xp), Math.max(0,yp-top));
-        ctx.fillStyle='rgba(148,163,184,0.06)';  // bottom-left low return
+        ctx.fillStyle='rgba(148,163,184,0.06)';
         ctx.fillRect(left, yp, Math.max(0,xp-left), Math.max(0,bottom-yp));
-        ctx.fillStyle='rgba(248,113,113,0.09)';  // bottom-right worst
+        ctx.fillStyle='rgba(248,113,113,0.09)';
         ctx.fillRect(xp, yp, Math.max(0,right-xp), Math.max(0,bottom-yp));
-        // dividers
         ctx.strokeStyle='rgba(148,163,184,0.5)';
         ctx.lineWidth=1;
         ctx.setLineDash([5,4]);
         ctx.beginPath();ctx.moveTo(xp,top);ctx.lineTo(xp,bottom);ctx.stroke();
         ctx.beginPath();ctx.moveTo(left,yp);ctx.lineTo(right,yp);ctx.stroke();
         ctx.setLineDash([]);
-        // corner labels
         ctx.font='700 9px Roboto, sans-serif';
         ctx.textAlign='left';ctx.textBaseline='top';
         ctx.fillStyle='rgba(52,211,153,0.9)';ctx.fillText('IDEAL · low risk / high return',left+6,top+5);
@@ -1191,17 +1192,16 @@ function computeIncomeRiskMetrics(portfolio,rates){
     quarters:qks,incomeValues:vals};
 }
 
-/* ── FIXED: sample standard deviation (n−1), positive amounts only, min 2 payments ── */
+/* Sample standard deviation (n−1), positive amounts only, min 2 payments */
 function computeHoldingVolatility(h,rates){
   const amounts = h.transactions
     .filter(t=>t.type==="dividend" && t.date)
     .map(t=>toAUD(t.totalAmount||0,h.currency,rates))
     .filter(v=>v>0);
-  if(amounts.length<2) return 0;              // insufficient history → treat as stable
+  if(amounts.length<2) return 0;
   const n=amounts.length;
   const mean=amounts.reduce((s,v)=>s+v,0)/n;
   if(mean<=0) return 0;
-  // Sample variance (divide by n−1) → unbiased CV estimate
   const variance=amounts.reduce((s,v)=>s+(v-mean)**2,0)/(n-1);
   const cv=(Math.sqrt(variance)/mean)*100;
   return Math.min(cv,150);
@@ -1270,8 +1270,14 @@ function App(){
 
   const T=dark?DARK:LIGHT;
   const winW=useWindowSize();
+  const winH=useWindowHeight();
   const isMob=winW<640;
   const isTablet=winW>=640&&winW<900;
+
+  /* Explicit treemap height — computed from viewport so it always fills */
+  const treemapHeightPx=isMob
+    ? Math.max(280,winW-28)
+    : Math.max(420,Math.min(820,winH-300));
 
   useEffect(()=>{
     if(!toast)return;
@@ -1279,23 +1285,17 @@ function App(){
     return()=>clearTimeout(t);
   },[toast]);
 
+  /* Observe treemap container size */
   useLayoutEffect(()=>{
+    if(view!=="treemap")return;
     const el=tmContainerRef.current; if(!el)return;
     const upd=()=>{const r=el.getBoundingClientRect();
       if(r.width>10&&r.height>10)setTmSize({w:r.width,h:r.height});};
-    upd(); requestAnimationFrame(upd);
-    const t=setTimeout(upd,150);
+    upd();
     const o=new ResizeObserver(upd); o.observe(el);
     window.addEventListener("resize",upd);
-    return()=>{clearTimeout(t);o.disconnect();window.removeEventListener("resize",upd);};
-  },[]);
-  useEffect(()=>{
-    if(view!=="treemap")return;
-    const el=tmContainerRef.current; if(!el)return;
-    const t=setTimeout(()=>{const r=el.getBoundingClientRect();
-      if(r.width>10&&r.height>10)setTmSize({w:r.width,h:r.height});},50);
-    return()=>clearTimeout(t);
-  },[view,tmMode]);
+    return()=>{o.disconnect();window.removeEventListener("resize",upd);};
+  },[view,tmMode,treemapHeightPx]);
 
   useLayoutEffect(()=>{
     const el=whatIfTmRef.current; if(!el)return;
@@ -1517,23 +1517,25 @@ function App(){
     return {qLabels,qVals,qoqGrowth,yoyGrowth,t12};
   },[holdings,portfolio,rates]);
 
+  /* ── FIXED: convert AUD → display currency before formatting ── */
   const yFmtMain=useCallback(v=>{
-    const abs=Math.abs(v);
+    const a=fromAUD(v,displayCur,rates);
+    const abs=Math.abs(a);
     if(displayCur==="IDR"){
-      if(abs>=1e9)return`Rp${(v/1e9).toFixed(1)}M`;
-      if(abs>=1e6)return`Rp${(v/1e6).toFixed(1)}Jt`;
-      if(abs>=1e3)return`Rp${(v/1e3).toFixed(0)}Rb`;
-      return`Rp${v.toFixed(0)}`;
+      if(abs>=1e9)return`Rp${(a/1e9).toFixed(1)}M`;
+      if(abs>=1e6)return`Rp${(a/1e6).toFixed(1)}Jt`;
+      if(abs>=1e3)return`Rp${(a/1e3).toFixed(0)}Rb`;
+      return`Rp${a.toFixed(0)}`;
     }else if(displayCur==="USD"){
-      if(abs>=1e6)return`US$${(v/1e6).toFixed(1)}M`;
-      if(abs>=1e3)return`US$${(v/1e3).toFixed(1)}K`;
-      return`US$${v.toFixed(2)}`;
+      if(abs>=1e6)return`US$${(a/1e6).toFixed(1)}M`;
+      if(abs>=1e3)return`US$${(a/1e3).toFixed(1)}K`;
+      return`US$${a.toFixed(2)}`;
     }else{
-      if(abs>=1e6)return`A$${(v/1e6).toFixed(1)}M`;
-      if(abs>=1e3)return`A$${(v/1e3).toFixed(1)}K`;
-      return`A$${v.toFixed(2)}`;
+      if(abs>=1e6)return`A$${(a/1e6).toFixed(1)}M`;
+      if(abs>=1e3)return`A$${(a/1e3).toFixed(1)}K`;
+      return`A$${a.toFixed(2)}`;
     }
-  },[displayCur]);
+  },[displayCur,rates]);
 
   const perfRects=useMemo(()=>{
     const it=holdings.map(h=>({...h,value:h.currentValue})).sort((a,b)=>b.value-a.value);
@@ -2412,13 +2414,15 @@ function App(){
 
         <main style={{padding:"12px 14px"}}>
           {view==="treemap"&&(
-            <div className="tm-wrap" style={{display:"flex",gap:12,alignItems:"stretch",
+            <div className="tm-wrap" style={{display:"flex",gap:12,alignItems:"flex-start",
               flexWrap:isMob?"wrap":"nowrap"}}>
-              <div ref={tmContainerRef} style={{flex:"1 1 280px",width:isMob?"100%":"auto",
-                height:isMob?"calc(100vw - 28px)":"auto",
-                minHeight:isMob?undefined:400,
-                position:"relative",borderRadius:12,
-                overflow:"hidden",border:"1px solid "+T.border,background:T.bg3,minWidth:180}}>
+              <div ref={tmContainerRef} style={{
+                flex: isMob ? "1 1 100%" : "1 1 280px",
+                width: isMob ? "100%" : "auto",
+                height: treemapHeightPx,
+                position: "relative", borderRadius: 12, overflow: "hidden",
+                border: "1px solid "+T.border, background: T.bg3, minWidth: 180
+              }}>
                 {rects.map(r=>{
                   let pct=0, colorFn;
                   if(tmMode==="performance"){pct=r.gainPct;colorFn=getPerformanceColor;}
@@ -2461,8 +2465,14 @@ function App(){
                   {tmMode==="dividend"?"No dividends recorded yet":"No holdings — tap + Add"}
                 </div>}
               </div>
-              <div className="detail-panel" style={{width:isMob?"100%":240,flexShrink:0,
-                ...card({padding:14,minHeight:isMob?"80px":160})}}>
+              <div className="detail-panel" style={{
+                width: isMob ? "100%" : 240,
+                flexShrink: 0,
+                height: isMob ? undefined : treemapHeightPx,
+                maxHeight: isMob ? undefined : treemapHeightPx,
+                overflowY: isMob ? "visible" : "auto",
+                ...card({padding:14, minHeight: isMob ? "80px" : undefined})
+              }}>
                 {selH?(
                   <>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
@@ -2651,7 +2661,6 @@ function App(){
               if(i<3)return null;
               return (qVals[i]+qVals[i-1]+qVals[i-2]+qVals[i-3])/4;
             });
-            /* ── NEW: cumulative income line ── */
             const cumVals=[];
             {let run=0; for(const v of qVals){run+=v;cumVals.push(run);}}
 
@@ -2675,7 +2684,6 @@ function App(){
             return (
               <div style={{display:"flex",flexDirection:"column",gap:14}}>
 
-                {/* 1. INCOME GROWTH TRAJECTORY (with cumulative + legend) */}
                 <div style={card({padding:18})}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",
                     marginBottom:12,flexWrap:"wrap",gap:8}}>
@@ -2722,7 +2730,6 @@ function App(){
                   }
                 </div>
 
-                {/* 2. RISK vs REWARD */}
                 <div style={card({padding:18})}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",
                     marginBottom:12,flexWrap:"wrap",gap:8}}>
@@ -2746,7 +2753,6 @@ function App(){
                   }
                 </div>
 
-                {/* 3. CONTRIBUTION HEATMAP */}
                 <div style={card({padding:18})}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",
                     marginBottom:14,flexWrap:"wrap",gap:8}}>
