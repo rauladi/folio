@@ -1747,9 +1747,19 @@ function App(){
     if(cur==="USD")return`US$${fmtAUD(v)}`;
     return`A$${fmtAUD(v)}`;
   };
-  /* NEW: Avg cost in the holding's native currency, matching Current column */
+  /* ROBUST: Avg cost in native currency, fallback to transaction calc if costBasis is 0/invalid */
   const fmtAvgCostNative=(h)=>{
-    const avg=h.costBasis/Math.max(h.qty,1e-9);
+    let avg=h.costBasis/Math.max(h.qty,1e-9);
+    
+    // Fallback: if cost basis is 0 or suspiciously low (e.g. < 0.01), calculate from transactions
+    if(!isFinite(avg)||avg<=0.01){
+      let totalCost=0,totalQty=0;
+      h.transactions.forEach(t=>{
+        if(t.type==="buy"){totalCost+=(t.qty*t.price);totalQty+=t.qty;}
+      });
+      avg=totalCost/Math.max(totalQty,1e-9);
+    }
+    
     if(!isFinite(avg)||avg<=0)return"—";
     if(h.currency==="IDR")return`Rp ${fmtIDR(avg)}`;
     if(h.currency==="USD")return`US$${fmtAUD(avg)}`;
