@@ -753,7 +753,7 @@ function ChartDoughnut({labels,data,colors,T,height=230,mobile=false}){
     });
     return()=>{if(inst.current){inst.current.destroy();inst.current=null;}};
   },[sig,T,mobile]);
-  return <div className="chart-wrap" style={{height}}><canvas ref={ref} /></div>;
+  return <div className="chart-wrap" style={{height}}><canvas ref={ref}/></div>;
 }
 
 function RiskRewardScatter({data,T,isMob}){
@@ -1747,6 +1747,14 @@ function App(){
     if(cur==="USD")return`US$${fmtAUD(v)}`;
     return`A$${fmtAUD(v)}`;
   };
+  /* NEW: Avg cost in the holding's native currency, matching Current column */
+  const fmtAvgCostNative=(h)=>{
+    const avg=h.costBasis/Math.max(h.qty,1e-9);
+    if(!isFinite(avg)||avg<=0)return"—";
+    if(h.currency==="IDR")return`Rp ${fmtIDR(avg)}`;
+    if(h.currency==="USD")return`US$${fmtAUD(avg)}`;
+    return`A$${fmtAUD(avg)}`;
+  };
   const fetchBarColor=fetchSt.loading?T.amber:Object.keys(fetchSt.errors).length>0?T.amber:
     fetchSt.lastUpdate?T.green:T.text3;
 
@@ -2501,6 +2509,7 @@ function App(){
                     {[
                       {title:"Price & Day",rows:[
                         ["Price",fmtNativePrice(selH,selH.currentPrice),T.text],
+                        ["Avg Cost",fmtAvgCostNative(selH),T.text2],
                         ["Day G/L",`${FG(selH.dayGain)} (${fmtPct(selH.dayGainPct)})`,pColor(selH.dayGain)]]},
                       {title:"Position",rows:[
                         ["Held",fmtDur(getHeldDays(selH))+" since "+fmtDate(getFirstBuyDate(selH)||"—"),T.text2],
@@ -2601,7 +2610,7 @@ function App(){
                           {h.qty<1?h.qty.toFixed(6):h.qty.toFixed(4)}</td>
                         <td style={{padding:"7px 9px",fontFamily:"'Space Mono',monospace",color:T.text2,
                           borderBottom:"1px solid "+T.border,whiteSpace:"nowrap",fontWeight:500}}>
-                          {FC(h.costBasis/Math.max(h.qty,1e-9),false)}</td>
+                          {fmtAvgCostNative(h)}</td>
                         <td style={{padding:"7px 9px",fontFamily:"'Space Mono',monospace",color:T.text,
                           borderBottom:"1px solid "+T.border,whiteSpace:"nowrap",fontWeight:500}}>
                           {fmtNativePrice(h,h.currentPrice)}</td>
