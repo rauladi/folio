@@ -2312,6 +2312,17 @@ function App(){
               <button onClick={handleExport} title="Backup / Export CSV"
                 style={{background:"transparent",border:"none",fontSize:14,padding:"4px 8px",
                   borderRadius:4,color:"#4ade80",cursor:"pointer"}}>📤</button>
+              
+              {/* RESTORED BUTTONS */}
+              <button onClick={autoRefresh} disabled={fetchSt.loading} title="Live Prices"
+                style={{background:"transparent",border:"none",fontSize:14,padding:"4px 8px",
+                  borderRadius:4,color:fetchBarColor,cursor:"pointer"}}>
+                <span className={fetchSt.loading?"spin":""}>{fetchSt.loading?"⟳":"🔄"}</span>
+              </button>
+              <button onClick={openImport} title="Import CSV"
+                style={{background:"transparent",border:"none",fontSize:14,padding:"4px 8px",
+                  borderRadius:4,color:T.text2,cursor:"pointer"}}>📥</button>
+              {/* END RESTORED */}
             </div>
           </div>
 
