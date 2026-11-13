@@ -40,11 +40,14 @@
 
   /* ── SIMPLIFIED HEADER STYLES ── */
   .header-simplified { display: flex; gap: 32px; align-items: center; flex-wrap: wrap; }
-  .header-simplified .part { display: flex; flex-direction: column; }
+  .header-simplified .part { display: flex; flex-direction: column; flex: 1; }
   .header-simplified .part-title { font-size: 10px; letter-spacing: 1.1px; text-transform: uppercase; font-weight: 600; color: var(--kpi-label,#8da3b5); margin-bottom: 4px; }
   .header-simplified .part-main { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
   .header-simplified .part-value { font-size: 24px; font-weight: 700; font-family: 'Space Mono', monospace; letter-spacing: -0.3px; line-height: 1.2; }
   .header-simplified .part-sub { font-size: 13px; font-weight: 500; }
+  
+  /* Desktop divider */
+  .header-simplified .part:nth-child(2) { border-left: 1px solid var(--border); padding-left: 32px; }
 
   .header-sysinfo{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:10px;
     color:var(--sysinfo-color,#8da3b5)}
@@ -108,6 +111,11 @@
       border: 1px solid var(--border,#1d2d38);
       border-radius: 10px;
       padding: 8px 12px;
+    }
+    /* Remove desktop divider on mobile */
+    .header-simplified .part:nth-child(2) {
+      border-left: 1px solid var(--border);
+      padding-left: 12px;
     }
     .header-simplified .part-title { font-size: 8px; margin-bottom: 2px; }
     .header-simplified .part-main { justify-content: space-between; }
@@ -2307,8 +2315,8 @@ function App(){
             </div>
           </div>
 
-          <div className="header-simplified" style={{justifyContent: "space-between", width: "100%"}}>
-            <div className="part" style={{flex: 1}}>
+          <div className="header-simplified">
+            <div className="part">
               <div className="part-title">Portfolio Value</div>
               <div className="part-main">
                 <span className="part-value" style={{color: T.text}}>{FC(totVal, true)}</span>
@@ -2317,10 +2325,8 @@ function App(){
                 </span>
               </div>
             </div>
-            
-            <div style={{width: 1, height: 36, background: T.border, margin: "0 16px"}} className="hide-mobile"></div>
 
-            <div className="part" style={{flex: 1}}>
+            <div className="part">
               <div className="part-title">Income</div>
               <div className="part-main">
                 <span className="part-value" style={{color: T.teal}}>{FC(totDivs, true)} <span style={{fontSize: 12, color: T.text3}}>({fmtPct(divYieldOnly)} yld)</span></span>
